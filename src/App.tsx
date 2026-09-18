@@ -339,6 +339,7 @@ export default function App() {
       ) : currentView === 'delivery' ? (
         <DeliveryDashboard
           onExit={() => setCurrentView('store')}
+          onLogout={handleLogout}
           showToast={showToast}
           settings={settings}
         />
