@@ -110,6 +110,9 @@ let settings: StoreSettings = {
     sectionSubtitle: 'Combos imperdibles y packs con despacho prioritario',
     badgeText: 'PROMOS RELÁMPAGO'
   },
+  bottomBannerImage: 'https://images.unsplash.com/photo-1527061011665-3652c757a4d4?q=80&w=1600&auto=format&fit=crop',
+  bottomBannerLink: '#mega-ofertas',
+  showBottomBanner: true,
   scheduleConfig: JSON.parse(JSON.stringify(DEFAULT_STORE_SCHEDULE))
 };
 

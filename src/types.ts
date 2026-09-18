@@ -205,6 +205,9 @@ export interface StoreSettings {
   socialFacebook: string;
   socialWhatsapp: string;
   megaOffersConfig?: MegaOffersConfig;
+  bottomBannerImage?: string;
+  bottomBannerLink?: string;
+  showBottomBanner?: boolean;
 }
 
 export interface EmailMarketingSubscriber {

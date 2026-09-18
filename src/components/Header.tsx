@@ -23,6 +23,8 @@ interface HeaderProps {
   categories: CategoryData[];
   onOpenAdmin: () => void;
   onOpenDelivery?: () => void;
+  onNavigateHome?: () => void;
+  onSelectCategory?: (categoryId: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -40,7 +42,9 @@ export const Header: React.FC<HeaderProps> = ({
   settings,
   categories,
   onOpenAdmin,
-  onOpenDelivery
+  onOpenDelivery,
+  onNavigateHome,
+  onSelectCategory
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [activePopup, setActivePopup] = useState<'delivery' | 'login' | 'cart' | null>(null);
@@ -160,23 +164,94 @@ export const Header: React.FC<HeaderProps> = ({
         ref={headerRef}
         className={`pointer-events-auto text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isScrolled
-            ? 'mt-2 sm:mt-2.5 w-[96%] sm:w-[92%] max-w-6xl rounded-2xl sm:rounded-3xl bg-[#141414]/95 backdrop-blur-md shadow-[0_12px_36px_rgba(0,0,0,0.6)] border border-stone-800/90 px-3 sm:px-6 py-2 sm:py-2.5'
-            : 'mt-0 w-full rounded-none bg-[#141414] shadow-md border-b border-stone-800/80 px-3 sm:px-4 md:px-8 py-2.5 sm:py-3'
+            ? 'mt-1.5 sm:mt-2 w-[98%] sm:w-[95%] max-w-6xl rounded-2xl bg-[#141414]/95 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.65)] border border-stone-800/90 px-3 sm:px-5 py-1.5 sm:py-2'
+            : 'mt-0 w-full rounded-none bg-[#141414] shadow-md border-b border-stone-800/80 px-3 sm:px-4 md:px-8 py-2 sm:py-2.5'
         }`}
       >
-        <div className="max-w-7xl mx-auto flex flex-col gap-2 sm:gap-2.5">
+        <div className="max-w-7xl mx-auto flex flex-col gap-1 sm:gap-1.5">
+          {/* DIVISIÓN SUPERIOR INTEGRADA: Sesión Repartidor Activa */}
+          {user?.role === 'delivery' && (
+            <div className="flex items-center justify-between pb-1.5 sm:pb-2 mb-1 border-b border-stone-800/80 text-[11px] sm:text-xs text-stone-300">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                <span className="font-bold text-cyan-400 flex items-center gap-1.5">
+                  <i className="fa-solid fa-motorcycle"></i> Sesión Repartidor Delivery
+                </span>
+                <span className="text-stone-400 hidden sm:inline font-normal">| {user.name}</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                {onOpenDelivery && (
+                  <button
+                    onClick={onOpenDelivery}
+                    className="bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-black px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] flex items-center gap-1.5 transition cursor-pointer shadow-xs uppercase tracking-wide"
+                  >
+                    <i className="fa-solid fa-boxes-stacked"></i>
+                    <span>Ir a Panel Delivery</span>
+                  </button>
+                )}
+                <button
+                  onClick={onLogout}
+                  className="text-stone-400 hover:text-white px-1.5 py-1 text-[11px] transition cursor-pointer flex items-center gap-1 hover:underline"
+                  title="Cerrar sesión"
+                >
+                  <i className="fa-solid fa-right-from-bracket text-[10px]"></i>
+                  <span className="hidden sm:inline">Cerrar Sesión</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* DIVISIÓN SUPERIOR INTEGRADA: Modo Administrador Activo */}
+          {user?.role === 'admin' && (
+            <div className="flex items-center justify-between pb-1.5 sm:pb-2 mb-1 border-b border-stone-800/80 text-[11px] sm:text-xs text-stone-300">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="font-bold text-[#ffd129] flex items-center gap-1.5">
+                  <i className="fa-solid fa-shield-halved"></i> Modo Administrador
+                </span>
+                <span className="text-stone-400 hidden sm:inline font-normal">| {user.email}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {onOpenDelivery && (
+                  <button
+                    onClick={onOpenDelivery}
+                    className="bg-stone-800 hover:bg-stone-700 text-cyan-400 border border-stone-700 font-bold px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <i className="fa-solid fa-motorcycle"></i>
+                    <span>Delivery</span>
+                  </button>
+                )}
+                <button
+                  onClick={onOpenAdmin}
+                  className="bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-black px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <i className="fa-solid fa-gauge"></i>
+                  <span>Panel Admin</span>
+                </button>
+              </div>
+            </div>
+          )}
         
         {/* ÁREA SUPERIOR: Logo, Despacho, Búsqueda, Login & Carrito */}
         <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4">
           
           {/* Logo Marca Dinámico */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <a href="#" className="text-lg sm:text-xl md:text-2xl font-extrabold tracking-wider text-white hover:opacity-90 transition flex items-center">
+            <a
+              href="#"
+              onClick={(e) => {
+                if (onNavigateHome) {
+                  e.preventDefault();
+                  onNavigateHome();
+                }
+              }}
+              className="text-base sm:text-lg md:text-xl font-extrabold tracking-wider text-white hover:opacity-90 transition flex items-center"
+            >
               {settings.logoImage ? (
                 <img
                   src={settings.logoImage}
                   alt={settings.storeName || 'Logo de la tienda'}
-                  className="h-8 sm:h-9 md:h-11 w-auto max-w-[130px] sm:max-w-[180px] md:max-w-[220px] object-contain"
+                  className="h-7 sm:h-8 md:h-9 w-auto max-w-[120px] sm:max-w-[160px] md:max-w-[200px] object-contain"
                 />
               ) : (
                 <>
@@ -660,40 +735,123 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* ÁREA INFERIOR: Menú Navegación Dinámico */}
-        <nav id="header-menu" className="border-t border-stone-800 pt-2 pb-1 flex items-center justify-between overflow-x-auto no-scrollbar touch-pan-x">
-          <ul className="flex items-center gap-4 sm:gap-5 md:gap-6 text-xs font-medium whitespace-nowrap text-stone-300">
-            <li>
-              <a href="#" className="text-[#ffd129] font-bold flex items-center gap-1.5 hover:opacity-90 transition">
-                <i className="fa-solid fa-house"></i> Inicio
-              </a>
-            </li>
-            {categories.map((cat) => (
-              <li key={cat.id}>
-                <a href={`#${cat.id}`} className="hover:text-[#ffd129] transition flex items-center gap-1.5">
-                  <i className={cat.icon}></i> {cat.name}
+        {/* ÁREA INFERIOR: Menú Navegación Dinámico con Efecto Infinito Suave */}
+        <nav
+          id="header-menu"
+          aria-label="Menú de categorías"
+          className="border-t border-stone-800/80 pt-1 pb-0.5 relative flex items-center justify-between overflow-hidden"
+        >
+          {/* Carrusel / Marquesina Infinita con Máscara de Desvanecimiento Invisible */}
+          <div className="flex-1 overflow-hidden marquee-mask relative py-0.5 min-w-0">
+            <div className="animate-marquee-infinite flex items-center text-[11px] sm:text-xs font-medium whitespace-nowrap text-stone-300">
+              
+              {/* Primer Bloque de Items */}
+              <div className="flex items-center gap-5 sm:gap-7 pr-5 sm:pr-7 shrink-0">
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    if (onNavigateHome) {
+                      e.preventDefault();
+                      onNavigateHome();
+                    }
+                  }}
+                  className="text-[#ffd129] font-black flex items-center gap-1.5 hover:text-white transition"
+                >
+                  <i className="fa-solid fa-house text-[10px]"></i>
+                  <span>Inicio</span>
                 </a>
-              </li>
-            ))}
-          </ul>
-          <div className="hidden md:flex items-center gap-3 text-[11px] text-stone-400 pl-4">
+                {categories.map((cat) => (
+                  <a
+                    key={`loop1-${cat.id}`}
+                    href={`#${cat.id}`}
+                    onClick={(e) => {
+                      if (onSelectCategory) {
+                        e.preventDefault();
+                        onSelectCategory(cat.id);
+                      }
+                    }}
+                    className="hover:text-[#ffd129] text-stone-200 transition flex items-center gap-1.5 shrink-0"
+                  >
+                    <i className={`${cat.icon} text-[#ffd129]/80 text-[11px]`}></i>
+                    <span>{cat.name}</span>
+                  </a>
+                ))}
+                <span className="text-stone-600 text-[10px]">✦</span>
+                <a
+                  href="#mega-ofertas"
+                  className="text-amber-400 font-bold flex items-center gap-1.5 hover:text-amber-300 transition shrink-0"
+                >
+                  <i className="fa-solid fa-fire text-red-500 text-[11px]"></i>
+                  <span>Mega Ofertas</span>
+                </a>
+                <span className="text-stone-600 text-[10px]">✦</span>
+              </div>
+
+              {/* Segundo Bloque de Items (Duplicado idéntico para continuidad infinita sin saltos) */}
+              <div className="flex items-center gap-5 sm:gap-7 pr-5 sm:pr-7 shrink-0" aria-hidden="true">
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    if (onNavigateHome) {
+                      e.preventDefault();
+                      onNavigateHome();
+                    }
+                  }}
+                  className="text-[#ffd129] font-black flex items-center gap-1.5 hover:text-white transition"
+                >
+                  <i className="fa-solid fa-house text-[10px]"></i>
+                  <span>Inicio</span>
+                </a>
+                {categories.map((cat) => (
+                  <a
+                    key={`loop2-${cat.id}`}
+                    href={`#${cat.id}`}
+                    onClick={(e) => {
+                      if (onSelectCategory) {
+                        e.preventDefault();
+                        onSelectCategory(cat.id);
+                      }
+                    }}
+                    className="hover:text-[#ffd129] text-stone-200 transition flex items-center gap-1.5 shrink-0"
+                  >
+                    <i className={`${cat.icon} text-[#ffd129]/80 text-[11px]`}></i>
+                    <span>{cat.name}</span>
+                  </a>
+                ))}
+                <span className="text-stone-600 text-[10px]">✦</span>
+                <a
+                  href="#mega-ofertas"
+                  className="text-amber-400 font-bold flex items-center gap-1.5 hover:text-amber-300 transition shrink-0"
+                >
+                  <i className="fa-solid fa-fire text-red-500 text-[11px]"></i>
+                  <span>Mega Ofertas</span>
+                </a>
+                <span className="text-stone-600 text-[10px]">✦</span>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Acceso Rápido Derecho */}
+          <div className="hidden md:flex items-center gap-3 text-[11px] text-stone-400 pl-4 shrink-0 border-l border-stone-800/80">
             {user?.role === 'admin' ? (
               <button
                 onClick={onOpenAdmin}
                 className="text-[#ffd129] hover:underline font-bold flex items-center gap-1 cursor-pointer"
               >
-                <i className="fa-solid fa-gauge"></i> Ir a Panel Admin
+                <i className="fa-solid fa-gauge"></i> Ir a Admin
               </button>
             ) : user?.role === 'delivery' ? (
               <button
                 onClick={onOpenDelivery}
                 className="text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
               >
-                <i className="fa-solid fa-motorcycle"></i> Panel de Delivery
+                <i className="fa-solid fa-motorcycle"></i> Delivery
               </button>
             ) : (
-              <div className="flex items-center gap-2">
-                <i className="fa-solid fa-motorcycle text-[#ffd129]"></i> Despacho en 45 min
+              <div className="flex items-center gap-1.5 text-stone-300 font-medium">
+                <i className="fa-solid fa-motorcycle text-[#ffd129]"></i>
+                <span>Despacho 45 min</span>
               </div>
             )}
           </div>

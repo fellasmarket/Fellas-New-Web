@@ -7,6 +7,9 @@ import { Newsletter } from './components/Newsletter';
 import { MegaOffers } from './components/MegaOffers';
 import { CategoryGrid } from './components/CategoryGrid';
 import { CategorySection } from './components/CategorySection';
+import { CategoryCatalogView } from './components/CategoryCatalogView';
+import { BottomPromoBanner } from './components/BottomPromoBanner';
+import { FloatingActions } from './components/FloatingActions';
 import { CheckoutModal } from './components/CheckoutModal';
 import { Footer } from './components/Footer';
 import { Toast } from './components/Toast';
@@ -26,6 +29,9 @@ const DEFAULT_SETTINGS: StoreSettings = {
   socialTwitter: 'https://twitter.com',
   socialFacebook: 'https://facebook.com',
   socialWhatsapp: '+56912345678',
+  bottomBannerImage: 'https://images.unsplash.com/photo-1527061011665-3652c757a4d4?q=80&w=1600&auto=format&fit=crop',
+  bottomBannerLink: '#mega-ofertas',
+  showBottomBanner: true,
   deliveryZones: [
     'Santiago Centro',
     'Providencia',
@@ -47,6 +53,7 @@ const DEFAULT_SETTINGS: StoreSettings = {
 export default function App() {
   // Navigation / View state: 'store', 'admin' or 'delivery'
   const [currentView, setCurrentView] = useState<'store' | 'admin' | 'delivery'>('store');
+  const [selectedCatalogCategoryId, setSelectedCatalogCategoryId] = useState<string | null>(null);
 
   // Dynamic Data States connected to backend / defaults
   const [categories, setCategories] = useState<CategoryData[]>(INITIAL_CATEGORIES);
@@ -279,48 +286,6 @@ export default function App() {
 
   return (
     <div className="bg-stone-100 min-h-screen text-[#141414] antialiased relative selection:bg-[#ffd129] selection:text-[#141414]">
-      {/* Barra superior si el usuario es admin o repartidor y está en la tienda */}
-      {user?.role === 'admin' && currentView === 'store' && (
-        <aside aria-label="Acceso a panel de control" className="bg-[#ffd129] text-[#141414] px-4 py-2 text-xs font-bold flex items-center justify-between shadow-md fixed top-0 left-0 right-0 z-60">
-          <div className="flex items-center gap-2">
-            <i className="fa-solid fa-shield-halved"></i>
-            <span>Modo Administrador Activo ({user.email})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentView('delivery')}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <i className="fa-solid fa-motorcycle"></i>
-              <span>Panel Delivery</span>
-            </button>
-            <button
-              onClick={() => setCurrentView('admin')}
-              className="bg-[#141414] text-white hover:bg-stone-800 px-3 py-1 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <i className="fa-solid fa-gauge"></i>
-              <span>Panel Admin</span>
-            </button>
-          </div>
-        </aside>
-      )}
-
-      {user?.role === 'delivery' && currentView === 'store' && (
-        <aside aria-label="Acceso a panel de repartidores" className="bg-blue-600 text-white px-4 py-2 text-xs font-bold flex items-center justify-between shadow-md fixed top-0 left-0 right-0 z-60">
-          <div className="flex items-center gap-2">
-            <i className="fa-solid fa-motorcycle"></i>
-            <span>Sesión Repartidor Activa ({user.name})</span>
-          </div>
-          <button
-            onClick={() => setCurrentView('delivery')}
-            className="bg-[#ffd129] text-[#141414] hover:bg-yellow-400 px-3 py-1 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer shadow"
-          >
-            <i className="fa-solid fa-boxes-stacked"></i>
-            <span>Ir al Panel de Delivery</span>
-          </button>
-        </aside>
-      )}
-
       {/* RENDERIZADO CONDICIONAL: Vista Admin vs Vista Delivery vs Vista Tienda */}
       {currentView === 'admin' ? (
         <AdminDashboard
@@ -362,6 +327,16 @@ export default function App() {
             categories={categories}
             onOpenAdmin={() => setCurrentView('admin')}
             onOpenDelivery={() => setCurrentView('delivery')}
+            onNavigateHome={() => {
+              setSelectedCatalogCategoryId(null);
+              setSearchQuery('');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onSelectCategory={(catId) => {
+              setSelectedCatalogCategoryId(catId);
+              setSearchQuery('');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
 
           {/* Contenido Principal con espaciado superior prudente respecto al encabezado */}
@@ -470,6 +445,23 @@ export default function App() {
                   </div>
                 )}
               </section>
+            ) : selectedCatalogCategoryId ? (
+              /* Vista Completa de Catálogo de Categoría con Menú lateral de filtros y búsqueda */
+              <CategoryCatalogView
+                category={
+                  categories.find((c) => c.id === selectedCatalogCategoryId) || categories[0]
+                }
+                onAddToCart={handleAddToCart}
+                onBack={() => {
+                  setSelectedCatalogCategoryId(null);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                allCategories={categories}
+                onSelectCategory={(catId) => {
+                  setSelectedCatalogCategoryId(catId);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
             ) : (
               <>
                 {/* 1. Hero Banner Carousel Dinámico */}
@@ -490,8 +482,30 @@ export default function App() {
                     key={category.id}
                     category={category}
                     onAddToCart={handleAddToCart}
+                    onOpenCategoryCatalog={(catId) => {
+                      setSelectedCatalogCategoryId(catId);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                   />
                 ))}
+
+                {/* 6. Banner Promocional Final (Entre las secciones de productos y el pie de página) */}
+                <BottomPromoBanner
+                  settings={settings}
+                  onOpenWhatsApp={() => {
+                    const cleanNum = (settings.socialWhatsapp || settings.contactPhone || '+56958866754').replace(/[^0-9]/g, '');
+                    const message = encodeURIComponent(
+                      `¡Hola ${settings.storeName || "Fella's Market"}! Quisiera consultar por promociones o realizar un pedido exprés.`
+                    );
+                    window.open(`https://wa.me/${cleanNum}?text=${message}`, '_blank', 'noopener,noreferrer');
+                  }}
+                  onExploreProducts={() => {
+                    if (categories.length > 0) {
+                      setSelectedCatalogCategoryId(categories[0].id);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                />
               </>
             )}
           </main>
@@ -508,6 +522,12 @@ export default function App() {
 
           {/* Pie de página con datos dinámicos */}
           <Footer settings={settings} categories={categories} />
+
+          {/* Botones Flotantes Fijos: Volver arriba & Contacto WhatsApp */}
+          <FloatingActions
+            whatsappNumber={settings.socialWhatsapp || settings.contactPhone}
+            storeName={settings.storeName}
+          />
         </>
       )}
 

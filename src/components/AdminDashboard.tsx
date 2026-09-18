@@ -1777,11 +1777,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
-        {/* TAB: BANNER PRINCIPAL (HERO SLIDER) */}
+        {/* TAB: BANNER PRINCIPAL Y BANNER INFERIOR */}
         {activeTab === 'hero_banner' && (
           <HeroBannerEditor
             heroSlides={heroSlides}
             onUpdateHeroSlides={onUpdateHeroSlides}
+            settings={formSettings}
+            onUpdateSettings={(updated) => {
+              setFormSettings(updated);
+              onUpdateSettings(updated);
+            }}
             showToast={showToast}
           />
         )}

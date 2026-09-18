@@ -238,16 +238,22 @@ export const FooterEditor: React.FC<FooterEditorProps> = ({
               </div>
 
               <div>
-                <span className="text-[11px] text-gray-400 block mb-1 flex items-center gap-1">
-                  <i className="fa-brands fa-whatsapp text-emerald-400"></i> WhatsApp
+                <span className="text-[11px] text-gray-400 block mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <i className="fa-brands fa-whatsapp text-emerald-400"></i> WhatsApp (Botón Flotante & Banner)
+                  </span>
+                  <span className="text-[10px] text-emerald-500 font-bold">Activo</span>
                 </span>
                 <input
                   type="text"
                   value={form.socialWhatsapp || ''}
                   onChange={(e) => setForm({ ...form, socialWhatsapp: e.target.value })}
-                  placeholder="https://wa.me/569..."
+                  placeholder="+56958866754 o 56912345678"
                   className="w-full bg-[#141414] border border-gray-800 rounded-xl p-2 text-xs text-white focus:border-[#ffd025]"
                 />
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Número que se abrirá automáticamente en el botón flotante y banner de pedidos.
+                </p>
               </div>
 
               <div>

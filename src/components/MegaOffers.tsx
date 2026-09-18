@@ -19,7 +19,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({ onAddToCart, megaOffers,
 
   return (
     <section className="max-w-7xl mx-auto mt-6 px-1 sm:px-0">
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-blue-400/50 p-3.5 sm:p-6 shadow-2xl text-white bg-[#002b7f]">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-2xl text-white bg-[#002b7f]">
         {/* Imagen de fondo */}
         <img
           src={bgImg}

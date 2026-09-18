@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { HeroSlide } from '../../types';
+import { HeroSlide, StoreSettings } from '../../types';
 
 interface HeroBannerEditorProps {
   heroSlides: HeroSlide[];
   onUpdateHeroSlides: (slides: HeroSlide[]) => void;
+  settings?: StoreSettings;
+  onUpdateSettings?: (settings: StoreSettings) => void;
   showToast: (msg: string) => void;
 }
 
@@ -43,6 +45,8 @@ const PRESET_ICONS = [
 export const HeroBannerEditor: React.FC<HeroBannerEditorProps> = ({
   heroSlides,
   onUpdateHeroSlides,
+  settings,
+  onUpdateSettings,
   showToast
 }) => {
   const [slides, setSlides] = useState<HeroSlide[]>(heroSlides);
@@ -50,6 +54,19 @@ export const HeroBannerEditor: React.FC<HeroBannerEditorProps> = ({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bottomBannerFileRef = useRef<HTMLInputElement>(null);
+
+  // Bottom Banner local state
+  const [bottomBannerImage, setBottomBannerImage] = useState(
+    settings?.bottomBannerImage || PRESET_BANNER_IMAGES[0].url
+  );
+  const [bottomBannerLink, setBottomBannerLink] = useState(
+    settings?.bottomBannerLink || '#mega-ofertas'
+  );
+  const [showBottomBanner, setShowBottomBanner] = useState(
+    settings?.showBottomBanner !== false
+  );
+  const [isSavingBottomBanner, setIsSavingBottomBanner] = useState(false);
 
   const [form, setForm] = useState<HeroSlide>({
     id: Date.now(),
@@ -65,6 +82,14 @@ export const HeroBannerEditor: React.FC<HeroBannerEditorProps> = ({
   useEffect(() => {
     setSlides(heroSlides);
   }, [heroSlides]);
+
+  useEffect(() => {
+    if (settings) {
+      if (settings.bottomBannerImage) setBottomBannerImage(settings.bottomBannerImage);
+      if (settings.bottomBannerLink !== undefined) setBottomBannerLink(settings.bottomBannerLink);
+      if (settings.showBottomBanner !== undefined) setShowBottomBanner(settings.showBottomBanner);
+    }
+  }, [settings]);
 
   // Persist updated slides to backend and parent state
   const persistSlides = async (newSlides: HeroSlide[]) => {
@@ -88,6 +113,56 @@ export const HeroBannerEditor: React.FC<HeroBannerEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Save Bottom Promo Banner Settings
+  const handleSaveBottomBanner = async () => {
+    if (!settings || !onUpdateSettings) {
+      showToast('Banner inferior actualizado localmente');
+      return;
+    }
+    setIsSavingBottomBanner(true);
+    const updatedSettings: StoreSettings = {
+      ...settings,
+      bottomBannerImage: bottomBannerImage.trim(),
+      bottomBannerLink: bottomBannerLink.trim(),
+      showBottomBanner
+    };
+
+    onUpdateSettings(updatedSettings);
+
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedSettings)
+      });
+      if (res.ok) {
+        showToast('¡Banner inferior (Pre-Footer) guardado y actualizado con éxito!');
+      } else {
+        showToast('Ajustes del banner guardados localmente');
+      }
+    } catch (err) {
+      console.error('Error saving bottom banner:', err);
+      showToast('Ajustes del banner guardados localmente');
+    } finally {
+      setIsSavingBottomBanner(false);
+    }
+  };
+
+  const handleBottomBannerFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setBottomBannerImage(dataUrl);
+        showToast('Imagen del banner inferior cargada');
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleOpenAddModal = () => {
@@ -301,6 +376,164 @@ export const HeroBannerEditor: React.FC<HeroBannerEditorProps> = ({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* SECCIÓN: BANNER PROMOCIONAL INFERIOR (PRE-FOOTER - 1/3 ALTURA SOLO IMAGEN) */}
+      <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-800 pb-5">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-black uppercase text-[#ffd025] mb-1">
+              <i className="fa-solid fa-image"></i> Banner Inferior (Pre-Footer)
+            </div>
+            <h3 className="text-lg sm:text-xl font-black text-white">
+              Banner Publicitario de 1/3 de Altura (Solo Imagen)
+            </h3>
+            <p className="text-xs text-gray-400 mt-1 max-w-2xl">
+              Ubicado entre las categorías de productos y el pie de página. Formato apaisado compacto sin textos ni botones sobrepuestos, ideal para afiches, promociones gráficas o marcas.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSaveBottomBanner}
+            disabled={isSavingBottomBanner}
+            className="bg-[#ffd025] hover:bg-yellow-400 text-[#141414] font-black text-xs px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-[#ffd025]/20 cursor-pointer uppercase shrink-0 disabled:opacity-50"
+          >
+            <i className={`fa-solid ${isSavingBottomBanner ? 'fa-spinner fa-spin' : 'fa-floppy-disk'}`}></i>
+            <span>{isSavingBottomBanner ? 'Guardando...' : 'Guardar Banner Inferior'}</span>
+          </button>
+        </div>
+
+        {/* Interruptor de Visibilidad */}
+        <div className="flex items-center justify-between p-4 bg-[#141414] border border-gray-800 rounded-2xl">
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm ${showBottomBanner ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-gray-800 text-gray-400'}`}>
+              <i className="fa-solid fa-eye"></i>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white uppercase">Estado del Banner Inferior</p>
+              <p className="text-[11px] text-gray-400">
+                {showBottomBanner ? 'Visible para todos los clientes en la tienda' : 'Oculto actualmente'}
+              </p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showBottomBanner}
+              onChange={(e) => setShowBottomBanner(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#ffd025]"></div>
+          </label>
+        </div>
+
+        {/* Vista Previa en Vivo con proporción real 1/3 de altura */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-gray-300 uppercase flex items-center gap-1.5">
+              <i className="fa-solid fa-desktop text-[#ffd025]"></i> Vista Previa en Vivo (Proporción 1/3)
+            </label>
+            <span className="text-[11px] text-gray-500">Medida recomendada: 1600 x 400 px o 1200 x 300 px</span>
+          </div>
+
+          <div className="w-full relative h-24 sm:h-32 md:h-40 rounded-2xl overflow-hidden bg-[#121214] border-2 border-dashed border-gray-700 shadow-inner group">
+            {bottomBannerImage ? (
+              <img
+                src={bottomBannerImage}
+                alt="Vista previa banner inferior"
+                className="w-full h-full object-cover object-center"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 gap-1">
+                <i className="fa-solid fa-image text-2xl"></i>
+                <span className="text-xs">Sin imagen seleccionada</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Configuración de la Imagen */}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-300 uppercase mb-1.5">
+              URL de la Imagen del Banner
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={bottomBannerImage}
+                onChange={(e) => setBottomBannerImage(e.target.value)}
+                placeholder="https://images.unsplash.com/... o enlace de tu imagen"
+                className="flex-1 bg-[#141414] border border-gray-800 rounded-xl p-3 text-xs text-white focus:border-[#ffd025]"
+              />
+              <button
+                type="button"
+                onClick={() => bottomBannerFileRef.current?.click()}
+                className="bg-gray-800 hover:bg-gray-700 text-stone-200 hover:text-white px-4 py-3 rounded-xl text-xs font-bold border border-gray-700 flex items-center justify-center gap-2 cursor-pointer shrink-0"
+              >
+                <i className="fa-solid fa-upload text-[#ffd025]"></i>
+                <span>Subir Archivo</span>
+              </button>
+              <input
+                type="file"
+                ref={bottomBannerFileRef}
+                onChange={handleBottomBannerFileUpload}
+                accept="image/*"
+                className="hidden"
+              />
+            </div>
+          </div>
+
+          {/* Presets recomendados */}
+          <div>
+            <span className="text-[11px] text-gray-400 block mb-2">
+              O elige una de nuestras imágenes temáticas de botillería:
+            </span>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+              {PRESET_BANNER_IMAGES.map((imgPreset) => (
+                <button
+                  key={`bottom-${imgPreset.url}`}
+                  type="button"
+                  onClick={() => setBottomBannerImage(imgPreset.url)}
+                  className={`group p-1.5 rounded-xl border text-left transition overflow-hidden cursor-pointer ${
+                    bottomBannerImage === imgPreset.url
+                      ? 'border-[#ffd025] bg-[#ffd025]/10 shadow'
+                      : 'border-gray-800 bg-[#141414] hover:border-gray-700'
+                  }`}
+                >
+                  <div className="h-14 rounded-lg overflow-hidden relative mb-1.5 bg-stone-900">
+                    <img
+                      src={imgPreset.url}
+                      alt={imgPreset.label}
+                      className="w-full h-full object-cover group-hover:scale-105 transition"
+                    />
+                  </div>
+                  <span className="text-[10px] font-bold text-gray-300 group-hover:text-white block truncate">
+                    {imgPreset.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Enlace de destino opcional */}
+          <div>
+            <label className="block text-xs font-bold text-gray-300 uppercase mb-1.5">
+              Enlace de Destino al pulsar el Banner (Opcional)
+            </label>
+            <input
+              type="text"
+              value={bottomBannerLink}
+              onChange={(e) => setBottomBannerLink(e.target.value)}
+              placeholder="Ej: #mega-ofertas, #cat-destilados, o https://wa.me/..."
+              className="w-full bg-[#141414] border border-gray-800 rounded-xl p-3 text-xs text-white focus:border-[#ffd025]"
+            />
+            <p className="text-[11px] text-gray-500 mt-1">
+              Puedes usar anclas como <code className="text-[#ffd025]">#mega-ofertas</code>, <code className="text-[#ffd025]">#cat-piscos</code> o un enlace web externo.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* MODAL DE EDICIÓN O CREACIÓN DE SLIDE */}

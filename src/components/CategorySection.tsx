@@ -5,10 +5,14 @@ import { formatPrice, getDiscountPercentage } from '../data/products';
 interface CategorySectionProps {
   category: CategoryData;
   onAddToCart: (product: Product) => void;
+  onOpenCategoryCatalog?: (categoryId: string) => void;
 }
 
-export const CategorySection: React.FC<CategorySectionProps> = ({ category, onAddToCart }) => {
-  const [showAllModal, setShowAllModal] = useState(false);
+export const CategorySection: React.FC<CategorySectionProps> = ({
+  category,
+  onAddToCart,
+  onOpenCategoryCatalog
+}) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const scroll = (direction: 'left' | 'right') => {
@@ -21,10 +25,17 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ category, onAd
     }
   };
 
+  const handleOpenCatalog = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onOpenCategoryCatalog) {
+      onOpenCategoryCatalog(category.id);
+    }
+  };
+
   return (
     <section id={category.id} className="max-w-7xl mx-auto mt-6 sm:mt-8 pt-4 border-t border-stone-200 px-1 sm:px-0">
       {/* Banner de Categoría: Solo la imagen sin textos sobrepuestos */}
-      <div className="relative w-full h-[22vh] sm:h-[26vh] md:h-[28vh] min-h-[160px] sm:min-h-[200px] max-h-[270px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl bg-stone-900 border border-stone-200">
+      <div className="relative w-full h-[22vh] sm:h-[26vh] md:h-[28vh] min-h-[160px] sm:min-h-[200px] max-h-[270px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl bg-stone-900">
         <img
           src={category.bannerImage}
           alt={category.name || category.title}
@@ -52,15 +63,16 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ category, onAd
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Botón Ver Más */}
-            <button
+            {/* Botón Ver Más (Abre el catálogo completo en vista dedicada) */}
+            <a
               id={`ver-mas-${category.id}`}
-              onClick={() => setShowAllModal(true)}
-              className="inline-flex items-center gap-1.5 bg-stone-900 hover:bg-[#141414] text-[#ffd129] hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold border border-stone-800 transition shadow-sm active:scale-95"
+              href={`#catalogo-${category.id}`}
+              onClick={handleOpenCatalog}
+              className="inline-flex items-center gap-1.5 bg-stone-900 hover:bg-[#141414] text-[#ffd129] hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-bold border border-stone-800 transition shadow-sm active:scale-95 cursor-pointer"
             >
               <span>Ver más</span>
               <i className="fa-solid fa-arrow-right text-[10px]"></i>
-            </button>
+            </a>
 
             {/* Controles del Carrusel */}
             <div className="flex items-center gap-1">
@@ -164,127 +176,6 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ category, onAd
           })}
         </div>
       </div>
-
-      {/* Modal Ver Más: Catálogo completo de la subdivisión */}
-      {showAllModal && (
-        <div
-          id={`modal-ver-mas-${category.id}`}
-          className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200"
-        >
-          <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-4xl shadow-2xl p-4 sm:p-6 relative max-h-[92vh] overflow-y-auto border border-stone-200">
-            {/* Header del Modal */}
-            <div className="flex items-center justify-between pb-3 sm:pb-4 mb-4 sm:mb-5 border-b border-stone-200">
-              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-base sm:text-lg border border-amber-200 shrink-0">
-                  <i className={category.icon}></i>
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-base sm:text-lg font-extrabold text-stone-900 truncate">
-                    Catálogo: {category.name}
-                  </h3>
-                  <p className="text-[11px] sm:text-xs text-stone-500 font-light truncate">
-                    Mostrando todos los {category.products.length} productos disponibles
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAllModal(false)}
-                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-900 flex items-center justify-center transition shrink-0"
-              >
-                <i className="fa-solid fa-xmark"></i>
-              </button>
-            </div>
-
-            {/* Grid con todos los productos */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {category.products.map((product) => {
-                const autoDiscount = product.discount || getDiscountPercentage(product.price, product.originalPrice);
-                const hasDiscount = product.originalPrice && product.originalPrice > product.price;
-
-                return (
-                  <div
-                    key={product.id}
-                    className="bg-stone-50 border border-stone-200 hover:border-[#ffd129] rounded-2xl p-3.5 shadow-xs hover:shadow-md transition flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="h-36 bg-white rounded-xl mb-2.5 overflow-hidden relative border border-stone-100">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className={`w-full h-full object-cover ${product.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
-                          loading="lazy"
-                        />
-                        {autoDiscount && product.inStock !== false && (
-                          <span className="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-md animate-pulse">
-                            {autoDiscount}
-                          </span>
-                        )}
-                        {product.inStock === false && (
-                          <span className="absolute top-2 left-2 bg-stone-900/90 text-red-400 border border-red-500/40 text-[9px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider flex items-center gap-1">
-                            <i className="fa-solid fa-ban text-[8px]"></i> Sin stock
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[9px] font-bold text-amber-700 uppercase tracking-wider block truncate">
-                        {product.subcategory}
-                      </span>
-                      <h5 className="text-xs font-bold text-stone-900 mt-0.5 line-clamp-2 h-8 leading-snug break-words">
-                        {product.name}
-                      </h5>
-                      <p className="text-[10px] text-stone-500 mt-1 line-clamp-2 font-light">
-                        {product.description}
-                      </p>
-                    </div>
-
-                    <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center justify-between gap-1.5 min-w-0">
-                      <div className="min-w-0">
-                        {hasDiscount && (
-                          <span className="text-[10px] font-bold text-red-600 line-through decoration-red-600 decoration-2 block leading-tight">
-                            {formatPrice(product.originalPrice!)}
-                          </span>
-                        )}
-                        <span className="text-xs font-black text-stone-900 block truncate">
-                          {formatPrice(product.price)}
-                        </span>
-                      </div>
-                      {product.inStock === false ? (
-                        <button
-                          disabled
-                          aria-label={`${product.name} sin stock`}
-                          className="bg-stone-200 text-stone-500 text-[10px] font-bold px-2.5 py-1.5 rounded-lg cursor-not-allowed flex items-center gap-1 opacity-70 shrink-0"
-                        >
-                          <i className="fa-solid fa-ban text-[8px]"></i>
-                          <span>Sin stock</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            onAddToCart(product);
-                          }}
-                          className="bg-[#ffd129] text-[#141414] text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-yellow-400 transition shadow-sm active:scale-95 flex items-center gap-1 cursor-pointer shrink-0"
-                        >
-                          <i className="fa-solid fa-cart-plus text-[9px]"></i>
-                          <span>Agregar</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Footer Modal */}
-            <div className="mt-6 pt-4 border-t border-stone-200 flex justify-end">
-              <button
-                onClick={() => setShowAllModal(false)}
-                className="bg-stone-900 text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-stone-800 transition"
-              >
-                Cerrar Catálogo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 };
