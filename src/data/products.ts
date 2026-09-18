@@ -1,4 +1,4 @@
-import { CategoryData, HeroSlide, Product } from '../types';
+import { CategoryData, HeroSlide, Product, DeliveryLocation, StoreSettings } from '../types';
 
 export const HERO_SLIDES: HeroSlide[] = [
   {
@@ -537,3 +537,60 @@ export const getDiscountPercentage = (price: number, originalPrice?: number): st
   const pct = Math.round(((originalPrice - price) / originalPrice) * 100);
   return pct > 0 ? `-${pct}%` : null;
 };
+
+export const DEFAULT_DELIVERY_LOCATIONS: DeliveryLocation[] = [
+  { id: 'loc-1', name: 'Alerce Histórico', price: 2000, estimatedMinutes: 25 },
+  { id: 'loc-2', name: 'Alerce Norte', price: 2500, estimatedMinutes: 30 },
+  { id: 'loc-3', name: 'Alerce Sur', price: 2500, estimatedMinutes: 30 },
+  { id: 'loc-4', name: 'Puerto Montt Centro', price: 3500, estimatedMinutes: 35 },
+  { id: 'loc-5', name: 'Mirador de la Bahía', price: 3500, estimatedMinutes: 35 },
+  { id: 'loc-6', name: 'Valle Volcanes', price: 3500, estimatedMinutes: 35 },
+  { id: 'loc-7', name: 'Pelluco', price: 4000, estimatedMinutes: 40 },
+  { id: 'loc-8', name: 'Cardonal', price: 3500, estimatedMinutes: 40 },
+  { id: 'loc-9', name: 'Chamiza', price: 4500, estimatedMinutes: 45 },
+  { id: 'loc-10', name: 'Santiago Centro', price: 2990, estimatedMinutes: 35 },
+  { id: 'loc-11', name: 'Providencia', price: 3490, estimatedMinutes: 30 },
+  { id: 'loc-12', name: 'Las Condes', price: 3990, estimatedMinutes: 45 },
+  { id: 'loc-13', name: 'Ñuñoa', price: 3490, estimatedMinutes: 35 },
+  { id: 'loc-14', name: 'Vitacura', price: 4490, estimatedMinutes: 45 }
+];
+
+export const getDeliveryLocations = (settings?: StoreSettings | null): DeliveryLocation[] => {
+  if (settings?.deliveryLocations && settings.deliveryLocations.length > 0) {
+    return settings.deliveryLocations;
+  }
+  if (settings?.deliveryZones && settings.deliveryZones.length > 0) {
+    return settings.deliveryZones.map((zone, idx) => {
+      const matched = DEFAULT_DELIVERY_LOCATIONS.find(
+        d => d.name.toLowerCase().trim() === zone.toLowerCase().trim()
+      );
+      return {
+        id: `loc-${idx + 1}`,
+        name: zone,
+        price: matched ? matched.price : (zone.toLowerCase().includes('alerce') ? 2000 : 3500),
+        estimatedMinutes: matched?.estimatedMinutes || 35
+      };
+    });
+  }
+  return DEFAULT_DELIVERY_LOCATIONS;
+};
+
+export const getLocationPrice = (locationName: string, settings?: StoreSettings | null): number => {
+  if (!locationName) return 3500;
+  const locations = getDeliveryLocations(settings);
+  const found = locations.find(
+    l => l.name.toLowerCase().trim() === locationName.toLowerCase().trim()
+  );
+  if (found) return found.price;
+  return locationName.toLowerCase().includes('alerce') ? 2000 : 3500;
+};
+
+export const getLocationEstimatedTime = (locationName: string, settings?: StoreSettings | null): number => {
+  if (!locationName) return 35;
+  const locations = getDeliveryLocations(settings);
+  const found = locations.find(
+    l => l.name.toLowerCase().trim() === locationName.toLowerCase().trim()
+  );
+  return found?.estimatedMinutes || 35;
+};
+

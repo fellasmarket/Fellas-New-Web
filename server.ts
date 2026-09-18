@@ -3,7 +3,7 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { CATEGORIES as INITIAL_CATEGORIES, MEGA_OFFERS as INITIAL_MEGA_OFFERS, HERO_SLIDES as INITIAL_HERO_SLIDES } from './src/data/products';
-import type { CategoryData, Product, Order, StoreSettings, EmailMarketingSubscriber, HeroSlide } from './src/types';
+import type { CategoryData, Product, Order, StoreSettings, EmailMarketingSubscriber, HeroSlide, DeliveryLocation } from './src/types';
 
 const app = express();
 const PORT = 3000;
@@ -63,15 +63,38 @@ let settings: StoreSettings = {
   footerDeliveryNotice: 'Envío gratis sobre $50.000',
   footerContactTitle: 'Contacto & Casa Matriz',
   footerCopyrightText: 'Todos los derechos reservados. Venta exclusiva para mayores de 18 años.',
+  freeShippingThreshold: 50000,
+  deliveryLocations: [
+    { name: 'Alerce Histórico', price: 2000, estimatedMinutes: 25 },
+    { name: 'Alerce Norte', price: 2500, estimatedMinutes: 30 },
+    { name: 'Alerce Sur', price: 2500, estimatedMinutes: 30 },
+    { name: 'Puerto Montt Centro', price: 3500, estimatedMinutes: 35 },
+    { name: 'Mirador de la Bahía', price: 3500, estimatedMinutes: 35 },
+    { name: 'Valle Volcanes', price: 3500, estimatedMinutes: 35 },
+    { name: 'Pelluco', price: 4000, estimatedMinutes: 40 },
+    { name: 'Cardonal', price: 3500, estimatedMinutes: 40 },
+    { name: 'Chamiza', price: 4500, estimatedMinutes: 45 },
+    { name: 'Santiago Centro', price: 2990, estimatedMinutes: 35 },
+    { name: 'Providencia', price: 3490, estimatedMinutes: 30 },
+    { name: 'Las Condes', price: 3990, estimatedMinutes: 45 },
+    { name: 'Ñuñoa', price: 3490, estimatedMinutes: 35 },
+    { name: 'Vitacura', price: 4490, estimatedMinutes: 45 }
+  ],
   deliveryZones: [
+    'Alerce Histórico',
+    'Alerce Norte',
+    'Alerce Sur',
+    'Puerto Montt Centro',
+    'Mirador de la Bahía',
+    'Valle Volcanes',
+    'Pelluco',
+    'Cardonal',
+    'Chamiza',
     'Santiago Centro',
-    'Las Condes',
     'Providencia',
+    'Las Condes',
     'Ñuñoa',
-    'Vitacura',
-    'La Florida',
-    'Macul',
-    'San Miguel'
+    'Vitacura'
   ],
   customerDiscountTiers: [
     { name: 'Cliente Frecuente', minPurchases: 3, discountPercent: 5 },

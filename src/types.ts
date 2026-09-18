@@ -143,6 +143,13 @@ export interface Order {
   createdAt: string;
 }
 
+export interface DeliveryLocation {
+  id?: string;
+  name: string;
+  price: number;
+  estimatedMinutes?: number;
+}
+
 export interface MegaOffersConfig {
   sectionTitle: string;
   sectionSubtitle?: string;
@@ -168,6 +175,8 @@ export interface StoreSettings {
   footerContactTitle?: string;
   footerCopyrightText?: string;
   deliveryZones: string[];
+  deliveryLocations?: DeliveryLocation[];
+  freeShippingThreshold?: number;
   customerDiscountPercent?: number;
   customerDiscountTiers: {
     name: string;
