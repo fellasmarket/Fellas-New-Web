@@ -106,16 +106,18 @@ export default function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, setRes, banRes] = await Promise.all([
+        const [catRes, setRes, banRes, megaRes] = await Promise.all([
           fetch('/api/categories'),
           fetch('/api/settings'),
-          fetch('/api/banners')
+          fetch('/api/banners'),
+          fetch('/api/mega-offers')
         ]);
 
         if (catRes.ok) {
           const catData = await catRes.json();
-          if (Array.isArray(catData) && catData.length > 0) {
-            setCategories(catData);
+          const cats = catData.categories || catData;
+          if (Array.isArray(cats) && cats.length > 0) {
+            setCategories(cats);
           }
         }
 
@@ -132,8 +134,17 @@ export default function App() {
 
         if (banRes.ok) {
           const banData = await banRes.json();
-          if (Array.isArray(banData) && banData.length > 0) {
-            setHeroSlides(banData);
+          const slides = banData.heroSlides || banData.banners || banData;
+          if (Array.isArray(slides) && slides.length > 0) {
+            setHeroSlides(slides);
+          }
+        }
+
+        if (megaRes.ok) {
+          const mData = await megaRes.json();
+          const offers = mData.megaOffers || mData;
+          if (Array.isArray(offers) && offers.length > 0) {
+            setMegaOffers(offers);
           }
         }
       } catch (err) {
@@ -429,7 +440,7 @@ export default function App() {
                 <Newsletter onSubscribe={handleNewsletterSubscribe} />
 
                 {/* 3. Mega Oferta Destacada */}
-                <MegaOffers onAddToCart={handleAddToCart} megaOffers={megaOffers} />
+                <MegaOffers onAddToCart={handleAddToCart} megaOffers={megaOffers} settings={settings} />
 
                 {/* 4. Colecciones & Áreas (Grid 2 filas horizontales de 4 y 4 = 8 tarjetas con botón ver más) */}
                 <CategoryGrid />

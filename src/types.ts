@@ -143,6 +143,13 @@ export interface Order {
   createdAt: string;
 }
 
+export interface MegaOffersConfig {
+  sectionTitle: string;
+  sectionSubtitle?: string;
+  badgeText?: string;
+  bgImage?: string;
+}
+
 export interface StoreSettings {
   storeName?: string;
   logoImage?: string;
@@ -153,6 +160,13 @@ export interface StoreSettings {
   contactEmail: string;
   contactPhone: string;
   contactAddress: string;
+  contactHours?: string;
+  footerCategoriesTitle?: string;
+  footerDeliveryTitle?: string;
+  footerDeliverySubtitle?: string;
+  footerDeliveryNotice?: string;
+  footerContactTitle?: string;
+  footerCopyrightText?: string;
   deliveryZones: string[];
   customerDiscountPercent?: number;
   customerDiscountTiers: {
@@ -164,6 +178,7 @@ export interface StoreSettings {
   socialTwitter: string;
   socialFacebook: string;
   socialWhatsapp: string;
+  megaOffersConfig?: MegaOffersConfig;
 }
 
 export interface EmailMarketingSubscriber {

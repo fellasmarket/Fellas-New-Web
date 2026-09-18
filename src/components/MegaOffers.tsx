@@ -6,17 +6,24 @@ import fireworksSolidBg from '../assets/images/fireworks_blue_solid_178949129139
 interface MegaOffersProps {
   onAddToCart: (product: Product) => void;
   megaOffers?: Product[];
+  settings?: import('../types').StoreSettings;
 }
 
-export const MegaOffers: React.FC<MegaOffersProps> = ({ onAddToCart, megaOffers }) => {
+export const MegaOffers: React.FC<MegaOffersProps> = ({ onAddToCart, megaOffers, settings }) => {
   const offersToDisplay = (megaOffers && megaOffers.length > 0) ? megaOffers : MEGA_OFFERS;
+  const config = settings?.megaOffersConfig;
+  const sectionTitle = config?.sectionTitle || '¡LAS PROMOS DEL TIO FELLAS!';
+  const sectionSubtitle = config?.sectionSubtitle;
+  const badgeText = config?.badgeText;
+  const bgImg = config?.bgImage || fireworksSolidBg;
+
   return (
     <section className="max-w-7xl mx-auto mt-6 px-1 sm:px-0">
       <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-blue-400/50 p-3.5 sm:p-6 shadow-2xl text-white bg-[#002b7f]">
-        {/* Imagen de fondo: fuegos artificiales rojos y blancos sobre fondo azul sólido */}
+        {/* Imagen de fondo */}
         <img
-          src={fireworksSolidBg}
-          alt="Fuegos artificiales rojos y blancos sobre fondo azul"
+          src={bgImg}
+          alt="Fondo promociones"
           referrerPolicy="no-referrer"
           className="absolute inset-0 w-full h-full object-cover opacity-90 mix-blend-screen"
         />
@@ -175,17 +182,27 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({ onAddToCart, megaOffers 
         {/* Contenido en primer plano */}
         <div className="relative z-10">
           {/* Encabezado Banner Mega Oferta */}
-          <div className="flex items-center justify-between mb-5 pb-3 border-b border-white/25">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5 pb-3 border-b border-white/25">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-[#ffd129] text-red-600 flex items-center justify-center text-sm shadow-md shrink-0">
                 <i className="fa-solid fa-bolt text-red-600"></i>
               </div>
               <div>
                 <h3 className="text-base md:text-lg font-black text-white drop-shadow tracking-wide">
-                  ¡LAS PROMOS DEL TIO FELLAS!
+                  {sectionTitle}
                 </h3>
+                {sectionSubtitle && (
+                  <p className="text-xs text-blue-100 font-medium">
+                    {sectionSubtitle}
+                  </p>
+                )}
               </div>
             </div>
+            {badgeText && (
+              <span className="self-start sm:self-center px-3 py-1 bg-[#ffd129] text-[#141414] text-[11px] font-black rounded-full uppercase tracking-wider shadow">
+                {badgeText}
+              </span>
+            )}
           </div>
 
           {/* Espacio para productos en láminas blancas con textos #141414 y sin descripción */}

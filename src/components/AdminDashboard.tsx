@@ -13,6 +13,9 @@ import {
 } from '../types';
 import { formatPrice, getDiscountPercentage } from '../data/products';
 import { ExcelImportModal } from './ExcelImportModal';
+import { HeroBannerEditor } from './admin/HeroBannerEditor';
+import { MegaOffersEditor } from './admin/MegaOffersEditor';
+import { FooterEditor } from './admin/FooterEditor';
 
 interface AdminDashboardProps {
   onExitAdmin: () => void;
@@ -27,11 +30,14 @@ interface AdminDashboardProps {
   onUpdateMegaOffers?: (offers: Product[]) => void;
 }
 
-// Exact tabs from fellasmarket.cl plus Excel IA
+// Exact tabs from fellasmarket.cl plus Excel IA and Custom Page Editors
 type AdminTab = 
   | 'products' 
   | 'excel_ia'
-  | 'classifications' 
+  | 'classifications'
+  | 'hero_banner'
+  | 'mega_offers'
+  | 'footer_editor'
   | 'orders' 
   | 'stats' 
   | 'alt_store' 
@@ -909,6 +915,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'products', label: 'Productos', icon: 'fa-solid fa-wine-bottle' },
     { id: 'excel_ia', label: 'Importar Excel IA', icon: 'fa-solid fa-file-excel' },
     { id: 'classifications', label: 'Clasificaciones', icon: 'fa-solid fa-tags' },
+    { id: 'hero_banner', label: 'Banner Principal', icon: 'fa-solid fa-images' },
+    { id: 'mega_offers', label: 'Promos Tío Fellas', icon: 'fa-solid fa-bolt' },
+    { id: 'footer_editor', label: 'Pie de Página', icon: 'fa-solid fa-window-maximize' },
     { id: 'orders', label: 'Pedidos', icon: 'fa-solid fa-receipt', badge: orders.filter(o => o.status === 'nuevo' || o.status === 'en_preparacion').length },
     { id: 'stats', label: 'Estadísticas', icon: 'fa-solid fa-chart-line' },
     { id: 'alt_store', label: 'Tienda Alterna', icon: 'fa-solid fa-store', activePill: backupStore.enabled },
@@ -1400,6 +1409,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
+        {/* TAB: BANNER PRINCIPAL (HERO SLIDER) */}
+        {activeTab === 'hero_banner' && (
+          <HeroBannerEditor
+            heroSlides={heroSlides}
+            onUpdateHeroSlides={onUpdateHeroSlides}
+            showToast={showToast}
+          />
+        )}
+
+        {/* TAB: LAS PROMOS DEL TÍO FELLAS (MEGA OFERTAS) */}
+        {activeTab === 'mega_offers' && (
+          <MegaOffersEditor
+            megaOffers={megaOffers}
+            onUpdateMegaOffers={onUpdateMegaOffers || (() => {})}
+            settings={formSettings}
+            onUpdateSettings={(updated) => {
+              setFormSettings(updated);
+              onUpdateSettings(updated);
+            }}
+            categories={categories}
+            showToast={showToast}
+          />
+        )}
+
+        {/* TAB: PIE DE PÁGINA (FOOTER) */}
+        {activeTab === 'footer_editor' && (
+          <FooterEditor
+            settings={formSettings}
+            onUpdateSettings={(updated) => {
+              setFormSettings(updated);
+              onUpdateSettings(updated);
+            }}
+            categories={categories}
+            showToast={showToast}
+          />
+        )}
+
         {/* TAB 3: PEDIDOS */}
         {activeTab === 'orders' && (
           <div className="space-y-6">
@@ -1726,6 +1772,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <h2 className="text-xl font-black uppercase text-white flex items-center gap-2">
               <i className="fa-solid fa-sliders text-[#ffd025]"></i> Personalización del Sistema
             </h2>
+
+            {/* Accesos directos a los Editores Visuales de Secciones */}
+            <div className="bg-[#141414] p-4 rounded-2xl border border-gray-800 space-y-3">
+              <div className="flex items-center gap-2">
+                <i className="fa-solid fa-wand-magic-sparkles text-[#ffd025] text-xs"></i>
+                <h3 className="text-xs font-black uppercase text-white tracking-wider">
+                  Editores de Secciones de la Tienda
+                </h3>
+              </div>
+              <p className="text-[11px] text-gray-400">
+                Accede rápidamente a los editores completos de la página principal:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('hero_banner')}
+                  className="p-3 rounded-xl bg-gray-800/80 hover:bg-gray-800 border border-gray-700 hover:border-[#ffd025] text-left transition flex items-center gap-2.5 cursor-pointer group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-[#ffd025]/20 text-[#ffd025] flex items-center justify-center text-xs shrink-0 group-hover:scale-110 transition">
+                    <i className="fa-solid fa-images"></i>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">Banner Principal</span>
+                    <span className="text-[10px] text-gray-400 block truncate">Slides y carrusel</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('mega_offers')}
+                  className="p-3 rounded-xl bg-gray-800/80 hover:bg-gray-800 border border-gray-700 hover:border-[#ffd025] text-left transition flex items-center gap-2.5 cursor-pointer group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs shrink-0 group-hover:scale-110 transition">
+                    <i className="fa-solid fa-bolt"></i>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">Promos Tío Fellas</span>
+                    <span className="text-[10px] text-gray-400 block truncate">Ofertas y packs</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('footer_editor')}
+                  className="p-3 rounded-xl bg-gray-800/80 hover:bg-gray-800 border border-gray-700 hover:border-[#ffd025] text-left transition flex items-center gap-2.5 cursor-pointer group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0 group-hover:scale-110 transition">
+                    <i className="fa-solid fa-window-maximize"></i>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">Pie de Página</span>
+                    <span className="text-[10px] text-gray-400 block truncate">Textos y columnas</span>
+                  </div>
+                </button>
+              </div>
+            </div>
 
             {/* Browser Tab Info */}
             <div className="space-y-3">

@@ -56,6 +56,13 @@ let settings: StoreSettings = {
   contactEmail: 'contacto@botiexpress.cl',
   contactPhone: '+56 9 8765 4321',
   contactAddress: 'Av. Providencia 1240, Santiago, Chile',
+  contactHours: 'Horario Botillería: Lun a Dom 12:00 - 03:00 hrs',
+  footerCategoriesTitle: 'Pasillos & Licores',
+  footerDeliveryTitle: 'Despacho Express',
+  footerDeliverySubtitle: 'Entregas en menos de 45 minutos en:',
+  footerDeliveryNotice: 'Envío gratis sobre $50.000',
+  footerContactTitle: 'Contacto & Casa Matriz',
+  footerCopyrightText: 'Todos los derechos reservados. Venta exclusiva para mayores de 18 años.',
   deliveryZones: [
     'Santiago Centro',
     'Las Condes',
@@ -74,7 +81,12 @@ let settings: StoreSettings = {
   socialInstagram: 'https://instagram.com/botiexpress',
   socialTwitter: 'https://x.com/botiexpress',
   socialFacebook: 'https://facebook.com/botiexpress',
-  socialWhatsapp: '+56987654321'
+  socialWhatsapp: '+56987654321',
+  megaOffersConfig: {
+    sectionTitle: '¡LAS PROMOS DEL TIO FELLAS!',
+    sectionSubtitle: 'Combos imperdibles y packs con despacho prioritario',
+    badgeText: 'PROMOS RELÁMPAGO'
+  }
 };
 
 let orders: Order[] = [
@@ -405,17 +417,32 @@ app.post('/api/products/restore-defaults', (req, res) => {
   }
 });
 
-// 4. Hero Slides API
-app.get('/api/hero-slides', (req, res) => {
-  res.json({ heroSlides });
+// 4. Hero Slides & Banners API
+app.get(['/api/hero-slides', '/api/banners'], (req, res) => {
+  res.json({ heroSlides, banners: heroSlides });
 });
 
-app.put('/api/hero-slides', (req, res) => {
-  const { slides } = req.body;
-  if (Array.isArray(slides)) {
-    heroSlides = slides;
+app.put(['/api/hero-slides', '/api/banners'], (req, res) => {
+  const { slides, banners } = req.body;
+  const newSlides = Array.isArray(slides) ? slides : (Array.isArray(banners) ? banners : null);
+  if (newSlides) {
+    heroSlides = newSlides;
   }
-  res.json({ success: true, heroSlides });
+  res.json({ success: true, heroSlides, banners: heroSlides });
+});
+
+// 4.1 Mega Offers (Promos Tío Fellas) API
+app.get('/api/mega-offers', (req, res) => {
+  res.json({ megaOffers });
+});
+
+app.put('/api/mega-offers', (req, res) => {
+  const { offers, megaOffers: sentOffers } = req.body;
+  const list = Array.isArray(offers) ? offers : (Array.isArray(sentOffers) ? sentOffers : null);
+  if (list) {
+    megaOffers = list;
+  }
+  res.json({ success: true, megaOffers });
 });
 
 // 5. Orders API (Real-time tracking, Status updates)

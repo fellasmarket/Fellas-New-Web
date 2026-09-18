@@ -12,8 +12,18 @@ export const Footer: React.FC<FooterProps> = ({ settings, categories }) => {
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-12">
         {/* Columna 1: Info Marca */}
         <div>
-          <a href="#" className="text-2xl font-extrabold tracking-wider text-white inline-block mb-3">
-            {settings.logoTextPrimary}<span className="text-[#ffd129]">{settings.logoTextAccent}</span>
+          <a href="#" className="inline-block mb-3">
+            {settings.logoImage ? (
+              <img
+                src={settings.logoImage}
+                alt={settings.logoTextPrimary || 'Logo'}
+                className="h-9 max-w-full object-contain"
+              />
+            ) : (
+              <span className="text-2xl font-extrabold tracking-wider text-white">
+                {settings.logoTextPrimary}<span className="text-[#ffd129]">{settings.logoTextAccent}</span>
+              </span>
+            )}
           </a>
           <p className="text-xs text-stone-400 font-light leading-relaxed mb-4">
             {settings.footerAbout}
@@ -45,7 +55,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, categories }) => {
         {/* Columna 2: Categorías Dinámicas */}
         <div>
           <h4 className="text-xs font-bold uppercase tracking-wider text-[#ffd129] mb-4">
-            Pasillos & Licores
+            {settings.footerCategoriesTitle || 'Pasillos & Licores'}
           </h4>
           <ul className="space-y-2.5 text-xs text-stone-400">
             {categories.slice(0, 6).map((cat) => (
@@ -62,9 +72,11 @@ export const Footer: React.FC<FooterProps> = ({ settings, categories }) => {
         {/* Columna 3: Cobertura de Delivery */}
         <div>
           <h4 className="text-xs font-bold uppercase tracking-wider text-[#ffd129] mb-4">
-            Despacho Express
+            {settings.footerDeliveryTitle || 'Despacho Express'}
           </h4>
-          <p className="text-[11px] text-stone-400 mb-2">Entregas en menos de 45 minutos en:</p>
+          <p className="text-[11px] text-stone-400 mb-2">
+            {settings.footerDeliverySubtitle || 'Entregas en menos de 45 minutos en:'}
+          </p>
           <div className="flex flex-wrap gap-1.5 text-[11px] text-stone-300">
             {settings.deliveryZones.map((zone) => (
               <span key={zone} className="bg-stone-800/90 px-2 py-0.5 rounded-md border border-stone-700/60">
@@ -72,15 +84,17 @@ export const Footer: React.FC<FooterProps> = ({ settings, categories }) => {
               </span>
             ))}
           </div>
-          <div className="mt-4 pt-3 border-t border-stone-800/80 text-[11px] text-green-400 flex items-center gap-1.5 font-semibold">
-            <i className="fa-solid fa-bolt"></i> Envío gratis sobre $50.000
-          </div>
+          {settings.footerDeliveryNotice && (
+            <div className="mt-4 pt-3 border-t border-stone-800/80 text-[11px] text-green-400 flex items-center gap-1.5 font-semibold">
+              <i className="fa-solid fa-bolt"></i> {settings.footerDeliveryNotice}
+            </div>
+          )}
         </div>
 
         {/* Columna 4: Contacto */}
         <div>
           <h4 className="text-xs font-bold uppercase tracking-wider text-[#ffd129] mb-4">
-            Contacto & Casa Matriz
+            {settings.footerContactTitle || 'Contacto & Casa Matriz'}
           </h4>
           <ul className="space-y-2.5 text-xs text-stone-400">
             <li className="flex items-center gap-2">
@@ -97,14 +111,14 @@ export const Footer: React.FC<FooterProps> = ({ settings, categories }) => {
             </li>
             <li className="flex items-center gap-2">
               <i className="fa-solid fa-clock text-[#ffd129]"></i>
-              <span>Horario Botillería: Lun a Dom 12:00 - 03:00 hrs</span>
+              <span>{settings.contactHours || 'Horario Botillería: Lun a Dom 12:00 - 03:00 hrs'}</span>
             </li>
           </ul>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto border-t border-stone-800/80 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-stone-500 text-[11px]">
-        <p>© 2026 {settings.logoTextPrimary}{settings.logoTextAccent}. Todos los derechos reservados. Venta exclusiva para mayores de 18 años.</p>
+        <p>© 2026 {settings.logoTextPrimary}{settings.logoTextAccent}. {settings.footerCopyrightText || 'Todos los derechos reservados. Venta exclusiva para mayores de 18 años.'}</p>
         <div className="flex items-center gap-4 text-stone-400 text-base">
           <i className="fa-brands fa-cc-visa" title="Visa"></i>
           <i className="fa-brands fa-cc-mastercard" title="Mastercard"></i>
