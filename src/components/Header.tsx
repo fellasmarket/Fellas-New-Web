@@ -1,13 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CartItem, UserAccount, StoreSettings, CategoryData } from '../types';
-import { formatPrice } from '../data/products';
+import {
+  formatPrice,
+  getDeliveryLocations,
+  getLocationPrice,
+  checkStoreOpenStatus
+} from '../data/products';
 
 interface HeaderProps {
   cartItems: CartItem[];
   location: string;
   onUpdateLocation: (loc: string) => void;
   user: UserAccount | null;
-  onLogin: (name: string, email: string, role?: 'admin' | 'customer') => void;
+  onLogin: (name: string, email: string, role?: 'admin' | 'customer' | 'delivery') => void;
   onLogout: () => void;
   onRemoveFromCart: (productId: string) => void;
   onUpdateCartQuantity: (productId: string, delta: number) => void;
@@ -17,6 +22,7 @@ interface HeaderProps {
   settings: StoreSettings;
   categories: CategoryData[];
   onOpenAdmin: () => void;
+  onOpenDelivery?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -33,7 +39,8 @@ export const Header: React.FC<HeaderProps> = ({
   onSearchChange,
   settings,
   categories,
-  onOpenAdmin
+  onOpenAdmin,
+  onOpenDelivery
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [activePopup, setActivePopup] = useState<'delivery' | 'login' | 'cart' | null>(null);
@@ -102,6 +109,8 @@ export const Header: React.FC<HeaderProps> = ({
           setLoginPass('');
           if (data.user.role === 'admin') {
             onOpenAdmin();
+          } else if (data.user.role === 'delivery') {
+            onOpenDelivery?.();
           }
           return;
         }
@@ -110,10 +119,20 @@ export const Header: React.FC<HeaderProps> = ({
       console.warn('Backend login fallback:', err);
     }
 
-    // Fallback if network issue
+    // Fallback if offline/network issue
+    const isDelivery = loginEmail.trim().toLowerCase() === 'delivery' || loginPass === 'botifelldely';
+    const isAdmin = loginEmail.toLowerCase().includes('admin') || loginPass === 'fellhonpm';
+
+    if (isDelivery) {
+      onLogin('Repartidor Delivery', 'delivery@botilleria.cl', 'delivery');
+      setActivePopup(null);
+      setLoginPass('');
+      onOpenDelivery?.();
+      return;
+    }
+
     const namePart = loginEmail.split('@')[0];
     const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-    const isAdmin = loginEmail.toLowerCase().includes('admin');
     onLogin(formattedName, loginEmail, isAdmin ? 'admin' : 'customer');
     setActivePopup(null);
     setLoginPass('');
@@ -130,17 +149,22 @@ export const Header: React.FC<HeaderProps> = ({
     setRegPass('');
   };
 
+  const deliveryLocations = getDeliveryLocations(settings);
+  const currentLocationPrice = getLocationPrice(location, settings);
+  const storeStatus = checkStoreOpenStatus(settings.scheduleConfig);
+
   return (
-    <header
-      id="main-header"
-      ref={headerRef}
-      className={`fixed left-1/2 -translate-x-1/2 z-50 bg-[#141414] text-white transition-all duration-500 ease-in-out ${
-        isScrolled
-          ? 'top-2 sm:top-4 w-[96%] sm:w-[92%] max-w-6xl px-3 sm:px-6 py-2 sm:py-2.5 rounded-2xl sm:rounded-3xl shadow-2xl border border-stone-800'
-          : 'top-0 w-full px-3 sm:px-4 md:px-8 py-2.5 sm:py-3 shadow-xl border border-transparent rounded-none'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto flex flex-col gap-2 sm:gap-2.5">
+    <div className="fixed top-0 inset-x-0 z-50 pointer-events-none flex justify-center">
+      <header
+        id="main-header"
+        ref={headerRef}
+        className={`pointer-events-auto text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          isScrolled
+            ? 'mt-2 sm:mt-2.5 w-[96%] sm:w-[92%] max-w-6xl rounded-2xl sm:rounded-3xl bg-[#141414]/95 backdrop-blur-md shadow-[0_12px_36px_rgba(0,0,0,0.6)] border border-stone-800/90 px-3 sm:px-6 py-2 sm:py-2.5'
+            : 'mt-0 w-full rounded-none bg-[#141414] shadow-md border-b border-stone-800/80 px-3 sm:px-4 md:px-8 py-2.5 sm:py-3'
+        }`}
+      >
+        <div className="max-w-7xl mx-auto flex flex-col gap-2 sm:gap-2.5">
         
         {/* ÁREA SUPERIOR: Logo, Despacho, Búsqueda, Login & Carrito */}
         <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4">
@@ -167,14 +191,14 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="delivery-btn"
               onClick={() => togglePopup('delivery')}
-              className="flex items-center gap-2.5 bg-stone-800/80 hover:bg-stone-800 text-stone-200 px-3.5 py-2 rounded-xl text-xs font-medium border border-stone-700 transition"
+              className="flex items-center gap-2.5 bg-stone-800/80 hover:bg-stone-800 text-stone-200 px-3.5 py-2 rounded-xl text-xs font-medium border border-stone-700 transition cursor-pointer"
               aria-label="Seleccionar ubicación de entrega"
             >
               <i className="fa-solid fa-location-dot text-[#ffd129] text-base"></i>
               <div className="text-left leading-tight">
                 <span className="block text-[10px] text-stone-400 font-normal">Enviar a:</span>
-                <span id="current-location" className="font-semibold text-white truncate max-w-[120px] inline-block">
-                  {location}
+                <span id="current-location" className="font-bold text-white truncate max-w-[140px] inline-block">
+                  {location} <span className="text-[#ffd129]">({formatPrice(currentLocationPrice)})</span>
                 </span>
               </div>
               <i className="fa-solid fa-chevron-down text-stone-400 text-[10px] ml-1"></i>
@@ -184,39 +208,56 @@ export const Header: React.FC<HeaderProps> = ({
             {activePopup === 'delivery' && (
               <div
                 id="delivery-modal"
-                className="absolute left-0 mt-2 w-[calc(100vw-2rem)] sm:w-72 max-w-xs bg-[#141414] border border-stone-700 rounded-2xl shadow-2xl p-4 z-50 text-white animate-in fade-in zoom-in-95 duration-200"
+                className="absolute left-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-[#141414] border border-stone-700 rounded-2xl shadow-2xl p-4 z-50 text-white animate-in fade-in zoom-in-95 duration-200"
               >
                 <div className="flex items-center justify-between mb-3 border-b border-stone-800 pb-2">
                   <span className="text-sm font-semibold flex items-center gap-2">
-                    <i className="fa-solid fa-map-location-dot text-[#ffd129]"></i> Zonas de Cobertura
+                    <i className="fa-solid fa-map-location-dot text-[#ffd129]"></i> Zonas y Tarifas Fijas
                   </span>
                   <button
                     id="close-delivery-btn"
                     onClick={() => setActivePopup(null)}
-                    className="text-stone-400 hover:text-white transition"
+                    className="text-stone-400 hover:text-white transition cursor-pointer"
                   >
                     <i className="fa-solid fa-xmark"></i>
                   </button>
                 </div>
-                <p className="text-xs text-stone-400 mb-3">Elige tu comuna para despacho exprés:</p>
+                <p className="text-xs text-stone-400 mb-3">Elige tu sector para calcular el costo de despacho fijo:</p>
                 <select
                   id="location-select"
                   value={tempLocation}
                   onChange={(e) => setTempLocation(e.target.value)}
                   className="w-full bg-stone-800 text-white text-xs rounded-lg p-2.5 border border-stone-700 outline-none focus:border-[#ffd129] mb-3"
                 >
-                  {settings.deliveryZones.map((zone) => (
-                    <option key={zone} value={zone}>{zone}</option>
+                  {deliveryLocations.map((loc) => (
+                    <option key={loc.id} value={loc.name}>
+                      {loc.name} — {formatPrice(loc.price)} (~{loc.estimatedMinutes} min)
+                    </option>
                   ))}
                 </select>
                 <button
                   id="save-location-btn"
                   onClick={handleSaveLocation}
-                  className="w-full bg-[#ffd129] text-[#141414] text-xs font-bold py-2 rounded-lg hover:bg-yellow-400 transition flex items-center justify-center gap-2 shadow"
+                  className="w-full bg-[#ffd129] text-[#141414] text-xs font-bold py-2 rounded-lg hover:bg-yellow-400 transition flex items-center justify-center gap-2 shadow cursor-pointer"
                 >
-                  <i className="fa-solid fa-floppy-disk"></i> Guardar Dirección
+                  <i className="fa-solid fa-floppy-disk"></i> Guardar Sector
                 </button>
               </div>
+            )}
+          </div>
+
+          {/* Indicador de Horario Local Abierto / Cerrado */}
+          <div className="hidden xl:flex items-center">
+            {storeStatus.isOpen ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                Abierto
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                Cerrado hoy
+              </span>
             )}
           </div>
 
@@ -281,6 +322,9 @@ export const Header: React.FC<HeaderProps> = ({
                               {user.role === 'admin' && (
                                 <span className="bg-[#ffd129] text-[#141414] text-[9px] px-1.5 py-0.2 rounded font-black">ADMIN</span>
                               )}
+                              {user.role === 'delivery' && (
+                                <span className="bg-blue-600 text-white text-[9px] px-1.5 py-0.2 rounded font-black">REPARTIDOR</span>
+                              )}
                             </p>
                             <p className="text-[10px] text-stone-400">{user.email}</p>
                           </div>
@@ -288,24 +332,40 @@ export const Header: React.FC<HeaderProps> = ({
                         <button
                           id="close-account-btn"
                           onClick={() => setActivePopup(null)}
-                          className="text-stone-400 hover:text-white"
+                          className="text-stone-400 hover:text-white cursor-pointer"
                         >
                           <i className="fa-solid fa-xmark"></i>
                         </button>
                       </div>
 
                       <div className="space-y-2 py-1">
-                        {/* Botón directo para ingresar al panel de autoadministración */}
-                        <button
-                          onClick={() => {
-                            setActivePopup(null);
-                            onOpenAdmin();
-                          }}
-                          className="w-full flex items-center gap-2.5 text-xs text-[#141414] font-black bg-[#ffd129] hover:bg-yellow-400 p-2.5 rounded-xl transition shadow"
-                        >
-                          <i className="fa-solid fa-gauge-high"></i>
-                          <span>Panel de Autoadministración</span>
-                        </button>
+                        {/* Botón panel administrador */}
+                        {user.role === 'admin' && (
+                          <button
+                            onClick={() => {
+                              setActivePopup(null);
+                              onOpenAdmin();
+                            }}
+                            className="w-full flex items-center gap-2.5 text-xs text-[#141414] font-black bg-[#ffd129] hover:bg-yellow-400 p-2.5 rounded-xl transition shadow cursor-pointer"
+                          >
+                            <i className="fa-solid fa-gauge-high"></i>
+                            <span>Panel de Autoadministración</span>
+                          </button>
+                        )}
+
+                        {/* Botón panel delivery / pedidos */}
+                        {(user.role === 'delivery' || user.role === 'admin') && (
+                          <button
+                            onClick={() => {
+                              setActivePopup(null);
+                              onOpenDelivery?.();
+                            }}
+                            className="w-full flex items-center gap-2.5 text-xs text-white font-black bg-blue-600 hover:bg-blue-500 p-2.5 rounded-xl transition shadow cursor-pointer"
+                          >
+                            <i className="fa-solid fa-motorcycle"></i>
+                            <span>Panel de Delivery / Pedidos</span>
+                          </button>
+                        )}
 
                         <a
                           href="#mis-pedidos"
@@ -322,7 +382,7 @@ export const Header: React.FC<HeaderProps> = ({
                           onLogout();
                           setActivePopup(null);
                         }}
-                        className="w-full mt-4 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold py-2 rounded-lg transition flex items-center justify-center gap-2 border border-stone-700"
+                        className="w-full mt-4 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold py-2 rounded-lg transition flex items-center justify-center gap-2 border border-stone-700 cursor-pointer"
                       >
                         <i className="fa-solid fa-arrow-right-from-bracket text-red-400"></i> Cerrar Sesión
                       </button>
@@ -334,7 +394,7 @@ export const Header: React.FC<HeaderProps> = ({
                           <button
                             id="tab-login-btn"
                             onClick={() => setAuthTab('login')}
-                            className={`text-xs pb-1 flex items-center gap-1.5 transition ${
+                            className={`text-xs pb-1 flex items-center gap-1.5 transition cursor-pointer ${
                               authTab === 'login'
                                 ? 'font-bold text-[#ffd129] border-b-2 border-[#ffd129]'
                                 : 'font-semibold text-stone-400 hover:text-white'
@@ -345,7 +405,7 @@ export const Header: React.FC<HeaderProps> = ({
                           <button
                             id="tab-register-btn"
                             onClick={() => setAuthTab('register')}
-                            className={`text-xs pb-1 flex items-center gap-1.5 transition ${
+                            className={`text-xs pb-1 flex items-center gap-1.5 transition cursor-pointer ${
                               authTab === 'register'
                                 ? 'font-bold text-[#ffd129] border-b-2 border-[#ffd129]'
                                 : 'font-semibold text-stone-400 hover:text-white'
@@ -357,22 +417,15 @@ export const Header: React.FC<HeaderProps> = ({
                         <button
                           id="close-login-modal-btn"
                           onClick={() => setActivePopup(null)}
-                          className="text-stone-400 hover:text-white"
+                          className="text-stone-400 hover:text-white cursor-pointer"
                         >
                           <i className="fa-solid fa-xmark"></i>
                         </button>
                       </div>
 
-                      {/* Formulario Iniciar Sesión */}
+                      {/* Formulario Iniciar Sesión (Sin credenciales expuestas) */}
                       {authTab === 'login' ? (
                         <form id="form-login" onSubmit={handleLoginSubmit} className="space-y-3">
-                          {/* Nota rápida de credenciales para el usuario */}
-                          <div className="p-2.5 bg-stone-800/80 rounded-xl border border-stone-700 text-[11px] text-stone-300 leading-snug">
-                            <span className="font-bold text-[#ffd129]">Acceso Autoadministración:</span><br />
-                            Usuario: <code className="text-white bg-stone-900 px-1 py-0.5 rounded font-mono">admin</code> o <code className="text-white bg-stone-900 px-1 py-0.5 rounded font-mono">fellas</code><br />
-                            Clave: <code className="text-white bg-amber-400/20 text-[#ffd129] px-1 py-0.5 rounded font-mono font-bold">fellhonpm</code> o <code className="text-white bg-stone-900 px-1 py-0.5 rounded font-mono">admin123</code>
-                          </div>
-
                           <div>
                             <label className="block text-[11px] text-stone-400 mb-1">Usuario / Correo Electrónico</label>
                             <div className="relative">
@@ -383,7 +436,7 @@ export const Header: React.FC<HeaderProps> = ({
                                 required
                                 value={loginEmail}
                                 onChange={(e) => setLoginEmail(e.target.value)}
-                                placeholder="admin@botilleria.cl"
+                                placeholder="tu@correo.cl o usuario"
                                 className="w-full bg-stone-800 text-white text-xs rounded-lg pl-9 pr-3 py-2 border border-stone-700 outline-none focus:border-[#ffd129]"
                               />
                             </div>
@@ -406,7 +459,7 @@ export const Header: React.FC<HeaderProps> = ({
                           <button
                             id="login-submit-btn"
                             type="submit"
-                            className="w-full bg-[#ffd129] text-[#141414] text-xs font-bold py-2.5 rounded-lg hover:bg-yellow-400 transition mt-2 flex items-center justify-center gap-2 shadow"
+                            className="w-full bg-[#ffd129] text-[#141414] text-xs font-bold py-2.5 rounded-lg hover:bg-yellow-400 transition mt-2 flex items-center justify-center gap-2 shadow cursor-pointer"
                           >
                             <i className="fa-solid fa-arrow-right-to-bracket"></i> Entrar al Sistema
                           </button>
@@ -627,9 +680,16 @@ export const Header: React.FC<HeaderProps> = ({
             {user?.role === 'admin' ? (
               <button
                 onClick={onOpenAdmin}
-                className="text-[#ffd129] hover:underline font-bold flex items-center gap-1"
+                className="text-[#ffd129] hover:underline font-bold flex items-center gap-1 cursor-pointer"
               >
                 <i className="fa-solid fa-gauge"></i> Ir a Panel Admin
+              </button>
+            ) : user?.role === 'delivery' ? (
+              <button
+                onClick={onOpenDelivery}
+                className="text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <i className="fa-solid fa-motorcycle"></i> Panel de Delivery
               </button>
             ) : (
               <div className="flex items-center gap-2">
@@ -641,5 +701,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       </div>
     </header>
+  </div>
   );
 };

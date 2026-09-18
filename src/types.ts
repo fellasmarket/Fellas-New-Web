@@ -112,7 +112,7 @@ export interface UserAccount {
   name: string;
   email: string;
   isLoggedIn: boolean;
-  role?: 'admin' | 'customer';
+  role?: 'admin' | 'customer' | 'delivery';
   discountPercent?: number;
   phone?: string;
 }
@@ -139,7 +139,7 @@ export interface Order {
   shippingCost: number;
   total: number;
   paymentMethod: string;
-  status: 'nuevo' | 'en_preparacion' | 'en_camino' | 'entregado' | 'cancelado';
+  status: 'nuevo' | 'confirmado_preparacion' | 'listo_retirar' | 'delivery_camino' | 'entregado' | 'en_preparacion' | 'en_camino' | 'cancelado';
   createdAt: string;
 }
 
@@ -148,6 +148,21 @@ export interface DeliveryLocation {
   name: string;
   price: number;
   estimatedMinutes?: number;
+}
+
+export interface DaySchedule {
+  day: 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes' | 'sabado' | 'domingo';
+  label: string;
+  isOpen: boolean;
+  openTime: string; // ej. '12:00'
+  closeTime: string; // ej. '03:00'
+}
+
+export interface StoreScheduleConfig {
+  enabled: boolean;
+  manualOverride?: 'auto' | 'force_open' | 'force_closed';
+  closedMessage?: string;
+  days: DaySchedule[];
 }
 
 export interface MegaOffersConfig {
@@ -177,6 +192,7 @@ export interface StoreSettings {
   deliveryZones: string[];
   deliveryLocations?: DeliveryLocation[];
   freeShippingThreshold?: number;
+  scheduleConfig?: StoreScheduleConfig;
   customerDiscountPercent?: number;
   customerDiscountTiers: {
     name: string;

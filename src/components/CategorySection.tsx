@@ -23,27 +23,13 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ category, onAd
 
   return (
     <section id={category.id} className="max-w-7xl mx-auto mt-6 sm:mt-8 pt-4 border-t border-stone-200 px-1 sm:px-0">
-      {/* Banner de Categoría: optimizado y centrado para móviles, tablets y escritorio */}
-      <div className="relative w-full h-[28vh] sm:h-[32vh] md:h-[33vh] min-h-[200px] sm:min-h-[230px] max-h-[305px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl bg-[#141414] flex items-center justify-center">
+      {/* Banner de Categoría: Solo la imagen sin textos sobrepuestos */}
+      <div className="relative w-full h-[22vh] sm:h-[26vh] md:h-[28vh] min-h-[160px] sm:min-h-[200px] max-h-[270px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl bg-stone-900 border border-stone-200">
         <img
           src={category.bannerImage}
-          alt={category.title}
-          className="absolute inset-0 w-full h-full object-cover opacity-40"
+          alt={category.name || category.title}
+          className="w-full h-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#141414]/90 via-[#141414]/75 to-[#141414]/90"></div>
-
-        {/* Textos centrados y legibles */}
-        <div className="relative z-10 w-full max-w-2xl flex flex-col justify-center items-center text-center px-4 sm:px-6 py-4 text-white">
-          <span className="inline-flex items-center gap-1.5 text-[#ffd129] font-bold text-[11px] sm:text-xs uppercase tracking-widest mb-1">
-            <i className={category.icon}></i> {category.badge}
-          </span>
-          <h2 className="text-lg sm:text-xl md:text-2xl font-extrabold leading-tight text-white line-clamp-2 sm:line-clamp-1">
-            {category.title}
-          </h2>
-          <p className="text-[11px] sm:text-xs md:text-sm text-stone-300 font-light leading-snug mt-1 line-clamp-2 max-w-xl">
-            {category.description}
-          </p>
-        </div>
       </div>
 
       {/* Franja Carrusel (6 productos) con botón de Ver Más */}

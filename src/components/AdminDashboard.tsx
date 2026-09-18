@@ -9,9 +9,17 @@ import {
   BackupStoreConfig,
   SubscriptionPopupConfig,
   FeedbackItem,
-  CustomerDiscountCode
+  CustomerDiscountCode,
+  DeliveryLocation,
+  DaySchedule,
+  StoreScheduleConfig
 } from '../types';
-import { formatPrice, getDiscountPercentage } from '../data/products';
+import { 
+  formatPrice, 
+  getDiscountPercentage,
+  getDeliveryLocations,
+  DEFAULT_STORE_SCHEDULE
+} from '../data/products';
 import { ExcelImportModal } from './ExcelImportModal';
 import { HeroBannerEditor } from './admin/HeroBannerEditor';
 import { MegaOffersEditor } from './admin/MegaOffersEditor';
@@ -28,6 +36,7 @@ interface AdminDashboardProps {
   showToast: (msg: string) => void;
   megaOffers?: Product[];
   onUpdateMegaOffers?: (offers: Product[]) => void;
+  onOpenDelivery?: () => void;
 }
 
 // Exact tabs from fellasmarket.cl plus Excel IA and Custom Page Editors
@@ -59,7 +68,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateHeroSlides,
   showToast,
   megaOffers = [],
-  onUpdateMegaOffers
+  onUpdateMegaOffers,
+  onOpenDelivery
 }) => {
   // Current active tab
   const [activeTab, setActiveTab] = useState<AdminTab>('products');
@@ -143,8 +153,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // TAB 6: AJUSTES GENERALES & PERSONALIZACIÓN
   const [pageTitle, setPageTitle] = useState("Fella's Market — Botillería en Alerce");
   const [faviconUrl, setFaviconUrl] = useState("https://fellasmarket.cl/favicon.ico");
-  const [formSettings, setFormSettings] = useState<StoreSettings>({ ...settings });
-  const [newDeliveryZone, setNewDeliveryZone] = useState('');
+  const [formSettings, setFormSettings] = useState<StoreSettings>(() => {
+    const defaultLocs = getDeliveryLocations(settings);
+    const defaultSched = settings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
+    return {
+      ...settings,
+      deliveryLocations: settings.deliveryLocations && settings.deliveryLocations.length > 0
+        ? settings.deliveryLocations
+        : defaultLocs,
+      scheduleConfig: defaultSched
+    };
+  });
+  const [newLocName, setNewLocName] = useState('');
+  const [newLocPrice, setNewLocPrice] = useState<number>(2000);
+  const [newLocMinutes, setNewLocMinutes] = useState<number>(45);
 
   // TAB 7: POPUP SUSCRIPCIÓN
   const [subscriptionPopup, setSubscriptionPopup] = useState<SubscriptionPopupConfig>({
@@ -686,45 +708,83 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       console.error(e);
     }
     onUpdateSettings(formSettings);
-    showToast('Ajustes generales del sistema guardados');
+    showToast('Ajustes generales, tarifas y horarios guardados');
   };
 
-  // ADD / REMOVE DELIVERY ZONES
-  const handleAddZone = async (e: React.FormEvent) => {
+  // DELIVERY LOCATIONS WITH SPECIFIC PRICES
+  const handleAddLocation = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDeliveryZone.trim()) return;
-    const updatedZones = [...formSettings.deliveryZones, newDeliveryZone.trim()];
-    const updated = { ...formSettings, deliveryZones: updatedZones };
-    setFormSettings(updated);
-    onUpdateSettings(updated);
-    setNewDeliveryZone('');
-    try {
-      await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deliveryZones: updatedZones })
-      });
-    } catch (e) {
-      console.error(e);
-    }
-    showToast(`Zona "${newDeliveryZone}" agregada a cobertura`);
+    if (!newLocName.trim()) return;
+    const currentLocs = formSettings.deliveryLocations || getDeliveryLocations(formSettings);
+    const newLoc: DeliveryLocation = {
+      id: `loc-${Date.now()}`,
+      name: newLocName.trim(),
+      price: Math.max(0, Number(newLocPrice) || 0),
+      estimatedMinutes: Math.max(10, Number(newLocMinutes) || 45)
+    };
+    const updatedLocs = [...currentLocs, newLoc];
+    const updatedZones = Array.from(new Set([...formSettings.deliveryZones, newLoc.name]));
+    const updatedSettings = {
+      ...formSettings,
+      deliveryLocations: updatedLocs,
+      deliveryZones: updatedZones
+    };
+    setFormSettings(updatedSettings);
+    setNewLocName('');
+    setNewLocPrice(2000);
+    setNewLocMinutes(45);
+    showToast(`Ubicación "${newLoc.name}" agregada con tarifa ${formatPrice(newLoc.price)}`);
   };
 
-  const handleRemoveZone = async (zone: string) => {
-    const updatedZones = formSettings.deliveryZones.filter(z => z !== zone);
-    const updated = { ...formSettings, deliveryZones: updatedZones };
-    setFormSettings(updated);
-    onUpdateSettings(updated);
-    try {
-      await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deliveryZones: updatedZones })
-      });
-    } catch (e) {
-      console.error(e);
-    }
-    showToast(`Zona "${zone}" eliminada`);
+  const handleUpdateLocationPrice = (id: string | undefined, name: string, newPrice: number) => {
+    const currentLocs = formSettings.deliveryLocations || getDeliveryLocations(formSettings);
+    const updatedLocs = currentLocs.map(l => (l.id === id || l.name === name ? { ...l, price: Math.max(0, newPrice) } : l));
+    setFormSettings({ ...formSettings, deliveryLocations: updatedLocs });
+  };
+
+  const handleUpdateLocationMinutes = (id: string | undefined, name: string, newMinutes: number) => {
+    const currentLocs = formSettings.deliveryLocations || getDeliveryLocations(formSettings);
+    const updatedLocs = currentLocs.map(l => (l.id === id || l.name === name ? { ...l, estimatedMinutes: Math.max(5, newMinutes) } : l));
+    setFormSettings({ ...formSettings, deliveryLocations: updatedLocs });
+  };
+
+  const handleRemoveLocation = (id: string | undefined, name: string) => {
+    const currentLocs = formSettings.deliveryLocations || getDeliveryLocations(formSettings);
+    const updatedLocs = currentLocs.filter(l => (l.id ? l.id !== id : l.name !== name));
+    const updatedZones = formSettings.deliveryZones.filter(z => z !== name);
+    setFormSettings({ ...formSettings, deliveryLocations: updatedLocs, deliveryZones: updatedZones });
+    showToast(`Ubicación "${name}" eliminada`);
+  };
+
+  // SCHEDULE HANDLERS
+  const handleUpdateDaySchedule = (dayIndex: number, field: keyof DaySchedule, value: any) => {
+    const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
+    const updatedDays = [...currentSched.days];
+    updatedDays[dayIndex] = { ...updatedDays[dayIndex], [field]: value };
+    setFormSettings({
+      ...formSettings,
+      scheduleConfig: {
+        ...currentSched,
+        days: updatedDays
+      }
+    });
+  };
+
+  const handleApplyTimeToAllDays = (openTime: string, closeTime: string) => {
+    const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
+    const updatedDays = currentSched.days.map(d => ({
+      ...d,
+      openTime,
+      closeTime
+    }));
+    setFormSettings({
+      ...formSettings,
+      scheduleConfig: {
+        ...currentSched,
+        days: updatedDays
+      }
+    });
+    showToast(`Horario (${openTime} a ${closeTime}) aplicado a todos los días`);
   };
 
   // COMMUNITY POST COPY (WhatsApp format like fellasmarket.cl)
@@ -1978,37 +2038,363 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* Zonas de Cobertura Delivery */}
-            <div className="space-y-3 pt-3 border-t border-gray-800">
-              <h3 className="text-sm font-bold text-gray-300 uppercase border-b border-gray-800 pb-2">
-                Zonas de Cobertura Delivery ({formSettings.deliveryZones.length})
-              </h3>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newDeliveryZone}
-                  onChange={(e) => setNewDeliveryZone(e.target.value)}
-                  placeholder="Ej: Villa La Vara, Cardonal, Chamiza..."
-                  className="flex-1 bg-[#141414] border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:border-[#ffd025]"
-                />
+            {/* Acceso Rápido al Panel de Delivery */}
+            {onOpenDelivery && (
+              <div className="p-4 bg-blue-950/40 border border-blue-600/40 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white text-lg shrink-0">
+                    <i className="fa-solid fa-motorcycle"></i>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase text-white">Panel de Pedidos & Repartidores</h4>
+                    <p className="text-[11px] text-blue-200">
+                      Acceso exclusivo para repartidores (usuario: <code className="bg-black/40 px-1 py-0.5 rounded text-yellow-400 font-mono">delivery</code>) para gestionar y despachar pedidos en tiempo real.
+                    </p>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  onClick={handleAddZone}
-                  className="bg-[#ffd025] hover:bg-yellow-400 text-[#141414] font-black text-xs px-4 py-2.5 rounded-xl transition"
+                  onClick={onOpenDelivery}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs px-4 py-2 rounded-xl transition shadow flex items-center gap-2 cursor-pointer shrink-0"
                 >
-                  Agregar
+                  <i className="fa-solid fa-arrow-up-right-from-square"></i>
+                  <span>Abrir Panel de Delivery</span>
                 </button>
               </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {formSettings.deliveryZones.map(z => (
-                  <span key={z} className="bg-[#141414] border border-gray-800 text-gray-200 text-xs px-3 py-1.5 rounded-xl flex items-center gap-2">
-                    <i className="fa-solid fa-location-dot text-[#ffd025]"></i>
-                    <span>{z}</span>
-                    <button type="button" onClick={() => handleRemoveZone(z)} className="text-gray-500 hover:text-red-400">
-                      <i className="fa-solid fa-xmark"></i>
+            )}
+
+            {/* Zonas y Tarifas Fijas de Delivery */}
+            <div className="space-y-4 pt-3 border-t border-gray-800">
+              <div>
+                <h3 className="text-sm font-bold text-gray-300 uppercase flex items-center gap-2">
+                  <i className="fa-solid fa-map-location-dot text-[#ffd025]"></i>
+                  <span>Ubicaciones y Tarifas Fijas de Delivery ({((formSettings.deliveryLocations && formSettings.deliveryLocations.length > 0) ? formSettings.deliveryLocations : getDeliveryLocations(formSettings)).length})</span>
+                </h3>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  Define el costo específico de envío y tiempo estimado de entrega para cada sector o comuna.
+                </p>
+              </div>
+
+              {/* Formulario para agregar nueva ubicación */}
+              <div className="bg-[#141414] p-4 rounded-2xl border border-gray-800 space-y-3">
+                <span className="text-[11px] font-bold text-gray-300 uppercase block">Agregar Nueva Ubicación:</span>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                  <div className="sm:col-span-6">
+                    <input
+                      type="text"
+                      value={newLocName}
+                      onChange={(e) => setNewLocName(e.target.value)}
+                      placeholder="Nombre (ej: Alerce Norte, Valle Volcanes, Mirasol...)"
+                      className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl p-2.5 text-xs text-white focus:border-[#ffd025] outline-none"
+                    />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-gray-400 text-xs">$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="500"
+                        value={newLocPrice}
+                        onChange={(e) => setNewLocPrice(Number(e.target.value))}
+                        placeholder="Tarifa CLP"
+                        className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl pl-7 pr-3 py-2.5 text-xs text-white focus:border-[#ffd025] outline-none font-bold"
+                      />
+                    </div>
+                  </div>
+                  <div className="sm:col-span-3 flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        min="5"
+                        step="5"
+                        value={newLocMinutes}
+                        onChange={(e) => setNewLocMinutes(Number(e.target.value))}
+                        placeholder="Minutos"
+                        className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-[#ffd025] outline-none"
+                      />
+                      <span className="absolute right-2.5 top-2.5 text-[10px] text-gray-400">min</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddLocation}
+                      className="bg-[#ffd025] hover:bg-yellow-400 text-[#141414] font-black text-xs px-4 py-2.5 rounded-xl transition cursor-pointer shrink-0 flex items-center gap-1"
+                    >
+                      <i className="fa-solid fa-plus"></i>
+                      <span>Agregar</span>
                     </button>
-                  </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lista de ubicaciones configuradas */}
+              <div className="space-y-2">
+                {((formSettings.deliveryLocations && formSettings.deliveryLocations.length > 0)
+                  ? formSettings.deliveryLocations
+                  : getDeliveryLocations(formSettings)
+                ).map((loc) => (
+                  <div
+                    key={loc.id || loc.name}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-[#141414] border border-gray-800 rounded-2xl hover:border-gray-700 transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-stone-800 flex items-center justify-center text-[#ffd025] text-sm shrink-0">
+                        <i className="fa-solid fa-location-dot"></i>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">{loc.name}</span>
+                        <span className="text-[10px] text-gray-400">Entrega estimada: ~{loc.estimatedMinutes || 45} min</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 self-end sm:self-auto">
+                      <div className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-xl border border-gray-700">
+                        <span className="text-[10px] text-gray-400 font-medium">Tarifa:</span>
+                        <span className="text-xs text-[#ffd025] font-black">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="500"
+                          value={loc.price}
+                          onChange={(e) => handleUpdateLocationPrice(loc.id, loc.name, Number(e.target.value))}
+                          className="w-20 bg-transparent text-white font-black text-xs outline-none"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-1 bg-[#1a1a1a] px-2 py-1 rounded-xl border border-gray-700">
+                        <input
+                          type="number"
+                          min="5"
+                          step="5"
+                          value={loc.estimatedMinutes || 45}
+                          onChange={(e) => handleUpdateLocationMinutes(loc.id, loc.name, Number(e.target.value))}
+                          className="w-12 bg-transparent text-white text-xs outline-none text-right font-medium"
+                        />
+                        <span className="text-[10px] text-gray-400">min</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveLocation(loc.id, loc.name)}
+                        className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center transition cursor-pointer text-xs"
+                        title="Eliminar ubicación"
+                      >
+                        <i className="fa-solid fa-trash-can"></i>
+                      </button>
+                    </div>
+                  </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Horario de Cierre y Atención Comercial por Día */}
+            <div className="space-y-4 pt-4 border-t border-gray-800">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-300 uppercase flex items-center gap-2">
+                    <i className="fa-solid fa-clock text-[#ffd025]"></i>
+                    <span>Horario de Cierre y Atención por Día de la Semana</span>
+                  </h3>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    Configura la hora de apertura y cierre para cada día de la semana. Fuera de ese horario el sistema no permitirá ingresar pedidos al carrito.
+                  </p>
+                </div>
+
+                {/* Master switch */}
+                <div className="flex items-center gap-2 bg-[#141414] border border-gray-800 p-2.5 rounded-xl shrink-0">
+                  <label className="text-xs font-bold text-white flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formSettings.scheduleConfig?.enabled ?? true}
+                      onChange={(e) => {
+                        const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
+                        setFormSettings({
+                          ...formSettings,
+                          scheduleConfig: {
+                            ...currentSched,
+                            enabled: e.target.checked
+                          }
+                        });
+                      }}
+                      className="accent-[#ffd025] w-4 h-4 rounded"
+                    />
+                    <span>{formSettings.scheduleConfig?.enabled ? '🟢 Restricción Activa' : '⚪ Sin Restricción'}</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Selector de Modo Manual */}
+              <div className="bg-[#141414] p-4 rounded-2xl border border-gray-800 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
+                      setFormSettings({
+                        ...formSettings,
+                        scheduleConfig: { ...currentSched, manualOverride: 'auto' }
+                      });
+                    }}
+                    className={`p-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border ${
+                      (!formSettings.scheduleConfig?.manualOverride || formSettings.scheduleConfig.manualOverride === 'auto')
+                        ? 'bg-[#ffd025] text-[#141414] border-[#ffd025]'
+                        : 'bg-[#1a1a1a] text-gray-300 border-gray-700 hover:border-gray-500'
+                    }`}
+                  >
+                    <i className="fa-solid fa-calendar-check"></i>
+                    <span>Automático (Según Horario)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
+                      setFormSettings({
+                        ...formSettings,
+                        scheduleConfig: { ...currentSched, manualOverride: 'force_open' }
+                      });
+                    }}
+                    className={`p-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border ${
+                      formSettings.scheduleConfig?.manualOverride === 'force_open'
+                        ? 'bg-emerald-500 text-white border-emerald-500'
+                        : 'bg-[#1a1a1a] text-gray-300 border-gray-700 hover:border-gray-500'
+                    }`}
+                  >
+                    <i className="fa-solid fa-door-open"></i>
+                    <span>Forzar Abierto 24/7</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
+                      setFormSettings({
+                        ...formSettings,
+                        scheduleConfig: { ...currentSched, manualOverride: 'force_closed' }
+                      });
+                    }}
+                    className={`p-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border ${
+                      formSettings.scheduleConfig?.manualOverride === 'force_closed'
+                        ? 'bg-red-600 text-white border-red-600'
+                        : 'bg-[#1a1a1a] text-gray-300 border-gray-700 hover:border-gray-500'
+                    }`}
+                  >
+                    <i className="fa-solid fa-lock"></i>
+                    <span>Forzar Cerrado Ahora</span>
+                  </button>
+                </div>
+
+                {/* Mensaje al cliente */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-400 uppercase mb-1">
+                    Mensaje para clientes cuando el local esté cerrado:
+                  </label>
+                  <input
+                    type="text"
+                    value={formSettings.scheduleConfig?.closedMessage || ''}
+                    onChange={(e) => {
+                      const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
+                      setFormSettings({
+                        ...formSettings,
+                        scheduleConfig: { ...currentSched, closedMessage: e.target.value }
+                      });
+                    }}
+                    placeholder="Ej: Local cerrado en este momento. Reanudamos recepción de pedidos a las 12:00 hrs."
+                    className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl p-2.5 text-xs text-white focus:border-[#ffd025] outline-none"
+                  />
+                </div>
+
+                {/* Botones de acción rápida */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Atajos rápidos:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTimeToAllDays('12:00', '02:00')}
+                    className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] px-2.5 py-1 rounded-lg border border-stone-700 transition cursor-pointer"
+                  >
+                    Todos 12:00 a 02:00 hrs
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTimeToAllDays('12:00', '04:00')}
+                    className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] px-2.5 py-1 rounded-lg border border-stone-700 transition cursor-pointer"
+                  >
+                    Todos 12:00 a 04:00 hrs (Nocturno)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTimeToAllDays('11:00', '00:00')}
+                    className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] px-2.5 py-1 rounded-lg border border-stone-700 transition cursor-pointer"
+                  >
+                    Todos 11:00 a 00:00 hrs
+                  </button>
+                </div>
+              </div>
+
+              {/* Días de la semana */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {(formSettings.scheduleConfig?.days || DEFAULT_STORE_SCHEDULE.days).map((daySched, idx) => {
+                  const isOvernight = daySched.closeTime < daySched.openTime;
+                  return (
+                    <div
+                      key={daySched.day}
+                      className={`p-3 rounded-2xl border transition ${
+                        daySched.isOpen
+                          ? 'bg-[#141414] border-gray-800'
+                          : 'bg-[#121212]/70 border-gray-900 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-black uppercase text-white flex items-center gap-1.5">
+                          <span>{daySched.label}</span>
+                          {isOvernight && daySched.isOpen && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold" title="Cierra en la madrugada siguiente">
+                              🌙 Madrugada
+                            </span>
+                          )}
+                        </span>
+                        <label className="flex items-center gap-1.5 text-[11px] font-bold cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={daySched.isOpen}
+                            onChange={(e) => handleUpdateDaySchedule(idx, 'isOpen', e.target.checked)}
+                            className="accent-[#ffd025] w-3.5 h-3.5 rounded"
+                          />
+                          <span className={daySched.isOpen ? 'text-emerald-400' : 'text-gray-500'}>
+                            {daySched.isOpen ? 'Abierto' : 'Cerrado'}
+                          </span>
+                        </label>
+                      </div>
+
+                      {daySched.isOpen ? (
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <div>
+                            <label className="block text-[10px] text-gray-400 mb-0.5">Apertura</label>
+                            <input
+                              type="time"
+                              value={daySched.openTime}
+                              onChange={(e) => handleUpdateDaySchedule(idx, 'openTime', e.target.value)}
+                              className="w-full bg-[#1a1a1a] border border-gray-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-[#ffd025]"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] text-gray-400 mb-0.5">Cierre</label>
+                            <input
+                              type="time"
+                              value={daySched.closeTime}
+                              onChange={(e) => handleUpdateDaySchedule(idx, 'closeTime', e.target.value)}
+                              className="w-full bg-[#1a1a1a] border border-gray-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-[#ffd025]"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="py-2 text-center text-[11px] text-gray-500 font-medium">
+                          No se reciben pedidos este día
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

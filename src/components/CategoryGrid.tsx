@@ -89,9 +89,10 @@ export const CategoryGrid: React.FC = () => {
             <img
               src={item.image}
               alt={item.title}
-              className="absolute inset-0 w-full h-full object-cover opacity-50 transition-transform duration-700 group-hover:scale-110"
+              className="absolute inset-0 w-full h-full object-cover opacity-95 group-hover:opacity-100 transition-all duration-700 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/65 to-transparent"></div>
+            {/* Solo degradado inferior para contrastar el texto y el botón */}
+            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/95 via-black/60 to-transparent pointer-events-none"></div>
             <div className="relative z-10 flex items-end justify-between gap-2.5">
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] text-[#ffd129] font-medium block leading-none truncate mb-1">

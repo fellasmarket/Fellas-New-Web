@@ -216,12 +216,12 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({ onAddToCart, megaOffers,
                     key={offer.id}
                     className="bg-white rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 group transition-all duration-300 shadow-xl border border-white hover:border-[#ffd129] text-[#141414] min-w-0"
                   >
-                    <div className="relative w-full sm:w-32 h-32 rounded-xl overflow-hidden bg-stone-50 shrink-0 border border-stone-200/70 flex items-center justify-center p-2">
+                    <div className="relative w-full sm:w-36 h-36 rounded-xl overflow-hidden bg-stone-50 shrink-0 border border-stone-200/70 flex items-center justify-center p-2.5">
                       <img
                         src={offer.image}
                         alt={offer.name}
                         referrerPolicy="no-referrer"
-                        className={`w-full h-full object-contain group-hover:scale-105 transition duration-300 ${offer.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
+                        className={`max-w-full max-h-full w-auto h-auto object-contain aspect-auto group-hover:scale-105 transition-transform duration-300 ${offer.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
                       />
                       {autoDiscount && offer.inStock !== false && (
                         <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md shadow-md animate-pulse">

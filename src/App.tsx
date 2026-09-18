@@ -11,6 +11,7 @@ import { CheckoutModal } from './components/CheckoutModal';
 import { Footer } from './components/Footer';
 import { Toast } from './components/Toast';
 import { AdminDashboard } from './components/AdminDashboard';
+import { DeliveryDashboard } from './components/DeliveryDashboard';
 
 const DEFAULT_SETTINGS: StoreSettings = {
   storeName: 'Botillería Nova Express',
@@ -44,8 +45,8 @@ const DEFAULT_SETTINGS: StoreSettings = {
 };
 
 export default function App() {
-  // Navigation / View state: 'store' or 'admin'
-  const [currentView, setCurrentView] = useState<'store' | 'admin'>('store');
+  // Navigation / View state: 'store', 'admin' or 'delivery'
+  const [currentView, setCurrentView] = useState<'store' | 'admin' | 'delivery'>('store');
 
   // Dynamic Data States connected to backend / defaults
   const [categories, setCategories] = useState<CategoryData[]>(INITIAL_CATEGORIES);
@@ -193,9 +194,10 @@ export default function App() {
     );
   };
 
-  const handleLogin = (name: string, email: string, role: 'admin' | 'customer' = 'customer') => {
+  const handleLogin = (name: string, email: string, role: 'admin' | 'customer' | 'delivery' = 'customer') => {
     const isSpecialAdmin = email.toLowerCase().includes('admin') || role === 'admin';
-    const userRole = isSpecialAdmin ? 'admin' : 'customer';
+    const isDelivery = role === 'delivery' || email.toLowerCase().includes('delivery');
+    const userRole: 'admin' | 'customer' | 'delivery' = isSpecialAdmin ? 'admin' : isDelivery ? 'delivery' : 'customer';
     
     setUser({
       name,
@@ -208,6 +210,9 @@ export default function App() {
     if (userRole === 'admin') {
       showToast(`¡Bienvenido Administrador ${name}! Abriendo panel de control.`);
       setCurrentView('admin');
+    } else if (userRole === 'delivery') {
+      showToast(`¡Bienvenido Repartidor ${name}! Abriendo panel de pedidos en ruta.`);
+      setCurrentView('delivery');
     } else {
       showToast(`¡Bienvenido ${name}! Tienes ${settings.customerDiscountPercent}% de descuento de cliente.`);
     }
@@ -274,24 +279,49 @@ export default function App() {
 
   return (
     <div className="bg-stone-100 min-h-screen text-[#141414] antialiased relative selection:bg-[#ffd129] selection:text-[#141414]">
-      {/* Barra superior de administración si el usuario es admin y está en la tienda */}
+      {/* Barra superior si el usuario es admin o repartidor y está en la tienda */}
       {user?.role === 'admin' && currentView === 'store' && (
         <aside aria-label="Acceso a panel de control" className="bg-[#ffd129] text-[#141414] px-4 py-2 text-xs font-bold flex items-center justify-between shadow-md fixed top-0 left-0 right-0 z-60">
           <div className="flex items-center gap-2">
             <i className="fa-solid fa-shield-halved"></i>
             <span>Modo Administrador Activo ({user.email})</span>
           </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentView('delivery')}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <i className="fa-solid fa-motorcycle"></i>
+              <span>Panel Delivery</span>
+            </button>
+            <button
+              onClick={() => setCurrentView('admin')}
+              className="bg-[#141414] text-white hover:bg-stone-800 px-3 py-1 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <i className="fa-solid fa-gauge"></i>
+              <span>Panel Admin</span>
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {user?.role === 'delivery' && currentView === 'store' && (
+        <aside aria-label="Acceso a panel de repartidores" className="bg-blue-600 text-white px-4 py-2 text-xs font-bold flex items-center justify-between shadow-md fixed top-0 left-0 right-0 z-60">
+          <div className="flex items-center gap-2">
+            <i className="fa-solid fa-motorcycle"></i>
+            <span>Sesión Repartidor Activa ({user.name})</span>
+          </div>
           <button
-            onClick={() => setCurrentView('admin')}
-            className="bg-[#141414] text-white hover:bg-stone-800 px-3 py-1 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition"
+            onClick={() => setCurrentView('delivery')}
+            className="bg-[#ffd129] text-[#141414] hover:bg-yellow-400 px-3 py-1 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer shadow"
           >
-            <i className="fa-solid fa-gauge"></i>
-            <span>Ir al Panel de Autoadministración</span>
+            <i className="fa-solid fa-boxes-stacked"></i>
+            <span>Ir al Panel de Delivery</span>
           </button>
         </aside>
       )}
 
-      {/* RENDERIZADO CONDICIONAL: Vista Admin vs Vista Tienda */}
+      {/* RENDERIZADO CONDICIONAL: Vista Admin vs Vista Delivery vs Vista Tienda */}
       {currentView === 'admin' ? (
         <AdminDashboard
           onExitAdmin={() => setCurrentView('store')}
@@ -304,6 +334,13 @@ export default function App() {
           showToast={showToast}
           megaOffers={megaOffers}
           onUpdateMegaOffers={setMegaOffers}
+          onOpenDelivery={() => setCurrentView('delivery')}
+        />
+      ) : currentView === 'delivery' ? (
+        <DeliveryDashboard
+          onExit={() => setCurrentView('store')}
+          showToast={showToast}
+          settings={settings}
         />
       ) : (
         <>
@@ -323,10 +360,11 @@ export default function App() {
             settings={settings}
             categories={categories}
             onOpenAdmin={() => setCurrentView('admin')}
+            onOpenDelivery={() => setCurrentView('delivery')}
           />
 
           {/* Contenido Principal con espaciado superior prudente respecto al encabezado */}
-          <main className={`pb-16 px-2 sm:px-4 md:px-6 max-w-[100vw] overflow-x-hidden ${user?.role === 'admin' ? 'pt-32 sm:pt-36 md:pt-40' : 'pt-28 sm:pt-30 md:pt-32'}`}>
+          <main className={`pb-16 px-2 sm:px-4 md:px-6 max-w-[100vw] overflow-x-hidden ${(user?.role === 'admin' || user?.role === 'delivery') ? 'pt-32 sm:pt-36 md:pt-40' : 'pt-28 sm:pt-30 md:pt-32'}`}>
             {/* Si el usuario busca algo, mostramos los resultados en tiempo real */}
             {searchQuery.trim() !== '' ? (
               <section className="max-w-7xl mx-auto my-8">

@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
-import { CATEGORIES as INITIAL_CATEGORIES, MEGA_OFFERS as INITIAL_MEGA_OFFERS, HERO_SLIDES as INITIAL_HERO_SLIDES } from './src/data/products';
+import { CATEGORIES as INITIAL_CATEGORIES, MEGA_OFFERS as INITIAL_MEGA_OFFERS, HERO_SLIDES as INITIAL_HERO_SLIDES, DEFAULT_STORE_SCHEDULE } from './src/data/products';
 import type { CategoryData, Product, Order, StoreSettings, EmailMarketingSubscriber, HeroSlide, DeliveryLocation } from './src/types';
 
 const app = express();
@@ -109,7 +109,8 @@ let settings: StoreSettings = {
     sectionTitle: '¡LAS PROMOS DEL TIO FELLAS!',
     sectionSubtitle: 'Combos imperdibles y packs con despacho prioritario',
     badgeText: 'PROMOS RELÁMPAGO'
-  }
+  },
+  scheduleConfig: JSON.parse(JSON.stringify(DEFAULT_STORE_SCHEDULE))
 };
 
 let orders: Order[] = [
@@ -284,6 +285,26 @@ app.post('/api/auth/login', (req, res) => {
         isLoggedIn: true
       },
       token: 'jwt-fellas-admin-token-fellhonpm'
+    });
+  }
+
+  // Delivery Driver access (requested: username "delivery", password "botifelldely")
+  const isDeliveryUser = 
+    email.trim().toLowerCase() === 'delivery' || 
+    email.trim().toLowerCase() === 'delivery@botilleria.cl' ||
+    email.trim().toLowerCase() === 'delivery@fellasmarket.cl' ||
+    email.trim().toLowerCase() === 'repartidor';
+
+  if ((isDeliveryUser && password === 'botifelldely') || password === 'botifelldely') {
+    return res.json({
+      success: true,
+      user: {
+        name: 'Repartidor Delivery',
+        email: email.includes('@') ? email : 'delivery@botilleria.cl',
+        role: 'delivery',
+        isLoggedIn: true
+      },
+      token: 'jwt-delivery-token-botifelldely'
     });
   }
 
@@ -489,6 +510,17 @@ app.post('/api/orders', (req, res) => {
 });
 
 app.put('/api/orders/:id/status', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const order = orders.find((o) => o.id === id);
+  if (!order) {
+    return res.status(404).json({ error: 'Pedido no encontrado' });
+  }
+  order.status = status;
+  res.json({ success: true, order, orders });
+});
+
+app.patch('/api/orders/:id/status', (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   const order = orders.find((o) => o.id === id);

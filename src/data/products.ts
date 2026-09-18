@@ -1,4 +1,4 @@
-import { CategoryData, HeroSlide, Product, DeliveryLocation, StoreSettings } from '../types';
+import { CategoryData, HeroSlide, Product, DeliveryLocation, StoreSettings, DaySchedule, StoreScheduleConfig } from '../types';
 
 export const HERO_SLIDES: HeroSlide[] = [
   {
@@ -593,4 +593,168 @@ export const getLocationEstimatedTime = (locationName: string, settings?: StoreS
   );
   return found?.estimatedMinutes || 35;
 };
+
+export const DEFAULT_STORE_SCHEDULE: StoreScheduleConfig = {
+  enabled: true,
+  manualOverride: 'auto',
+  closedMessage: 'Nuestra botillería se encuentra cerrada en este momento. Revisa nuestro horario semanal de atención.',
+  days: [
+    { day: 'lunes', label: 'Lunes', isOpen: true, openTime: '12:00', closeTime: '02:00' },
+    { day: 'martes', label: 'Martes', isOpen: true, openTime: '12:00', closeTime: '02:00' },
+    { day: 'miercoles', label: 'Miércoles', isOpen: true, openTime: '12:00', closeTime: '02:00' },
+    { day: 'jueves', label: 'Jueves', isOpen: true, openTime: '12:00', closeTime: '03:00' },
+    { day: 'viernes', label: 'Viernes', isOpen: true, openTime: '12:00', closeTime: '04:00' },
+    { day: 'sabado', label: 'Sábado', isOpen: true, openTime: '12:00', closeTime: '04:00' },
+    { day: 'domingo', label: 'Domingo', isOpen: true, openTime: '12:00', closeTime: '01:00' }
+  ]
+};
+
+const DAY_KEYS: Array<DaySchedule['day']> = [
+  'domingo', // 0
+  'lunes',   // 1
+  'martes',  // 2
+  'miercoles', // 3
+  'jueves',  // 4
+  'viernes', // 5
+  'sabado'   // 6
+];
+
+// Helper to convert "HH:MM" string to minutes from start of day (0 - 1439)
+const parseTimeToMinutes = (timeStr: string): number => {
+  if (!timeStr) return 0;
+  const [h, m] = timeStr.split(':').map(n => parseInt(n, 10) || 0);
+  return h * 60 + m;
+};
+
+export interface StoreOpenStatus {
+  isOpen: boolean;
+  statusText: string;
+  badgeColor: 'green' | 'amber' | 'red';
+  currentDayLabel: string;
+  todayHoursText: string;
+  nextOpenText?: string;
+  reason?: string;
+}
+
+export const checkStoreOpenStatus = (
+  scheduleConfig?: StoreScheduleConfig | null,
+  mockDate?: Date
+): StoreOpenStatus => {
+  const config = scheduleConfig || DEFAULT_STORE_SCHEDULE;
+
+  if (config.enabled === false || config.manualOverride === 'force_open') {
+    return {
+      isOpen: true,
+      statusText: 'Abierto Ahora (Recepción de pedidos activa)',
+      badgeColor: 'green',
+      currentDayLabel: 'Atención Continua',
+      todayHoursText: 'Abierto 24/7 o forzado administrativamente'
+    };
+  }
+
+  if (config.manualOverride === 'force_closed') {
+    return {
+      isOpen: false,
+      statusText: 'Cerrado Temporalmente',
+      badgeColor: 'red',
+      currentDayLabel: 'Cerrado por Administración',
+      todayHoursText: 'No se reciben pedidos en este momento',
+      reason: config.closedMessage || 'El local se encuentra cerrado temporalmente por el administrador.'
+    };
+  }
+
+  const now = mockDate || new Date();
+  const currentDayIndex = now.getDay(); // 0 = domingo, 1 = lunes, ...
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const daysList = config.days && config.days.length === 7 ? config.days : DEFAULT_STORE_SCHEDULE.days;
+
+  const getDaySchedule = (idx: number): DaySchedule => {
+    const key = DAY_KEYS[idx];
+    return daysList.find(d => d.day === key) || daysList[idx];
+  };
+
+  const todaySchedule = getDaySchedule(currentDayIndex);
+  const prevDayIndex = (currentDayIndex + 6) % 7;
+  const yesterdaySchedule = getDaySchedule(prevDayIndex);
+
+  // Check if still open from yesterday's night shift (e.g. yesterday openTime=12:00, closeTime=04:00, and it is 02:30 AM today)
+  if (yesterdaySchedule.isOpen) {
+    const yOpenM = parseTimeToMinutes(yesterdaySchedule.openTime);
+    const yCloseM = parseTimeToMinutes(yesterdaySchedule.closeTime);
+
+    // If closeTime < openTime, it spans past midnight into today
+    if (yCloseM < yOpenM && currentMinutes < yCloseM) {
+      return {
+        isOpen: true,
+        statusText: 'Abierto Ahora (Turno Nocturno)',
+        badgeColor: 'green',
+        currentDayLabel: yesterdaySchedule.label,
+        todayHoursText: `${yesterdaySchedule.openTime} a ${yesterdaySchedule.closeTime} hrs (Cierra a las ${yesterdaySchedule.closeTime})`
+      };
+    }
+  }
+
+  // Check today's schedule
+  if (todaySchedule.isOpen) {
+    const openM = parseTimeToMinutes(todaySchedule.openTime);
+    const closeM = parseTimeToMinutes(todaySchedule.closeTime);
+
+    // If close spans past midnight (closeM < openM)
+    if (closeM < openM) {
+      if (currentMinutes >= openM) {
+        return {
+          isOpen: true,
+          statusText: 'Abierto Ahora',
+          badgeColor: 'green',
+          currentDayLabel: todaySchedule.label,
+          todayHoursText: `Hoy ${todaySchedule.label}: ${todaySchedule.openTime} a ${todaySchedule.closeTime} hrs (madrugada)`
+        };
+      }
+    } else {
+      // Normal same-day shift
+      if (currentMinutes >= openM && currentMinutes < closeM) {
+        return {
+          isOpen: true,
+          statusText: 'Abierto Ahora',
+          badgeColor: 'green',
+          currentDayLabel: todaySchedule.label,
+          todayHoursText: `Hoy ${todaySchedule.label}: ${todaySchedule.openTime} a ${todaySchedule.closeTime} hrs`
+        };
+      }
+    }
+  }
+
+  // If we reach here, the store is closed right now
+  let nextOpenMsg = '';
+  if (todaySchedule.isOpen) {
+    const openM = parseTimeToMinutes(todaySchedule.openTime);
+    if (currentMinutes < openM) {
+      nextOpenMsg = `Hoy ${todaySchedule.label} abrimos a las ${todaySchedule.openTime} hrs`;
+    }
+  }
+
+  if (!nextOpenMsg) {
+    // Find next day that is open
+    for (let i = 1; i <= 7; i++) {
+      const nextIdx = (currentDayIndex + i) % 7;
+      const nextSched = getDaySchedule(nextIdx);
+      if (nextSched.isOpen) {
+        nextOpenMsg = `${nextSched.label} abrimos a las ${nextSched.openTime} hrs`;
+        break;
+      }
+    }
+  }
+
+  return {
+    isOpen: false,
+    statusText: 'Cerrado Actualmente',
+    badgeColor: 'amber',
+    currentDayLabel: todaySchedule.label,
+    todayHoursText: todaySchedule.isOpen ? `Horario hoy: ${todaySchedule.openTime} a ${todaySchedule.closeTime} hrs` : 'Hoy: Cerrado',
+    nextOpenText: nextOpenMsg || 'Consulte horarios de atención',
+    reason: config.closedMessage || 'No se reciben pedidos fuera del horario de atención comercial.'
+  };
+};
+
 
