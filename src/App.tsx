@@ -163,6 +163,33 @@ export default function App() {
     fetchData();
   }, []);
 
+  // Client-side Keep-Alive Heartbeat: Mantiene activo el servidor de Render cuando hay visitantes o pestaña abierta
+  useEffect(() => {
+    const pingHeartbeat = () => {
+      fetch('/api/keepalive', { method: 'GET' }).catch(() => {});
+    };
+
+    // Pulso inicial a los 4 segundos
+    const initialTimer = setTimeout(pingHeartbeat, 4000);
+
+    // Pulso recurrente cada 4 minutos (240.000 ms)
+    const interval = setInterval(pingHeartbeat, 240000);
+
+    // Pulso inmediato cuando el usuario regresa a la pestaña
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        pingHeartbeat();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const handleAddToCart = (product: Product) => {
     if (product.inStock === false) {
       showToast(`"${product.name}" no tiene stock disponible en este momento.`);

@@ -542,7 +542,225 @@ app.get('/api/settings', (req, res) => {
 app.put('/api/settings', (req, res) => {
   const updatedSettings: Partial<StoreSettings> = req.body;
   settings = { ...settings, ...updatedSettings };
+  startKeepAliveEngine();
   res.json({ success: true, settings });
+});
+
+// ============================================================================
+// RENDER 24/7 AUTO-KEEP-ALIVE ENGINE (Anti-Suspensión por Inactividad)
+// ============================================================================
+interface KeepAliveHistoryLog {
+  timestamp: string;
+  url: string;
+  status: number;
+  durationMs: number;
+  success: boolean;
+  error?: string;
+}
+
+let keepAliveTimer: NodeJS.Timeout | null = null;
+const keepAliveStats = {
+  enabled: true,
+  intervalMinutes: 9,
+  totalPings: 0,
+  successfulPings: 0,
+  failedPings: 0,
+  lastPingAt: null as string | null,
+  lastPingSuccess: null as boolean | null,
+  lastPingResponseStatus: null as number | null,
+  lastPingDurationMs: null as number | null,
+  targetUrl: process.env.RENDER_EXTERNAL_URL || `http://127.0.0.1:${PORT}/api/health`,
+  history: [] as KeepAliveHistoryLog[]
+};
+
+function getEffectiveTargetUrl(): string {
+  if (settings.renderAppUrl && settings.renderAppUrl.trim().startsWith('http')) {
+    return settings.renderAppUrl.trim();
+  }
+  if (process.env.RENDER_EXTERNAL_URL) {
+    return process.env.RENDER_EXTERNAL_URL.trim();
+  }
+  return `http://127.0.0.1:${PORT}/api/health`;
+}
+
+async function performKeepAlivePing(forcedTargetUrl?: string): Promise<{
+  success: boolean;
+  status: number;
+  durationMs: number;
+  url: string;
+  error?: string;
+}> {
+  let target = forcedTargetUrl || getEffectiveTargetUrl();
+  // Ensure target has health endpoint if domain only
+  if (target.startsWith('http') && !target.includes('/api/')) {
+    target = target.replace(/\/+$/, '') + '/api/health';
+  }
+
+  const start = Date.now();
+  keepAliveStats.totalPings++;
+  keepAliveStats.targetUrl = target;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    const response = await fetch(target, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Botilleria-Render-KeepAlive/2.0 (Always-On Engine)',
+        'X-Keep-Alive-Ping': 'true'
+      },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    const durationMs = Date.now() - start;
+    const isSuccess = response.ok || response.status < 500;
+
+    if (isSuccess) {
+      keepAliveStats.successfulPings++;
+    } else {
+      keepAliveStats.failedPings++;
+    }
+
+    keepAliveStats.lastPingAt = new Date().toISOString();
+    keepAliveStats.lastPingSuccess = isSuccess;
+    keepAliveStats.lastPingResponseStatus = response.status;
+    keepAliveStats.lastPingDurationMs = durationMs;
+
+    const logEntry: KeepAliveHistoryLog = {
+      timestamp: new Date().toISOString(),
+      url: target,
+      status: response.status,
+      durationMs,
+      success: isSuccess
+    };
+
+    keepAliveStats.history.unshift(logEntry);
+    if (keepAliveStats.history.length > 25) {
+      keepAliveStats.history.pop();
+    }
+
+    console.log(`[Keep-Alive 24/7] Pulse to ${target} -> Status ${response.status} (${durationMs}ms)`);
+
+    return {
+      success: isSuccess,
+      status: response.status,
+      durationMs,
+      url: target
+    };
+  } catch (err: any) {
+    const durationMs = Date.now() - start;
+    keepAliveStats.failedPings++;
+    keepAliveStats.lastPingAt = new Date().toISOString();
+    keepAliveStats.lastPingSuccess = false;
+    keepAliveStats.lastPingResponseStatus = 0;
+    keepAliveStats.lastPingDurationMs = durationMs;
+
+    const logEntry: KeepAliveHistoryLog = {
+      timestamp: new Date().toISOString(),
+      url: target,
+      status: 0,
+      durationMs,
+      success: false,
+      error: err.message || 'Timeout o fallo de conexión'
+    };
+
+    keepAliveStats.history.unshift(logEntry);
+    if (keepAliveStats.history.length > 25) {
+      keepAliveStats.history.pop();
+    }
+
+    console.warn(`[Keep-Alive 24/7] Pulse to ${target} failed after ${durationMs}ms:`, err.message);
+
+    return {
+      success: false,
+      status: 0,
+      durationMs,
+      url: target,
+      error: err.message
+    };
+  }
+}
+
+function startKeepAliveEngine() {
+  if (keepAliveTimer) {
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = null;
+  }
+
+  const isEnabled = settings.renderKeepAliveEnabled !== false;
+  keepAliveStats.enabled = isEnabled;
+
+  if (!isEnabled) {
+    console.log('[Keep-Alive 24/7] Engine paused by settings.');
+    return;
+  }
+
+  const intervalMinutes =
+    settings.renderPingIntervalMinutes &&
+    settings.renderPingIntervalMinutes >= 3 &&
+    settings.renderPingIntervalMinutes <= 14
+      ? settings.renderPingIntervalMinutes
+      : 9;
+
+  keepAliveStats.intervalMinutes = intervalMinutes;
+  const intervalMs = intervalMinutes * 60 * 1000;
+
+  console.log(`[Keep-Alive 24/7] Active! Scheduled heartbeat every ${intervalMinutes} minutes.`);
+
+  // Initial pulse 8 seconds after boot
+  setTimeout(() => {
+    performKeepAlivePing().catch(() => {});
+  }, 8000);
+
+  keepAliveTimer = setInterval(() => {
+    performKeepAlivePing().catch(() => {});
+  }, intervalMs);
+}
+
+// Keep-Alive & Health Endpoints
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    app: settings.storeName || 'Botillería Express',
+    uptimeSeconds: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    keepAliveActive: keepAliveStats.enabled
+  });
+});
+
+app.get('/api/keepalive', (req, res) => {
+  res.json({
+    success: true,
+    status: 'ok',
+    uptimeSeconds: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    detectedRenderUrl: process.env.RENDER_EXTERNAL_URL || null,
+    stats: {
+      ...keepAliveStats,
+      targetUrl: getEffectiveTargetUrl(),
+      uptimeSeconds: Math.floor(process.uptime())
+    }
+  });
+});
+
+app.post('/api/keepalive/ping-now', async (req, res) => {
+  try {
+    const { customUrl } = req.body || {};
+    const result = await performKeepAlivePing(customUrl);
+    res.json({
+      success: true,
+      result,
+      stats: {
+        ...keepAliveStats,
+        targetUrl: getEffectiveTargetUrl(),
+        uptimeSeconds: Math.floor(process.uptime())
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Error executing ping' });
+  }
 });
 
 // 7. Email Marketing Subscribers API
@@ -1451,6 +1669,7 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Botillería server running on http://0.0.0.0:${PORT}`);
+    startKeepAliveEngine();
   });
 }
 

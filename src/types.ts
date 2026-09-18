@@ -208,6 +208,33 @@ export interface StoreSettings {
   bottomBannerImage?: string;
   bottomBannerLink?: string;
   showBottomBanner?: boolean;
+  renderKeepAliveEnabled?: boolean;
+  renderAppUrl?: string;
+  renderPingIntervalMinutes?: number;
+}
+
+export interface KeepAliveLog {
+  timestamp: string;
+  url: string;
+  status: number;
+  durationMs: number;
+  success: boolean;
+  error?: string;
+}
+
+export interface KeepAliveStats {
+  enabled: boolean;
+  intervalMinutes: number;
+  totalPings: number;
+  successfulPings: number;
+  failedPings: number;
+  lastPingAt: string | null;
+  lastPingSuccess: boolean | null;
+  lastPingResponseStatus: number | null;
+  lastPingDurationMs: number | null;
+  targetUrl: string;
+  uptimeSeconds: number;
+  history: KeepAliveLog[];
 }
 
 export interface EmailMarketingSubscriber {

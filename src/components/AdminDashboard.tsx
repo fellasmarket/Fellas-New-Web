@@ -26,6 +26,7 @@ import { HeroBannerEditor } from './admin/HeroBannerEditor';
 import { MegaOffersEditor } from './admin/MegaOffersEditor';
 import { FooterEditor } from './admin/FooterEditor';
 import { CategoryBannerModal } from './admin/CategoryBannerModal';
+import { KeepAliveEditor } from './admin/KeepAliveEditor';
 
 interface AdminDashboardProps {
   onExitAdmin: () => void;
@@ -58,7 +59,8 @@ type AdminTab =
   | 'customers' 
   | 'feedback' 
   | 'compressor' 
-  | 'backup';
+  | 'backup'
+  | 'keep_alive';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onExitAdmin,
@@ -1104,6 +1106,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       title: 'Sistema & Ajustes',
       tabs: [
         { id: 'settings', label: 'Ajustes Generales', icon: 'fa-solid fa-sliders' },
+        { id: 'keep_alive', label: 'Anti-Suspensión (Render)', icon: 'fa-solid fa-heart-pulse', activePill: formSettings.renderKeepAliveEnabled !== false },
         { id: 'alt_store', label: 'Tienda Alterna', icon: 'fa-solid fa-store', activePill: backupStore.enabled },
         { id: 'backup', label: 'Respaldo & Nube', icon: 'fa-solid fa-cloud' }
       ]
@@ -2597,7 +2600,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <p className="text-[11px] text-gray-400">
                 Accede rápidamente a los editores completos de la página principal:
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                 <button
                   type="button"
                   onClick={() => setActiveTab('hero_banner')}
@@ -2637,6 +2640,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="min-w-0">
                     <span className="text-xs font-bold text-white block truncate">Pie de Página</span>
                     <span className="text-[10px] text-gray-400 block truncate">Textos y columnas</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('keep_alive')}
+                  className="p-3 rounded-xl bg-gray-800/80 hover:bg-gray-800 border border-gray-700 hover:border-cyan-400 text-left transition flex items-center gap-2.5 cursor-pointer group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs shrink-0 group-hover:scale-110 transition">
+                    <i className="fa-solid fa-heart-pulse animate-pulse"></i>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">Anti-Suspensión</span>
+                    <span className="text-[10px] text-cyan-300 block truncate">Render 24/7 Always-On</span>
                   </div>
                 </button>
               </div>
@@ -3768,6 +3785,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
           </div>
+        )}
+
+        {/* TAB 13: ANTI-SUSPENSIÓN (RENDER 24/7 ALWAYS-ON) */}
+        {activeTab === 'keep_alive' && (
+          <KeepAliveEditor
+            settings={formSettings}
+            onUpdateSettings={setFormSettings}
+            showToast={showToast}
+          />
         )}
 
         </div>
