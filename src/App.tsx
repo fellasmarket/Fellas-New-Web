@@ -1,0 +1,471 @@
+import React, { useState, useEffect } from 'react';
+import { CartItem, Product, UserAccount, CategoryData, StoreSettings, HeroSlide } from './types';
+import { CATEGORIES as INITIAL_CATEGORIES, MEGA_OFFERS as INITIAL_MEGA_OFFERS, HERO_SLIDES as INITIAL_HERO_SLIDES, formatPrice, getDiscountPercentage } from './data/products';
+import { Header } from './components/Header';
+import { HeroSlider } from './components/HeroSlider';
+import { Newsletter } from './components/Newsletter';
+import { MegaOffers } from './components/MegaOffers';
+import { CategoryGrid } from './components/CategoryGrid';
+import { CategorySection } from './components/CategorySection';
+import { CheckoutModal } from './components/CheckoutModal';
+import { Footer } from './components/Footer';
+import { Toast } from './components/Toast';
+import { AdminDashboard } from './components/AdminDashboard';
+
+const DEFAULT_SETTINGS: StoreSettings = {
+  storeName: 'Botillería Nova Express',
+  logoTextPrimary: 'BOTI',
+  logoTextAccent: '.EXPRESS',
+  tagline: 'Botillería online & despacho exprés de cervezas, piscos, vinos y promociones',
+  footerAbout: 'Tu botillería online de confianza. Piscos, cervezas heladas, destilados premium, vinos y aperitivos con despacho exprés directo a tu puerta.',
+  contactEmail: 'contacto@botilleriaexpress.cl',
+  contactPhone: '+56 2 2840 5500',
+  contactAddress: 'Av. Providencia 1208, Santiago, Chile',
+  socialInstagram: 'https://instagram.com',
+  socialTwitter: 'https://twitter.com',
+  socialFacebook: 'https://facebook.com',
+  socialWhatsapp: '+56912345678',
+  deliveryZones: [
+    'Santiago Centro',
+    'Providencia',
+    'Las Condes',
+    'Ñuñoa',
+    'Vitacura',
+    'La Reina',
+    'San Miguel',
+    'Macul'
+  ],
+  customerDiscountPercent: 10,
+  customerDiscountTiers: [
+    { name: 'Cliente Frecuente', minPurchases: 3, discountPercent: 5 },
+    { name: 'Cliente VIP Sediento', minPurchases: 8, discountPercent: 10 },
+    { name: 'Parrillero de Oro', minPurchases: 15, discountPercent: 15 }
+  ]
+};
+
+export default function App() {
+  // Navigation / View state: 'store' or 'admin'
+  const [currentView, setCurrentView] = useState<'store' | 'admin'>('store');
+
+  // Dynamic Data States connected to backend / defaults
+  const [categories, setCategories] = useState<CategoryData[]>(INITIAL_CATEGORIES);
+  const [megaOffers, setMegaOffers] = useState<Product[]>(INITIAL_MEGA_OFFERS);
+  const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(INITIAL_HERO_SLIDES);
+
+  // Cart state with 2 initial liquor store items
+  const [cartItems, setCartItems] = useState<CartItem[]>([
+    {
+      product: {
+        id: 'dest-1',
+        name: 'Pisco Mistral Gran Nobel 40° 750ml',
+        category: 'Destilados & Piscos',
+        categoryId: 'cat-destilados',
+        subcategory: 'Pisco',
+        price: 24990,
+        originalPrice: 29990,
+        discount: '-17%',
+        image: 'https://images.unsplash.com/photo-1527061011665-3652c757a4d4?q=80&w=400&auto=format&fit=crop',
+        description: 'Añejado pacientemente en barricas de roble americano.',
+        buttonText: 'Agregar'
+      },
+      quantity: 1
+    },
+    {
+      product: {
+        id: 'cer-1',
+        name: 'Pack Cerveza Corona Extra 24x330ml',
+        category: 'Cervezas Heladas & Artesanales',
+        categoryId: 'cat-cervezas',
+        subcategory: 'Cervezas',
+        price: 22990,
+        originalPrice: 26990,
+        discount: '-15%',
+        image: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=400&auto=format&fit=crop',
+        description: 'Cerveza rubia tipo Lager mexicana refrescante.',
+        buttonText: 'Agregar'
+      },
+      quantity: 1
+    }
+  ]);
+
+  const [location, setLocation] = useState<string>('Santiago Centro');
+  const [user, setUser] = useState<UserAccount | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage((current) => (current === message ? null : current));
+    }, 3500);
+  };
+
+  // Fetch initial data from Express backend on startup
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [catRes, setRes, banRes] = await Promise.all([
+          fetch('/api/categories'),
+          fetch('/api/settings'),
+          fetch('/api/banners')
+        ]);
+
+        if (catRes.ok) {
+          const catData = await catRes.json();
+          if (Array.isArray(catData) && catData.length > 0) {
+            setCategories(catData);
+          }
+        }
+
+        if (setRes.ok) {
+          const resJson = await setRes.json();
+          const setData = resJson.settings || resJson;
+          if (setData && setData.logoTextPrimary) {
+            setSettings(prev => ({ ...prev, ...setData }));
+            if (setData.deliveryZones && setData.deliveryZones.length > 0) {
+              setLocation(setData.deliveryZones[0]);
+            }
+          }
+        }
+
+        if (banRes.ok) {
+          const banData = await banRes.json();
+          if (Array.isArray(banData) && banData.length > 0) {
+            setHeroSlides(banData);
+          }
+        }
+      } catch (err) {
+        console.log('Using default local store data:', err);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleAddToCart = (product: Product) => {
+    if (product.inStock === false) {
+      showToast(`"${product.name}" no tiene stock disponible en este momento.`);
+      return;
+    }
+    setCartItems((prev) => {
+      const existing = prev.find((item) => item.product.id === product.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.product.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+    showToast(`"${product.name}" agregado al carrito.`);
+  };
+
+  const handleRemoveFromCart = (productId: string) => {
+    setCartItems((prev) => prev.filter((item) => item.product.id !== productId));
+    showToast('Producto eliminado del carrito.');
+  };
+
+  const handleUpdateCartQuantity = (productId: string, delta: number) => {
+    setCartItems((prev) =>
+      prev
+        .map((item) => {
+          if (item.product.id === productId) {
+            const newQty = item.quantity + delta;
+            return newQty > 0 ? { ...item, quantity: newQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean) as CartItem[]
+    );
+  };
+
+  const handleLogin = (name: string, email: string, role: 'admin' | 'customer' = 'customer') => {
+    const isSpecialAdmin = email.toLowerCase().includes('admin') || role === 'admin';
+    const userRole = isSpecialAdmin ? 'admin' : 'customer';
+    
+    setUser({
+      name,
+      email,
+      isLoggedIn: true,
+      role: userRole,
+      discountPercent: userRole === 'customer' ? settings.customerDiscountPercent : 0
+    });
+
+    if (userRole === 'admin') {
+      showToast(`¡Bienvenido Administrador ${name}! Abriendo panel de control.`);
+      setCurrentView('admin');
+    } else {
+      showToast(`¡Bienvenido ${name}! Tienes ${settings.customerDiscountPercent}% de descuento de cliente.`);
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setCurrentView('store');
+    showToast('Sesión cerrada con éxito.');
+  };
+
+  const handleUpdateLocation = (loc: string) => {
+    setLocation(loc);
+    showToast(`Ubicación de entrega: ${loc}`);
+  };
+
+  const handleNewsletterSubscribe = async (email: string) => {
+    try {
+      await fetch('/api/marketing/subscribers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'Banner Newsletter' })
+      });
+    } catch (err) {
+      console.warn('Subscriber save failed:', err);
+    }
+    showToast(`¡Gracias! Te suscribiste con éxito (${email}). Recibirás nuestras promociones exclusivas.`);
+  };
+
+  const handleConfirmOrder = () => {
+    setCartItems([]);
+  };
+
+  // Sync updated categories
+  const handleUpdateCategories = (updatedCategories: CategoryData[]) => {
+    setCategories(updatedCategories);
+  };
+
+  // Sync updated settings
+  const handleUpdateSettings = (updatedSettings: StoreSettings) => {
+    setSettings(updatedSettings);
+  };
+
+  // Sync updated hero banners
+  const handleUpdateHeroSlides = (updatedSlides: HeroSlide[]) => {
+    setHeroSlides(updatedSlides);
+  };
+
+  // All searchable products
+  const allProducts: Product[] = [
+    ...megaOffers,
+    ...categories.flatMap((c) => c.products)
+  ];
+
+  const searchResults = searchQuery.trim()
+    ? allProducts.filter(
+        (p) =>
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.subcategory.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.description.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  return (
+    <div className="bg-stone-100 min-h-screen text-[#141414] antialiased relative selection:bg-[#ffd129] selection:text-[#141414]">
+      {/* Barra superior de administración si el usuario es admin y está en la tienda */}
+      {user?.role === 'admin' && currentView === 'store' && (
+        <aside aria-label="Acceso a panel de control" className="bg-[#ffd129] text-[#141414] px-4 py-2 text-xs font-bold flex items-center justify-between shadow-md fixed top-0 left-0 right-0 z-60">
+          <div className="flex items-center gap-2">
+            <i className="fa-solid fa-shield-halved"></i>
+            <span>Modo Administrador Activo ({user.email})</span>
+          </div>
+          <button
+            onClick={() => setCurrentView('admin')}
+            className="bg-[#141414] text-white hover:bg-stone-800 px-3 py-1 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition"
+          >
+            <i className="fa-solid fa-gauge"></i>
+            <span>Ir al Panel de Autoadministración</span>
+          </button>
+        </aside>
+      )}
+
+      {/* RENDERIZADO CONDICIONAL: Vista Admin vs Vista Tienda */}
+      {currentView === 'admin' ? (
+        <AdminDashboard
+          onExitAdmin={() => setCurrentView('store')}
+          categories={categories}
+          onUpdateCategories={handleUpdateCategories}
+          settings={settings}
+          onUpdateSettings={handleUpdateSettings}
+          heroSlides={heroSlides}
+          onUpdateHeroSlides={handleUpdateHeroSlides}
+          showToast={showToast}
+          megaOffers={megaOffers}
+          onUpdateMegaOffers={setMegaOffers}
+        />
+      ) : (
+        <>
+          {/* Header flotante interactivo con Logo y Categorías dinámicas */}
+          <Header
+            cartItems={cartItems}
+            location={location}
+            onUpdateLocation={handleUpdateLocation}
+            user={user}
+            onLogin={handleLogin}
+            onLogout={handleLogout}
+            onRemoveFromCart={handleRemoveFromCart}
+            onUpdateCartQuantity={handleUpdateCartQuantity}
+            onOpenCheckout={() => setIsCheckoutOpen(true)}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            settings={settings}
+            categories={categories}
+            onOpenAdmin={() => setCurrentView('admin')}
+          />
+
+          {/* Contenido Principal con espaciado superior prudente respecto al encabezado */}
+          <main className={`pb-16 px-4 ${user?.role === 'admin' ? 'pt-36 sm:pt-38 md:pt-40' : 'pt-28 sm:pt-30 md:pt-32'}`}>
+            {/* Si el usuario busca algo, mostramos los resultados en tiempo real */}
+            {searchQuery.trim() !== '' ? (
+              <section className="max-w-7xl mx-auto my-8">
+                <div className="flex items-center justify-between mb-6 pb-3 border-b border-stone-300">
+                  <div>
+                    <h3 className="text-xl font-bold text-[#141414] flex items-center gap-2">
+                      <i className="fa-solid fa-magnifying-glass text-yellow-600"></i> Resultados para "{searchQuery}"
+                    </h3>
+                    <p className="text-xs text-stone-500 mt-1">
+                      Se encontraron {searchResults.length} productos coincidentes
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="text-xs font-semibold text-stone-600 hover:text-[#141414] bg-stone-200 hover:bg-stone-300 px-3 py-1.5 rounded-lg transition"
+                  >
+                    Limpiar búsqueda
+                  </button>
+                </div>
+
+                {searchResults.length === 0 ? (
+                  <div className="text-center py-16 bg-white rounded-3xl border border-stone-200 p-8 shadow-sm">
+                    <i className="fa-solid fa-wine-bottle text-4xl text-stone-400 mb-3"></i>
+                    <h4 className="text-base font-bold text-stone-700">No encontramos productos para "{searchQuery}"</h4>
+                    <p className="text-xs text-stone-500 mt-1">
+                      Intenta buscar por piscos, cervezas, gin, whisky, vinos o hielo.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                    {searchResults.map((product) => {
+                      const autoDiscount = product.discount || getDiscountPercentage(product.price, product.originalPrice);
+                      const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+
+                      return (
+                        <div
+                          key={product.id}
+                          className="bg-white border border-stone-200 hover:border-[#ffd129] rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group"
+                        >
+                          <div>
+                            <div className="h-44 bg-stone-100 rounded-xl mb-3 overflow-hidden relative">
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                className={`w-full h-full object-cover group-hover:scale-105 transition duration-500 ${product.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
+                              />
+                              {autoDiscount && product.inStock !== false && (
+                                <span className="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-md animate-pulse">
+                                  {autoDiscount}
+                                </span>
+                              )}
+                              {product.inStock === false && (
+                                <span className="absolute top-2 left-2 bg-stone-900/90 text-red-400 border border-red-500/40 text-[9px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider flex items-center gap-1">
+                                  <i className="fa-solid fa-ban text-[8px]"></i> Sin stock
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">
+                              {product.subcategory}
+                            </span>
+                            <h4 className="text-sm font-bold text-stone-900 mt-0.5 group-hover:text-amber-600 transition">
+                              {product.name}
+                            </h4>
+                            <p className="text-xs text-stone-500 mt-1 line-clamp-2">
+                              {product.description}
+                            </p>
+                          </div>
+                          <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
+                            <div>
+                              {hasDiscount && (
+                                <span className="text-[11px] font-bold text-red-600 line-through decoration-red-600 decoration-2 block leading-tight">
+                                  {formatPrice(product.originalPrice!)}
+                                </span>
+                              )}
+                              <span className="text-sm font-black text-[#141414] block">
+                                {formatPrice(product.price)}
+                                {product.unit && <span className="text-[10px] font-normal text-stone-500">{product.unit}</span>}
+                              </span>
+                            </div>
+                            {product.inStock === false ? (
+                              <button
+                                disabled
+                                aria-label={`${product.name} sin stock`}
+                                className="bg-stone-200 text-stone-500 text-xs font-bold px-3 py-2 rounded-xl cursor-not-allowed flex items-center gap-1.5 opacity-70"
+                              >
+                                <i className="fa-solid fa-ban text-[11px]"></i>
+                                <span>Sin stock</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleAddToCart(product)}
+                                className="bg-[#ffd129] text-[#141414] text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-yellow-400 transition shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95"
+                              >
+                                <i className="fa-solid fa-cart-plus text-[11px]"></i>
+                                <span>{product.buttonText || 'Comprar'}</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            ) : (
+              <>
+                {/* 1. Hero Banner Carousel Dinámico */}
+                <HeroSlider slides={heroSlides} />
+
+                {/* 2. Banner de Suscripción Newsletter */}
+                <Newsletter onSubscribe={handleNewsletterSubscribe} />
+
+                {/* 3. Mega Oferta Destacada */}
+                <MegaOffers onAddToCart={handleAddToCart} megaOffers={megaOffers} />
+
+                {/* 4. Colecciones & Áreas (Grid 2 filas horizontales de 4 y 4 = 8 tarjetas con botón ver más) */}
+                <CategoryGrid />
+
+                {/* 5. Secciones de Categorías (Exactamente 3 subdivisiones de banner y carrusel de máx 5 productos) */}
+                {categories.slice(0, 3).map((category) => (
+                  <CategorySection
+                    key={category.id}
+                    category={category}
+                    onAddToCart={handleAddToCart}
+                  />
+                ))}
+              </>
+            )}
+          </main>
+
+          {/* Modal Checkout */}
+          <CheckoutModal
+            isOpen={isCheckoutOpen}
+            onClose={() => setIsCheckoutOpen(false)}
+            cartItems={cartItems}
+            location={location}
+            onConfirmOrder={handleConfirmOrder}
+            user={user}
+          />
+
+          {/* Pie de página con datos dinámicos */}
+          <Footer settings={settings} categories={categories} />
+        </>
+      )}
+
+      {/* Toast Notificación Global */}
+      <Toast
+        message={toastMessage}
+        onClose={() => setToastMessage(null)}
+      />
+    </div>
+  );
+}

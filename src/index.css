@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --brand-dark: #141414;
+    --brand-yellow: #ffd129;
+  }
+
+  body, input, button, select, textarea, p, h1, h2, h3, h4, h5, h6, span, a, label, div {
+    font-family: 'Poppins', sans-serif;
+  }
+
+  i, .fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+::-webkit-scrollbar-thumb {
+  background: #ffd129;
+  border-radius: 4px;
+}
+
+/* Utility to hide scrollbar in carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

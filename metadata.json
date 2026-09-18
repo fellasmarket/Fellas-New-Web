@@ -1,0 +1,7 @@
+{
+  "name": "Fella's Market Admin",
+  "description": "Sistema de autoadministración y catálogo online para Fella's Market con gestión de pedidos, estadísticas, Photoshoot IA, tienda alterna y respaldo en la nube.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
