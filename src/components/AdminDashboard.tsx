@@ -18,7 +18,8 @@ import {
   formatPrice, 
   getDiscountPercentage,
   getDeliveryLocations,
-  DEFAULT_STORE_SCHEDULE
+  DEFAULT_STORE_SCHEDULE,
+  checkStoreOpenStatus
 } from '../data/products';
 import { ExcelImportModal } from './ExcelImportModal';
 import { HeroBannerEditor } from './admin/HeroBannerEditor';
@@ -80,6 +81,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [orders, setOrders] = useState<Order[]>([]);
   const [subscribers, setSubscribers] = useState<EmailMarketingSubscriber[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderFilter, setOrderFilter] = useState<'ALL' | 'nuevo' | 'en_preparacion' | 'en_camino' | 'entregado' | 'cancelado'>('ALL');
+  const [orderSearch, setOrderSearch] = useState('');
 
   // TAB 1: PRODUCTOS
   const [productSearch, setProductSearch] = useState('');
@@ -708,6 +711,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const getOrderStatusInfo = (status: Order['status']) => {
+    switch (status) {
+      case 'nuevo':
+        return {
+          label: 'Nuevo',
+          badgeClass: 'bg-rose-500/15 text-rose-400 border border-rose-500/30',
+          dotClass: 'bg-rose-400 animate-pulse'
+        };
+      case 'en_preparacion':
+      case 'confirmado_preparacion':
+        return {
+          label: 'En Preparación',
+          badgeClass: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+          dotClass: 'bg-amber-400'
+        };
+      case 'en_camino':
+      case 'delivery_camino':
+        return {
+          label: 'En Camino',
+          badgeClass: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
+          dotClass: 'bg-blue-400 animate-pulse'
+        };
+      case 'entregado':
+      case 'listo_retirar':
+        return {
+          label: 'Entregado',
+          badgeClass: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
+          dotClass: 'bg-emerald-400'
+        };
+      case 'cancelado':
+        return {
+          label: 'Cancelado',
+          badgeClass: 'bg-stone-800 text-stone-400 border border-stone-700',
+          dotClass: 'bg-stone-500'
+        };
+      default:
+        return {
+          label: String(status).replace('_', ' '),
+          badgeClass: 'bg-stone-800 text-stone-300 border border-stone-700',
+          dotClass: 'bg-stone-400'
+        };
+    }
+  };
+
+  const handleCopyOrderWhatsApp = (order: Order) => {
+    const itemsList = order.items.map(it => `  • ${it.quantity}x ${it.productName} (${formatPrice(it.price * it.quantity)})`).join('\n');
+    const msg = `🧾 *COMANDA DE DESPACHO #${order.code}*\n` +
+      `👤 *Cliente:* ${order.customerName}\n` +
+      `📍 *Dirección:* ${order.address || order.location}\n` +
+      (order.customerPhone ? `📞 *Teléfono:* ${order.customerPhone}\n` : '') +
+      `💳 *Pago:* ${order.paymentMethod || 'No especificado'}\n\n` +
+      `📦 *Detalle de Productos:*\n${itemsList}\n\n` +
+      `💵 *Subtotal:* ${formatPrice(order.subtotal || order.total)}\n` +
+      (order.shippingCost ? `🛵 *Despacho:* ${formatPrice(order.shippingCost)}\n` : '') +
+      `💰 *TOTAL A COBRAR:* ${formatPrice(order.total)}`;
+
+    navigator.clipboard.writeText(msg);
+    showToast('¡Comanda copiada en formato WhatsApp!');
+  };
+
   // BACKUP STORE SAVE
   const handleSaveBackupStore = async () => {
     try {
@@ -998,130 +1061,189 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     reader.readAsText(file);
   };
 
-  const navTabs = [
-    { id: 'products', label: 'Productos', icon: 'fa-solid fa-wine-bottle' },
-    { id: 'excel_ia', label: 'Importar Excel IA', icon: 'fa-solid fa-file-excel' },
-    { id: 'classifications', label: 'Clasificaciones', icon: 'fa-solid fa-tags' },
-    { id: 'hero_banner', label: 'Banner Principal', icon: 'fa-solid fa-images' },
-    { id: 'mega_offers', label: 'Promos Tío Fellas', icon: 'fa-solid fa-bolt' },
-    { id: 'footer_editor', label: 'Pie de Página', icon: 'fa-solid fa-window-maximize' },
-    { id: 'orders', label: 'Pedidos', icon: 'fa-solid fa-receipt', badge: orders.filter(o => o.status === 'nuevo' || o.status === 'en_preparacion').length },
-    { id: 'stats', label: 'Estadísticas', icon: 'fa-solid fa-chart-line' },
-    { id: 'alt_store', label: 'Tienda Alterna', icon: 'fa-solid fa-store', activePill: backupStore.enabled },
-    { id: 'settings', label: 'Ajustes Generales', icon: 'fa-solid fa-sliders' },
-    { id: 'popup', label: 'Popup suscripción', icon: 'fa-solid fa-envelope-open-text' },
-    { id: 'social', label: 'Community', icon: 'fa-solid fa-share-nodes' },
-    { id: 'customers', label: 'Clientes', icon: 'fa-solid fa-users' },
-    { id: 'feedback', label: 'Comentarios y reclamos', icon: 'fa-solid fa-comments', badge: feedbackList.filter(f => f.status === 'pendiente').length },
-    { id: 'compressor', label: 'Compresor de Fotos', icon: 'fa-solid fa-compress' },
-    { id: 'backup', label: 'Respaldo & Nube', icon: 'fa-solid fa-cloud' }
+  const navSections = [
+    {
+      title: 'Catálogo & Tienda',
+      tabs: [
+        { id: 'products', label: 'Productos', icon: 'fa-solid fa-wine-bottle' },
+        { id: 'excel_ia', label: 'Importar Excel IA', icon: 'fa-solid fa-file-excel' },
+        { id: 'classifications', label: 'Clasificaciones', icon: 'fa-solid fa-tags' },
+        { id: 'mega_offers', label: 'Promos Tío Fellas', icon: 'fa-solid fa-bolt' },
+      ]
+    },
+    {
+      title: 'Ventas & Operaciones',
+      tabs: [
+        { 
+          id: 'orders', 
+          label: 'Pedidos', 
+          icon: 'fa-solid fa-receipt', 
+          badge: orders.filter(o => o.status === 'nuevo' || o.status === 'en_preparacion').length 
+        },
+        { id: 'stats', label: 'Estadísticas', icon: 'fa-solid fa-chart-line' },
+        { id: 'customers', label: 'Clientes & Cupones', icon: 'fa-solid fa-users' },
+        { 
+          id: 'feedback', 
+          label: 'Comentarios', 
+          icon: 'fa-solid fa-comments', 
+          badge: feedbackList.filter(f => f.status === 'pendiente').length 
+        },
+      ]
+    },
+    {
+      title: 'Diseño & Marca',
+      tabs: [
+        { id: 'hero_banner', label: 'Banner Principal', icon: 'fa-solid fa-images' },
+        { id: 'footer_editor', label: 'Pie de Página', icon: 'fa-solid fa-window-maximize' },
+        { id: 'popup', label: 'Popup Suscripción', icon: 'fa-solid fa-envelope-open-text' },
+        { id: 'social', label: 'Community & Redes', icon: 'fa-solid fa-share-nodes' },
+        { id: 'compressor', label: 'Compresor Fotos', icon: 'fa-solid fa-compress' },
+      ]
+    },
+    {
+      title: 'Sistema & Ajustes',
+      tabs: [
+        { id: 'settings', label: 'Ajustes Generales', icon: 'fa-solid fa-sliders' },
+        { id: 'alt_store', label: 'Tienda Alterna', icon: 'fa-solid fa-store', activePill: backupStore.enabled },
+        { id: 'backup', label: 'Respaldo & Nube', icon: 'fa-solid fa-cloud' }
+      ]
+    }
   ];
 
+  const allNavTabs = navSections.flatMap(s => s.tabs);
+  const activeTabMeta = allNavTabs.find(t => t.id === activeTab) || { id: activeTab, label: activeTab, icon: 'fa-solid fa-circle' };
+  const activeSectionMeta = navSections.find(s => s.tabs.some(t => t.id === activeTab));
+  const storeOperationalStatus = checkStoreOpenStatus(formSettings.scheduleConfig || settings.scheduleConfig);
+  const pendingOrdersBadge = orders.filter(o => o.status === 'nuevo' || o.status === 'en_preparacion').length;
+
   return (
-    <div className="min-h-screen bg-[#141414] text-white antialiased font-sans flex flex-col md:flex-row selection:bg-[#ffd025] selection:text-[#141414]">
+    <div className="min-h-screen bg-[#0e0e11] text-white antialiased font-sans flex flex-col md:flex-row selection:bg-[#ffd025] selection:text-[#141414]">
       
       {/* Mobile Top Header (only visible on mobile) */}
-      <div className="md:hidden bg-[#181818] border-b border-gray-800 p-3 flex items-center justify-between sticky top-0 z-40">
+      <div className="md:hidden bg-[#141418] border-b border-stone-800 px-4 py-3 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="w-9 h-9 rounded-xl bg-gray-800 text-gray-200 flex items-center justify-center hover:bg-gray-700 cursor-pointer"
+            className="w-9 h-9 rounded-xl bg-stone-800 text-stone-200 flex items-center justify-center hover:bg-stone-700 cursor-pointer"
             aria-label="Abrir menú vertical"
           >
             <i className={`fa-solid ${isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'} text-sm`}></i>
           </button>
           <div>
             <h1 className="text-xs font-black tracking-wider text-white">FELLA'S MARKET</h1>
-            <p className="text-[10px] text-gray-400">Panel Administrador</p>
+            <p className="text-[10px] text-stone-400">Panel Administrador</p>
           </div>
         </div>
-        <button
-          onClick={onExitAdmin}
-          className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-700 cursor-pointer"
-        >
-          <i className="fa-solid fa-arrow-left text-[10px]"></i>
-          <span>Ver Tienda</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {pendingOrdersBadge > 0 && (
+            <button
+              onClick={() => setActiveTab('orders')}
+              className="px-2 py-1 rounded-lg bg-rose-500/20 text-rose-400 text-[10px] font-black border border-rose-500/40 flex items-center gap-1"
+            >
+              <i className="fa-solid fa-bell animate-bounce text-[9px]"></i>
+              <span>{pendingOrdersBadge}</span>
+            </button>
+          )}
+          <button
+            onClick={onExitAdmin}
+            className="flex items-center gap-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 px-3 py-1.5 rounded-xl text-xs font-bold border border-stone-700 cursor-pointer"
+          >
+            <i className="fa-solid fa-store text-yellow-400 text-[10px]"></i>
+            <span>Tienda</span>
+          </button>
+        </div>
       </div>
 
       {/* 1. VERTICAL MENU TO THE LEFT (Panel Administrador) */}
       <aside
         aria-label="Menú vertical administrador"
-        className={`w-64 lg:w-72 shrink-0 bg-[#181818] border-r border-gray-800 flex flex-col fixed md:sticky top-0 h-screen z-50 md:z-30 transition-transform duration-300 ${
+        className={`w-64 lg:w-72 shrink-0 bg-[#141418] border-r border-stone-800/80 flex flex-col fixed md:sticky top-0 h-screen z-50 md:z-30 transition-transform duration-300 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
         {/* Sidebar Brand / Header */}
-        <div className="p-4 border-b border-gray-800 flex items-center justify-between gap-3 bg-[#161616]">
+        <div className="p-4 border-b border-stone-800/80 flex items-center justify-between gap-3 bg-[#121215]">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-[#ffd025] text-[#141414] font-black flex items-center justify-center text-lg shadow-md shadow-[#ffd025]/20 shrink-0">
-              <i className="fa-solid fa-layer-group"></i>
+            <div className="w-10 h-10 rounded-2xl bg-[#ffd025] text-[#121215] font-black flex items-center justify-center text-lg shadow-lg shadow-[#ffd025]/20 shrink-0">
+              <i className="fa-solid fa-shield-halved"></i>
             </div>
             <div className="min-w-0">
               <h1 className="text-xs font-black tracking-wider text-white truncate">
-                PANEL ADMIN
+                FELLA'S MARKET
               </h1>
-              <p className="text-[10px] text-[#ffd025] font-bold truncate">
-                FELLA'S MARKET • Alerce
-              </p>
+              <div className="flex items-center gap-1.5 text-[10px] text-[#ffd025] font-bold truncate">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+                <span>Panel Admin • Alerce</span>
+              </div>
             </div>
           </div>
           <button
             onClick={() => setIsMobileMenuOpen(false)}
-            className="md:hidden text-gray-400 hover:text-white p-1 rounded-lg"
+            className="md:hidden text-stone-400 hover:text-white p-1 rounded-lg"
           >
             <i className="fa-solid fa-xmark"></i>
           </button>
         </div>
 
-        {/* Vertical Navigation Links */}
-        <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto custom-scrollbar">
-          {navTabs.map((tab) => {
-            const isSelected = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id as AdminTab);
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-xs uppercase transition cursor-pointer text-left ${
-                  isSelected
-                    ? 'bg-[#ffd025] text-[#141414] font-black shadow-md'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-800/70'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 truncate">
-                  {tab.icon && <i className={`${tab.icon} w-4 text-center ${isSelected ? 'text-[#141414]' : 'text-gray-400'}`}></i>}
-                  <span className="truncate">{tab.label}</span>
-                </div>
-                {tab.activePill && (
-                  <span className="px-1.5 py-0.5 bg-emerald-500 text-black text-[9px] font-black rounded-full animate-pulse shrink-0">
-                    ACTIVA
-                  </span>
-                )}
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="px-1.5 py-0.5 bg-red-600 text-white text-[9px] font-black rounded-full shrink-0">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Categorized Vertical Navigation Links */}
+        <nav className="flex-1 py-3 px-3 space-y-4 overflow-y-auto custom-scrollbar">
+          {navSections.map((section, sIdx) => (
+            <div key={sIdx} className="space-y-1">
+              <div className="px-3 pt-1 pb-1 text-[10px] font-black uppercase tracking-wider text-stone-500">
+                {section.title}
+              </div>
+              {section.tabs.map((tab) => {
+                const isSelected = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id as AdminTab);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl font-bold text-xs transition cursor-pointer text-left ${
+                      isSelected
+                        ? 'bg-[#ffd025] text-[#121215] font-black shadow-md shadow-[#ffd025]/15'
+                        : 'text-stone-300 hover:text-white hover:bg-stone-800/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 truncate min-w-0">
+                      {tab.icon && (
+                        <i className={`${tab.icon} w-4 text-center shrink-0 ${isSelected ? 'text-[#121215]' : 'text-stone-400'}`}></i>
+                      )}
+                      <span className="truncate">{tab.label}</span>
+                    </div>
+                    {tab.activePill && (
+                      <span className="px-1.5 py-0.5 bg-emerald-500 text-black text-[9px] font-black rounded-full animate-pulse shrink-0 ml-1">
+                        ACTIVA
+                      </span>
+                    )}
+                    {tab.badge !== undefined && tab.badge > 0 && (
+                      <span className={`px-2 py-0.5 text-[10px] font-black rounded-full shrink-0 ml-1 ${
+                        isSelected ? 'bg-black text-[#ffd025]' : 'bg-rose-500 text-white'
+                      }`}>
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Sidebar Footer: Ver Tienda */}
-        <div className="p-3 border-t border-gray-800 space-y-2 bg-[#141414]">
+        <div className="p-3 border-t border-stone-800/80 space-y-2 bg-[#121215]">
           <button
             onClick={onExitAdmin}
-            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white font-bold text-xs py-2.5 px-3 rounded-xl border border-gray-700 transition cursor-pointer uppercase"
+            className="w-full flex items-center justify-center gap-2 bg-stone-800/90 hover:bg-stone-700 text-stone-200 hover:text-white font-bold text-xs py-2.5 px-3 rounded-xl border border-stone-700 hover:border-stone-600 transition cursor-pointer"
           >
-            <i className="fa-solid fa-arrow-left"></i>
-            <span>Ver Tienda</span>
+            <i className="fa-solid fa-store text-yellow-400"></i>
+            <span>Ver Tienda Online</span>
           </button>
-          <div className="text-center text-[10px] text-gray-500 flex items-center justify-center gap-1.5 pt-0.5">
+          <div className="text-center text-[10px] text-stone-500 flex items-center justify-center gap-1.5 pt-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-            <span>Alerce, Puerto Montt</span>
+            <span>Alerce, Puerto Montt • v2.4</span>
           </div>
         </div>
       </aside>
@@ -1135,7 +1257,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* 2. MAIN CONTENT CONTAINER (Scrollable) */}
-      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      <main className="flex-1 min-w-0 bg-[#0e0e11] overflow-y-auto flex flex-col">
+        
+        {/* Sticky Top Status & Breadcrumb Bar */}
+        <header className="sticky top-0 z-30 bg-[#141418]/90 backdrop-blur-md border-b border-stone-800/80 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+          {/* Breadcrumb / Active View */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-bold text-stone-500 hidden sm:inline truncate">
+              {activeSectionMeta?.title || 'Administración'}
+            </span>
+            <span className="text-stone-700 hidden sm:inline">/</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-7 h-7 rounded-lg bg-yellow-400/10 text-[#ffd025] flex items-center justify-center text-xs shrink-0 border border-yellow-400/20">
+                <i className={activeTabMeta.icon}></i>
+              </span>
+              <span className="text-sm font-black text-white truncate">
+                {activeTabMeta.label}
+              </span>
+            </div>
+          </div>
+
+          {/* Real-time Status & Quick Nav Buttons */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Store Status Button */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('settings')}
+              title="Haz clic para ajustar horarios de atención y cierre"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition border cursor-pointer ${
+                storeOperationalStatus.isOpen
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${storeOperationalStatus.isOpen ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
+              <span className="hidden sm:inline">
+                {storeOperationalStatus.isOpen ? 'Local Abierto' : 'Local Cerrado'}
+              </span>
+            </button>
+
+            {/* Pending Orders Pill */}
+            {pendingOrdersBadge > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('orders')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-black hover:bg-amber-500/25 transition cursor-pointer"
+                title={`${pendingOrdersBadge} pedidos requieren atención`}
+              >
+                <i className="fa-solid fa-bell text-[10px] animate-bounce"></i>
+                <span>{pendingOrdersBadge}</span>
+                <span className="hidden lg:inline text-[11px] font-medium text-amber-200">pendientes</span>
+              </button>
+            )}
+
+            {/* Quick Link to Store */}
+            <button
+              onClick={onExitAdmin}
+              className="flex items-center gap-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold border border-stone-700 hover:border-stone-600 transition cursor-pointer"
+            >
+              <i className="fa-solid fa-store text-yellow-400 text-xs"></i>
+              <span className="hidden md:inline">Ver Tienda</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Content Wrapper */}
+        <div className="p-4 sm:p-6 lg:p-8 flex-1 space-y-6">
         
         {/* TAB 1: PRODUCTOS */}
         {activeTab === 'products' && (
@@ -1628,134 +1815,574 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
 
         {/* TAB 3: PEDIDOS */}
-        {activeTab === 'orders' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-black uppercase text-white flex items-center gap-2">
-                  <i className="fa-solid fa-receipt text-[#ffd025]"></i> Pedidos para Despacho
-                </h2>
-                <p className="text-xs text-gray-400">
-                  Cola en tiempo real para empaque y asignación a repartidores.
-                </p>
-              </div>
-              <button
-                onClick={loadOrders}
-                className="bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-2 border border-gray-700"
-              >
-                <i className="fa-solid fa-rotate"></i> Actualizar
-              </button>
-            </div>
+        {activeTab === 'orders' && (() => {
+          const countTotal = orders.length;
+          const countNuevo = orders.filter(o => o.status === 'nuevo').length;
+          const countPreparacion = orders.filter(o => o.status === 'en_preparacion' || o.status === 'confirmado_preparacion').length;
+          const countCamino = orders.filter(o => o.status === 'en_camino' || o.status === 'delivery_camino').length;
+          const countEntregado = orders.filter(o => o.status === 'entregado' || o.status === 'listo_retirar').length;
+          const countCancelado = orders.filter(o => o.status === 'cancelado').length;
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              <div className="lg:col-span-2 space-y-3">
-                {orders.length === 0 ? (
-                  <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl p-8 text-center text-gray-400 text-xs">
-                    No hay pedidos registrados en este momento.
+          const filteredOrders = orders.filter(order => {
+            if (orderFilter !== 'ALL') {
+              if (orderFilter === 'nuevo' && order.status !== 'nuevo') return false;
+              if (orderFilter === 'en_preparacion' && order.status !== 'en_preparacion' && order.status !== 'confirmado_preparacion') return false;
+              if (orderFilter === 'en_camino' && order.status !== 'en_camino' && order.status !== 'delivery_camino') return false;
+              if (orderFilter === 'entregado' && order.status !== 'entregado' && order.status !== 'listo_retirar') return false;
+              if (orderFilter === 'cancelado' && order.status !== 'cancelado') return false;
+            }
+            if (orderSearch.trim()) {
+              const q = orderSearch.toLowerCase().trim();
+              const matchCode = (order.code || '').toLowerCase().includes(q);
+              const matchName = (order.customerName || '').toLowerCase().includes(q);
+              const matchAddr = (order.address || order.location || '').toLowerCase().includes(q);
+              const matchPhone = (order.customerPhone || '').toLowerCase().includes(q);
+              return matchCode || matchName || matchAddr || matchPhone;
+            }
+            return true;
+          });
+
+          return (
+            <div className="space-y-6">
+              {/* Header & Metrics */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#141418] border border-stone-800/80 p-5 rounded-2xl">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-9 h-9 rounded-xl bg-amber-400/10 text-[#ffd025] flex items-center justify-center text-sm border border-amber-400/20">
+                      <i className="fa-solid fa-receipt"></i>
+                    </span>
+                    <div>
+                      <h2 className="text-lg font-black uppercase text-white tracking-wide">
+                        Pedidos para Despacho
+                      </h2>
+                      <p className="text-xs text-stone-400">
+                        Comandas en tiempo real distribuidas en filas horizontales de a 4 recuadros
+                      </p>
+                    </div>
                   </div>
-                ) : (
-                  orders.map(order => (
-                    <div
-                      key={order.id}
-                      onClick={() => setSelectedOrder(order)}
-                      className={`bg-[#1a1a1a] border rounded-2xl p-4 cursor-pointer transition ${
-                        selectedOrder?.id === order.id
-                          ? 'border-[#ffd025] shadow-[0_0_20px_rgba(255,208,37,0.15)] bg-gray-900'
-                          : 'border-gray-800 hover:border-gray-700'
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 border border-stone-800 text-xs text-stone-300">
+                    <span className="text-stone-500 font-bold">Total:</span>
+                    <span className="font-black text-white">{countTotal}</span>
+                  </div>
+                  {countNuevo > 0 && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-xs text-rose-400 font-bold">
+                      <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
+                      <span>{countNuevo} Nuevos</span>
+                    </div>
+                  )}
+                  {countCamino > 0 && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/15 border border-blue-500/30 text-xs text-blue-400 font-bold">
+                      <i className="fa-solid fa-motorcycle text-[10px]"></i>
+                      <span>{countCamino} En Camino</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={loadOrders}
+                    className="bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-2 border border-stone-700 cursor-pointer shadow-xs active:scale-95"
+                  >
+                    <i className="fa-solid fa-rotate"></i>
+                    <span>Actualizar</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Filter & Search Toolbar */}
+              <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                {/* Search Bar */}
+                <div className="relative flex-1 max-w-md">
+                  <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-500 text-xs"></i>
+                  <input
+                    type="text"
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    placeholder="Buscar por #comanda, cliente, fono o dirección..."
+                    className="w-full bg-[#141418] text-white text-xs pl-9 pr-8 py-2.5 rounded-xl border border-stone-800/80 outline-none focus:border-[#ffd025] transition"
+                  />
+                  {orderSearch && (
+                    <button
+                      onClick={() => setOrderSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-300 p-1"
+                    >
+                      <i className="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                  )}
+                </div>
+
+                {/* Status Filter Pills */}
+                <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto py-1">
+                  <button
+                    onClick={() => setOrderFilter('ALL')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      orderFilter === 'ALL'
+                        ? 'bg-[#ffd025] text-[#121215] font-black'
+                        : 'bg-[#141418] text-stone-400 hover:text-white border border-stone-800'
+                    }`}
+                  >
+                    Todos ({countTotal})
+                  </button>
+                  <button
+                    onClick={() => setOrderFilter('nuevo')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      orderFilter === 'nuevo'
+                        ? 'bg-rose-500 text-white font-black'
+                        : 'bg-[#141418] text-rose-400/90 hover:text-rose-300 border border-stone-800'
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                    <span>Nuevos ({countNuevo})</span>
+                  </button>
+                  <button
+                    onClick={() => setOrderFilter('en_preparacion')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      orderFilter === 'en_preparacion'
+                        ? 'bg-amber-500 text-black font-black'
+                        : 'bg-[#141418] text-amber-400/90 hover:text-amber-300 border border-stone-800'
+                    }`}
+                  >
+                    En Preparación ({countPreparacion})
+                  </button>
+                  <button
+                    onClick={() => setOrderFilter('en_camino')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      orderFilter === 'en_camino'
+                        ? 'bg-blue-500 text-white font-black'
+                        : 'bg-[#141418] text-blue-400/90 hover:text-blue-300 border border-stone-800'
+                    }`}
+                  >
+                    En Camino ({countCamino})
+                  </button>
+                  <button
+                    onClick={() => setOrderFilter('entregado')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      orderFilter === 'entregado'
+                        ? 'bg-emerald-500 text-black font-black'
+                        : 'bg-[#141418] text-emerald-400/90 hover:text-emerald-300 border border-stone-800'
+                    }`}
+                  >
+                    Entregados ({countEntregado})
+                  </button>
+                  {countCancelado > 0 && (
+                    <button
+                      onClick={() => setOrderFilter('cancelado')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                        orderFilter === 'cancelado'
+                          ? 'bg-stone-700 text-white font-black'
+                          : 'bg-[#141418] text-stone-400 hover:text-stone-300 border border-stone-800'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-white text-sm">#{order.code}</span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            order.status === 'nuevo' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                            order.status === 'en_preparacion' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                            order.status === 'en_camino' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                            'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          }`}>
-                            {order.status.replace('_', ' ').toUpperCase()}
-                          </span>
-                        </div>
-                        <span className="text-xs font-black text-[#ffd025]">{formatPrice(order.total)}</span>
-                      </div>
-                      <div className="text-xs text-gray-400 flex justify-between">
-                        <span>{order.customerName} • {order.location}</span>
-                        <span className="font-mono text-[11px]">{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
+                      Cancelados ({countCancelado})
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Order Detail Sidebar */}
-              <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl p-5 h-fit sticky top-24">
-                {selectedOrder ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-                      <div>
-                        <span className="text-xs text-gray-400">Comanda</span>
-                        <h3 className="text-lg font-black text-white">#{selectedOrder.code}</h3>
-                      </div>
-                      <span className="text-sm font-black text-[#ffd025]">{formatPrice(selectedOrder.total)}</span>
-                    </div>
+              {/* 4-COLUMN HORIZONTAL ROWS GRID */}
+              {filteredOrders.length === 0 ? (
+                <div className="bg-[#141418] border border-stone-800/80 rounded-2xl p-12 text-center text-stone-400 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-stone-800 text-stone-500 mx-auto flex items-center justify-center text-xl">
+                    <i className="fa-solid fa-receipt"></i>
+                  </div>
+                  <div className="text-sm font-bold text-white">No se encontraron pedidos</div>
+                  <p className="text-xs text-stone-500 max-w-sm mx-auto">
+                    {orderSearch || orderFilter !== 'ALL'
+                      ? 'No hay pedidos que coincidan con los filtros aplicados. Intenta cambiar o limpiar la búsqueda.'
+                      : 'Actualmente no hay pedidos registrados. Los nuevos pedidos de clientes ingresarán aquí automáticamente.'}
+                  </p>
+                  {(orderSearch || orderFilter !== 'ALL') && (
+                    <button
+                      onClick={() => {
+                        setOrderSearch('');
+                        setOrderFilter('ALL');
+                      }}
+                      className="text-xs font-bold text-[#ffd025] hover:underline cursor-pointer pt-1"
+                    >
+                      Limpiar filtros de búsqueda
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredOrders.map(order => {
+                    const statusInfo = getOrderStatusInfo(order.status);
+                    const formattedTime = order.createdAt
+                      ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : '--:--';
+                    const itemsCount = order.items?.reduce((sum, it) => sum + (it.quantity || 1), 0) || order.items?.length || 0;
 
-                    <div className="bg-[#141414] p-3 rounded-xl space-y-1 text-xs border border-gray-800">
-                      <div className="text-white font-bold">{selectedOrder.customerName}</div>
-                      <div className="text-gray-400">{selectedOrder.customerEmail}</div>
-                      <div className="text-gray-400"><i className="fa-solid fa-location-dot text-[#ffd025]"></i> {selectedOrder.address || selectedOrder.location}</div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] text-gray-400 font-bold uppercase mb-2">Estado del Despacho:</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => handleUpdateOrderStatus(selectedOrder.id, 'en_preparacion')}
-                          className="px-2 py-2 rounded-lg text-xs font-bold bg-gray-800 hover:bg-[#ffd025] hover:text-black transition"
-                        >
-                          En Preparación
-                        </button>
-                        <button
-                          onClick={() => handleUpdateOrderStatus(selectedOrder.id, 'en_camino')}
-                          className="px-2 py-2 rounded-lg text-xs font-bold bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition"
-                        >
-                          En Camino
-                        </button>
-                        <button
-                          onClick={() => handleUpdateOrderStatus(selectedOrder.id, 'entregado')}
-                          className="px-2 py-2 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black transition"
-                        >
-                          Entregado
-                        </button>
-                        <button
-                          onClick={() => handleUpdateOrderStatus(selectedOrder.id, 'cancelado')}
-                          className="px-2 py-2 rounded-lg text-xs font-bold bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition"
-                        >
-                          Anular
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-gray-800">
-                      <div className="text-xs font-bold text-gray-300 mb-2">Productos ({selectedOrder.items.length}):</div>
-                      <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                        {selectedOrder.items.map((it, i) => (
-                          <div key={i} className="flex justify-between text-xs text-gray-400 bg-[#141414] p-2 rounded-lg">
-                            <span className="text-white truncate">{it.quantity}x {it.productName}</span>
-                            <span className="font-bold text-[#ffd025] shrink-0 ml-2">{formatPrice(it.price * it.quantity)}</span>
+                    return (
+                      <div
+                        key={order.id}
+                        className="bg-[#141418] border border-stone-800/80 hover:border-[#ffd025]/50 rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:shadow-black/50 group"
+                      >
+                        {/* Card Header */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between gap-2 border-b border-stone-800/60 pb-2.5">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="font-mono font-black text-white text-sm">#{order.code}</span>
+                              <span className="text-[11px] text-stone-500 font-mono">({formattedTime})</span>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0 ${statusInfo.badgeClass}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dotClass}`}></span>
+                              <span>{statusInfo.label}</span>
+                            </span>
                           </div>
-                        ))}
+
+                          {/* Customer info (zero overflow) */}
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <i className="fa-solid fa-user text-stone-500 text-xs shrink-0"></i>
+                              <span className="font-bold text-xs text-stone-100 truncate">
+                                {order.customerName || 'Cliente'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-stone-400 min-w-0" title={order.address || order.location}>
+                              <i className="fa-solid fa-location-dot text-[#ffd025] text-xs shrink-0"></i>
+                              <span className="truncate">
+                                {order.address || order.location || 'Alerce / Puerto Montt'}
+                              </span>
+                            </div>
+                            {order.customerPhone && (
+                              <div className="flex items-center gap-1.5 text-xs text-stone-400 min-w-0">
+                                <i className="fa-solid fa-phone text-stone-500 text-xs shrink-0"></i>
+                                <span className="font-mono text-[11px] truncate">{order.customerPhone}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Products breakdown box */}
+                          <div className="bg-[#0e0e11] border border-stone-800/80 rounded-xl p-2.5 space-y-1.5 min-w-0">
+                            <div className="flex items-center justify-between text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                              <span>Productos ({itemsCount})</span>
+                              <span className="text-[#ffd025] font-mono">{formatPrice(order.total)}</span>
+                            </div>
+                            <div className="space-y-1">
+                              {order.items?.slice(0, 3).map((it, idx) => (
+                                <div key={idx} className="flex items-center justify-between gap-1.5 text-xs min-w-0">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="bg-amber-400/10 text-[#ffd025] font-black px-1.5 py-0.5 rounded text-[10px] shrink-0 font-mono">
+                                      {it.quantity}x
+                                    </span>
+                                    <span className="text-stone-300 truncate text-[11px]" title={it.productName}>
+                                      {it.productName}
+                                    </span>
+                                  </div>
+                                  <span className="text-stone-400 font-mono text-[10px] shrink-0">
+                                    {formatPrice(it.price * it.quantity)}
+                                  </span>
+                                </div>
+                              ))}
+                              {order.items?.length > 3 && (
+                                <div className="text-[10px] text-stone-500 font-medium italic pt-0.5">
+                                  + {order.items.length - 3} productos más en comanda
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Card Footer & Actions */}
+                        <div className="pt-3 border-t border-stone-800/60 mt-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] text-stone-400 font-medium">Total comanda:</span>
+                            <span className="text-sm font-black text-[#ffd025] font-mono">
+                              {formatPrice(order.total)}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <button
+                              onClick={() => setSelectedOrder(order)}
+                              className="w-full bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white text-xs font-bold py-2 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 border border-stone-700 cursor-pointer"
+                            >
+                              <i className="fa-solid fa-eye text-yellow-400 text-[11px]"></i>
+                              <span>Ver Comanda</span>
+                            </button>
+
+                            {/* Quick status button or selector */}
+                            {order.status === 'nuevo' && (
+                              <button
+                                onClick={() => handleUpdateOrderStatus(order.id, 'en_preparacion')}
+                                className="w-full bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black text-xs font-bold py-2 px-2 rounded-xl transition flex items-center justify-center gap-1 border border-amber-500/40 cursor-pointer"
+                                title="Pasar a preparación"
+                              >
+                                <i className="fa-solid fa-box text-[10px]"></i>
+                                <span>Preparar</span>
+                              </button>
+                            )}
+
+                            {order.status === 'en_preparacion' && (
+                              <button
+                                onClick={() => handleUpdateOrderStatus(order.id, 'en_camino')}
+                                className="w-full bg-blue-500/20 hover:bg-blue-500 text-blue-300 hover:text-white text-xs font-bold py-2 px-2 rounded-xl transition flex items-center justify-center gap-1 border border-blue-500/40 cursor-pointer"
+                                title="Enviar a reparto"
+                              >
+                                <i className="fa-solid fa-motorcycle text-[10px]"></i>
+                                <span>A Reparto</span>
+                              </button>
+                            )}
+
+                            {order.status === 'en_camino' && (
+                              <button
+                                onClick={() => handleUpdateOrderStatus(order.id, 'entregado')}
+                                className="w-full bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-black text-xs font-bold py-2 px-2 rounded-xl transition flex items-center justify-center gap-1 border border-emerald-500/40 cursor-pointer"
+                                title="Marcar como entregado"
+                              >
+                                <i className="fa-solid fa-check text-[10px]"></i>
+                                <span>Entregado</span>
+                              </button>
+                            )}
+
+                            {(order.status === 'entregado' || order.status === 'cancelado') && (
+                              <button
+                                onClick={() => setSelectedOrder(order)}
+                                className="w-full bg-stone-900 text-stone-400 hover:text-white text-xs font-bold py-2 px-2 rounded-xl transition flex items-center justify-center gap-1 border border-stone-800 cursor-pointer"
+                              >
+                                <i className="fa-solid fa-receipt text-[10px]"></i>
+                                <span>Detalle</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* MODAL: COMANDA DE DESPACHO COMPLETA */}
+              {selectedOrder && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                  <div className="bg-[#141418] border border-stone-700/80 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col relative animate-in fade-in zoom-in-95 duration-150">
+                    
+                    {/* Modal Header */}
+                    <div className="p-5 border-b border-stone-800 flex items-center justify-between gap-3 bg-[#121215]">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-2xl bg-[#ffd025] text-black font-black flex items-center justify-center text-base shrink-0">
+                          <i className="fa-solid fa-receipt"></i>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-base font-black text-white font-mono">
+                              Comanda #{selectedOrder.code}
+                            </h3>
+                            {(() => {
+                              const s = getOrderStatusInfo(selectedOrder.status);
+                              return (
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s.badgeClass}`}>
+                                  {s.label}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                          <p className="text-xs text-stone-400 truncate">
+                            {selectedOrder.createdAt
+                              ? new Date(selectedOrder.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+                              : 'Fecha no registrada'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setSelectedOrder(null)}
+                        className="w-9 h-9 rounded-xl bg-stone-800 text-stone-400 hover:text-white flex items-center justify-center hover:bg-stone-700 transition cursor-pointer shrink-0"
+                        title="Cerrar modal"
+                      >
+                        <i className="fa-solid fa-xmark text-sm"></i>
+                      </button>
+                    </div>
+
+                    {/* Modal Scrollable Body */}
+                    <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                      
+                      {/* Customer Card */}
+                      <div className="bg-[#0e0e11] border border-stone-800 rounded-2xl p-4 space-y-2">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                          Datos del Cliente & Despacho
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <span className="text-stone-400 block text-[11px]">Nombre:</span>
+                            <span className="text-white font-bold">{selectedOrder.customerName || 'No informado'}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-400 block text-[11px]">Teléfono / WhatsApp:</span>
+                            {selectedOrder.customerPhone ? (
+                              <a
+                                href={`https://wa.me/${selectedOrder.customerPhone.replace(/\D/g, '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-emerald-400 hover:underline font-bold flex items-center gap-1.5"
+                              >
+                                <i className="fa-brands fa-whatsapp text-sm"></i>
+                                <span>{selectedOrder.customerPhone}</span>
+                              </a>
+                            ) : (
+                              <span className="text-stone-500">No especificado</span>
+                            )}
+                          </div>
+                          <div className="sm:col-span-2">
+                            <span className="text-stone-400 block text-[11px]">Dirección de Entrega:</span>
+                            <span className="text-white font-medium flex items-center gap-1.5 mt-0.5">
+                              <i className="fa-solid fa-location-dot text-[#ffd025] shrink-0"></i>
+                              <span>{selectedOrder.address || selectedOrder.location || 'Alerce / Puerto Montt'}</span>
+                            </span>
+                          </div>
+                          {selectedOrder.paymentMethod && (
+                            <div>
+                              <span className="text-stone-400 block text-[11px]">Método de Pago:</span>
+                              <span className="text-stone-200 font-bold capitalize">{selectedOrder.paymentMethod}</span>
+                            </div>
+                          )}
+                          {selectedOrder.customerEmail && (
+                            <div>
+                              <span className="text-stone-400 block text-[11px]">Correo Electrónico:</span>
+                              <span className="text-stone-300 truncate">{selectedOrder.customerEmail}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Status Selector Buttons */}
+                      <div className="space-y-2">
+                        <label className="block text-[11px] text-stone-400 font-bold uppercase tracking-wider">
+                          Actualizar Estado del Pedido:
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          <button
+                            onClick={() => handleUpdateOrderStatus(selectedOrder.id, 'en_preparacion')}
+                            className={`px-3 py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                              selectedOrder.status === 'en_preparacion'
+                                ? 'bg-amber-500 text-black border-amber-500 font-black'
+                                : 'bg-stone-800 hover:bg-stone-700 text-stone-300 border-stone-700'
+                            }`}
+                          >
+                            En Preparación
+                          </button>
+                          <button
+                            onClick={() => handleUpdateOrderStatus(selectedOrder.id, 'en_camino')}
+                            className={`px-3 py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                              selectedOrder.status === 'en_camino'
+                                ? 'bg-blue-500 text-white border-blue-500 font-black'
+                                : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/30'
+                            }`}
+                          >
+                            En Camino
+                          </button>
+                          <button
+                            onClick={() => handleUpdateOrderStatus(selectedOrder.id, 'entregado')}
+                            className={`px-3 py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                              selectedOrder.status === 'entregado'
+                                ? 'bg-emerald-500 text-black border-emerald-500 font-black'
+                                : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            }`}
+                          >
+                            Entregado
+                          </button>
+                          <button
+                            onClick={() => handleUpdateOrderStatus(selectedOrder.id, 'cancelado')}
+                            className={`px-3 py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                              selectedOrder.status === 'cancelado'
+                                ? 'bg-rose-600 text-white border-rose-600 font-black'
+                                : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30'
+                            }`}
+                          >
+                            Anular
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Products List */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-stone-300">
+                          <span>Detalle de Productos ({selectedOrder.items?.length || 0}):</span>
+                        </div>
+                        <div className="bg-[#0e0e11] border border-stone-800 rounded-2xl divide-y divide-stone-800/80 overflow-hidden">
+                          {selectedOrder.items?.map((it, i) => (
+                            <div key={i} className="p-3 flex items-center justify-between gap-3 text-xs">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="w-6 h-6 rounded-lg bg-amber-400/10 text-[#ffd025] font-black font-mono text-[11px] flex items-center justify-center shrink-0">
+                                  {it.quantity}x
+                                </span>
+                                <span className="text-white font-medium truncate">
+                                  {it.productName}
+                                </span>
+                              </div>
+                              <div className="text-right shrink-0 font-mono">
+                                <div className="text-[#ffd025] font-bold">
+                                  {formatPrice(it.price * it.quantity)}
+                                </div>
+                                <div className="text-[10px] text-stone-500">
+                                  {formatPrice(it.price)} c/u
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Total Breakdown */}
+                      <div className="bg-[#0e0e11] border border-stone-800 rounded-2xl p-3.5 space-y-1.5 text-xs font-mono">
+                        {selectedOrder.subtotal !== undefined && (
+                          <div className="flex justify-between text-stone-400">
+                            <span>Subtotal:</span>
+                            <span>{formatPrice(selectedOrder.subtotal)}</span>
+                          </div>
+                        )}
+                        {selectedOrder.discountAmount !== undefined && selectedOrder.discountAmount > 0 && (
+                          <div className="flex justify-between text-emerald-400">
+                            <span>Descuento cupón:</span>
+                            <span>-{formatPrice(selectedOrder.discountAmount)}</span>
+                          </div>
+                        )}
+                        {selectedOrder.shippingCost !== undefined && (
+                          <div className="flex justify-between text-stone-400">
+                            <span>Costo de Despacho:</span>
+                            <span>{formatPrice(selectedOrder.shippingCost)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm font-black text-[#ffd025] pt-1.5 border-t border-stone-800">
+                          <span>TOTAL A COBRAR:</span>
+                          <span>{formatPrice(selectedOrder.total)}</span>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Modal Footer Actions */}
+                    <div className="p-4 border-t border-stone-800 flex flex-wrap items-center justify-between gap-2.5 bg-[#121215]">
+                      <button
+                        onClick={() => handleCopyOrderWhatsApp(selectedOrder)}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
+                      >
+                        <i className="fa-brands fa-whatsapp text-sm"></i>
+                        <span>Copiar para WhatsApp</span>
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => window.print()}
+                          className="bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white font-bold text-xs px-3 py-2.5 rounded-xl transition flex items-center gap-1.5 border border-stone-700 cursor-pointer"
+                        >
+                          <i className="fa-solid fa-print"></i>
+                          <span className="hidden sm:inline">Imprimir</span>
+                        </button>
+                        <button
+                          onClick={() => setSelectedOrder(null)}
+                          className="bg-[#ffd025] hover:bg-yellow-400 text-black font-black text-xs px-4 py-2.5 rounded-xl transition cursor-pointer"
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+                    </div>
+
                   </div>
-                ) : (
-                  <div className="text-center py-10 text-gray-500 text-xs">
-                    Selecciona un pedido para gestionar su despacho.
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* TAB 4: ESTADÍSTICAS */}
         {activeTab === 'stats' && (
@@ -1949,7 +2576,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {/* TAB 6: AJUSTES GENERALES */}
         {activeTab === 'settings' && (
-          <form onSubmit={handleSaveSettings} className="bg-[#1a1a1a] p-6 rounded-3xl border border-[#ffd025]/20 max-w-3xl space-y-6 animate-fade-in">
+          <form onSubmit={handleSaveSettings} className="bg-[#171719] p-6 sm:p-8 rounded-3xl border border-stone-800 w-full max-w-5xl space-y-6 shadow-xl animate-fade-in">
             <h2 className="text-xl font-black uppercase text-white flex items-center gap-2">
               <i className="fa-solid fa-sliders text-[#ffd025]"></i> Personalización del Sistema
             </h2>
@@ -2309,106 +2936,168 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* Horario de Cierre y Atención Comercial por Día */}
-            <div className="space-y-4 pt-4 border-t border-gray-800">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-300 uppercase flex items-center gap-2">
-                    <i className="fa-solid fa-clock text-[#ffd025]"></i>
-                    <span>Horario de Cierre y Atención por Día de la Semana</span>
-                  </h3>
-                  <p className="text-[11px] text-gray-400 mt-0.5">
-                    Configura la hora de apertura y cierre para cada día de la semana. Fuera de ese horario el sistema no permitirá ingresar pedidos al carrito.
+            <div className="space-y-5 pt-6 border-t border-stone-800">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 sm:p-5 bg-gradient-to-r from-[#171719] to-[#141416] rounded-2xl border border-stone-800 shadow-sm">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="w-8 h-8 rounded-xl bg-yellow-400/10 text-[#ffd025] flex items-center justify-center text-sm border border-yellow-400/20 shrink-0">
+                      <i className="fa-solid fa-clock"></i>
+                    </span>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wide">
+                      Horario de Cierre y Atención por Día
+                    </h3>
+                  </div>
+                  <p className="text-xs text-stone-400 leading-relaxed max-w-2xl">
+                    Define las ventanas de apertura y cierre para cada día de la semana. Si la botillería está fuera de horario, el sistema bloqueará compras al carrito y mostrará tu aviso personalizado.
                   </p>
                 </div>
 
                 {/* Master switch */}
-                <div className="flex items-center gap-2 bg-[#141414] border border-gray-800 p-2.5 rounded-xl shrink-0">
-                  <label className="text-xs font-bold text-white flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formSettings.scheduleConfig?.enabled ?? true}
-                      onChange={(e) => {
-                        const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
-                        setFormSettings({
-                          ...formSettings,
-                          scheduleConfig: {
-                            ...currentSched,
-                            enabled: e.target.checked
-                          }
-                        });
-                      }}
-                      className="accent-[#ffd025] w-4 h-4 rounded"
+                <div className="flex items-center justify-between sm:justify-end gap-3 bg-[#0f0f10] border border-stone-700/80 px-4 py-2.5 rounded-xl shrink-0">
+                  <span className="text-xs font-bold text-stone-300">
+                    {formSettings.scheduleConfig?.enabled ?? true ? 'Restricción Activa' : 'Sin Restricción'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
+                      const isCurrentlyEnabled = formSettings.scheduleConfig?.enabled ?? true;
+                      setFormSettings({
+                        ...formSettings,
+                        scheduleConfig: {
+                          ...currentSched,
+                          enabled: !isCurrentlyEnabled
+                        }
+                      });
+                    }}
+                    className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+                      (formSettings.scheduleConfig?.enabled ?? true) ? 'bg-emerald-500' : 'bg-stone-700'
+                    }`}
+                  >
+                    <span
+                      className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${
+                        (formSettings.scheduleConfig?.enabled ?? true) ? 'left-7' : 'left-1'
+                      }`}
                     />
-                    <span>{formSettings.scheduleConfig?.enabled ? '🟢 Restricción Activa' : '⚪ Sin Restricción'}</span>
-                  </label>
+                  </button>
                 </div>
               </div>
 
-              {/* Selector de Modo Manual */}
-              <div className="bg-[#141414] p-4 rounded-2xl border border-gray-800 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
-                      setFormSettings({
-                        ...formSettings,
-                        scheduleConfig: { ...currentSched, manualOverride: 'auto' }
-                      });
-                    }}
-                    className={`p-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border ${
-                      (!formSettings.scheduleConfig?.manualOverride || formSettings.scheduleConfig.manualOverride === 'auto')
-                        ? 'bg-[#ffd025] text-[#141414] border-[#ffd025]'
-                        : 'bg-[#1a1a1a] text-gray-300 border-gray-700 hover:border-gray-500'
-                    }`}
-                  >
-                    <i className="fa-solid fa-calendar-check"></i>
-                    <span>Automático (Según Horario)</span>
-                  </button>
+              {/* Selector de Modo Manual & Mensaje */}
+              <div className="bg-[#161618] p-4 sm:p-5 rounded-2xl border border-stone-800 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-stone-400 mb-2">
+                    Estado de Atención y Anulación Manual:
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* Auto */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
+                        setFormSettings({
+                          ...formSettings,
+                          scheduleConfig: { ...currentSched, manualOverride: 'auto' }
+                        });
+                      }}
+                      className={`p-3.5 rounded-xl text-left transition-all border flex items-center gap-3 cursor-pointer ${
+                        (!formSettings.scheduleConfig?.manualOverride || formSettings.scheduleConfig.manualOverride === 'auto')
+                          ? 'bg-[#ffd025]/10 border-[#ffd025] text-white shadow-sm shadow-yellow-500/10'
+                          : 'bg-[#101011] border-stone-800 text-stone-300 hover:border-stone-700 hover:bg-stone-900'
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm ${
+                        (!formSettings.scheduleConfig?.manualOverride || formSettings.scheduleConfig.manualOverride === 'auto')
+                          ? 'bg-[#ffd025] text-[#141414] font-black'
+                          : 'bg-stone-800 text-stone-400'
+                      }`}>
+                        <i className="fa-solid fa-calendar-check"></i>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-black text-white truncate">Automático</span>
+                          {(!formSettings.scheduleConfig?.manualOverride || formSettings.scheduleConfig.manualOverride === 'auto') && (
+                            <span className="w-2 h-2 rounded-full bg-[#ffd025] shrink-0 animate-pulse"></span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-stone-400 truncate">Según horario semanal</p>
+                      </div>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
-                      setFormSettings({
-                        ...formSettings,
-                        scheduleConfig: { ...currentSched, manualOverride: 'force_open' }
-                      });
-                    }}
-                    className={`p-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border ${
-                      formSettings.scheduleConfig?.manualOverride === 'force_open'
-                        ? 'bg-emerald-500 text-white border-emerald-500'
-                        : 'bg-[#1a1a1a] text-gray-300 border-gray-700 hover:border-gray-500'
-                    }`}
-                  >
-                    <i className="fa-solid fa-door-open"></i>
-                    <span>Forzar Abierto 24/7</span>
-                  </button>
+                    {/* Force Open */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
+                        setFormSettings({
+                          ...formSettings,
+                          scheduleConfig: { ...currentSched, manualOverride: 'force_open' }
+                        });
+                      }}
+                      className={`p-3.5 rounded-xl text-left transition-all border flex items-center gap-3 cursor-pointer ${
+                        formSettings.scheduleConfig?.manualOverride === 'force_open'
+                          ? 'bg-emerald-500/10 border-emerald-500 text-white shadow-sm shadow-emerald-500/10'
+                          : 'bg-[#101011] border-stone-800 text-stone-300 hover:border-stone-700 hover:bg-stone-900'
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm ${
+                        formSettings.scheduleConfig?.manualOverride === 'force_open'
+                          ? 'bg-emerald-500 text-white font-black'
+                          : 'bg-stone-800 text-stone-400'
+                      }`}>
+                        <i className="fa-solid fa-door-open"></i>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-black text-white truncate">Forzar Abierto</span>
+                          {formSettings.scheduleConfig?.manualOverride === 'force_open' && (
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse"></span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-stone-400 truncate">Atención continua 24/7</p>
+                      </div>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
-                      setFormSettings({
-                        ...formSettings,
-                        scheduleConfig: { ...currentSched, manualOverride: 'force_closed' }
-                      });
-                    }}
-                    className={`p-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border ${
-                      formSettings.scheduleConfig?.manualOverride === 'force_closed'
-                        ? 'bg-red-600 text-white border-red-600'
-                        : 'bg-[#1a1a1a] text-gray-300 border-gray-700 hover:border-gray-500'
-                    }`}
-                  >
-                    <i className="fa-solid fa-lock"></i>
-                    <span>Forzar Cerrado Ahora</span>
-                  </button>
+                    {/* Force Closed */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentSched = formSettings.scheduleConfig || DEFAULT_STORE_SCHEDULE;
+                        setFormSettings({
+                          ...formSettings,
+                          scheduleConfig: { ...currentSched, manualOverride: 'force_closed' }
+                        });
+                      }}
+                      className={`p-3.5 rounded-xl text-left transition-all border flex items-center gap-3 cursor-pointer ${
+                        formSettings.scheduleConfig?.manualOverride === 'force_closed'
+                          ? 'bg-rose-500/10 border-rose-500 text-white shadow-sm shadow-rose-500/10'
+                          : 'bg-[#101011] border-stone-800 text-stone-300 hover:border-stone-700 hover:bg-stone-900'
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm ${
+                        formSettings.scheduleConfig?.manualOverride === 'force_closed'
+                          ? 'bg-rose-600 text-white font-black'
+                          : 'bg-stone-800 text-stone-400'
+                      }`}>
+                        <i className="fa-solid fa-lock"></i>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-black text-white truncate">Forzar Cerrado</span>
+                          {formSettings.scheduleConfig?.manualOverride === 'force_closed' && (
+                            <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0 animate-pulse"></span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-stone-400 truncate">Pausa temporal de ventas</p>
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Mensaje al cliente */}
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase mb-1">
-                    Mensaje para clientes cuando el local esté cerrado:
+                <div className="space-y-1.5 pt-1">
+                  <label className="block text-xs font-bold text-stone-300 uppercase">
+                    Mensaje de local cerrado (visible para clientes al intentar comprar):
                   </label>
                   <input
                     type="text"
@@ -2420,99 +3109,163 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         scheduleConfig: { ...currentSched, closedMessage: e.target.value }
                       });
                     }}
-                    placeholder="Ej: Local cerrado en este momento. Reanudamos recepción de pedidos a las 12:00 hrs."
-                    className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl p-2.5 text-xs text-white focus:border-[#ffd025] outline-none"
+                    placeholder="Ej: Nuestra botillería se encuentra cerrada en este momento. Revisa nuestro horario semanal de atención."
+                    className="w-full bg-[#101011] border border-stone-700 hover:border-stone-600 focus:border-[#ffd025] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none transition placeholder-stone-500"
                   />
                 </div>
 
-                {/* Botones de acción rápida */}
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Atajos rápidos:</span>
+                {/* Atajos rápidos */}
+                <div className="pt-2 border-t border-stone-800/80 flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider shrink-0 flex items-center gap-1.5 mr-1">
+                    <i className="fa-solid fa-wand-magic-sparkles text-[#ffd025] text-xs"></i>
+                    <span>Atajos Rápidos:</span>
+                  </span>
                   <button
                     type="button"
                     onClick={() => handleApplyTimeToAllDays('12:00', '02:00')}
-                    className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] px-2.5 py-1 rounded-lg border border-stone-700 transition cursor-pointer"
+                    className="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs px-3 py-1.5 rounded-xl border border-stone-700 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
                   >
-                    Todos 12:00 a 02:00 hrs
+                    <i className="fa-regular fa-clock text-[10px] text-yellow-400"></i>
+                    <span>12:00 a 02:00 (Estándar)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleApplyTimeToAllDays('12:00', '04:00')}
-                    className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] px-2.5 py-1 rounded-lg border border-stone-700 transition cursor-pointer"
+                    className="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs px-3 py-1.5 rounded-xl border border-stone-700 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
                   >
-                    Todos 12:00 a 04:00 hrs (Nocturno)
+                    <i className="fa-regular fa-moon text-[10px] text-indigo-400"></i>
+                    <span>12:00 a 04:00 (Nocturno)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleApplyTimeToAllDays('11:00', '00:00')}
-                    className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] px-2.5 py-1 rounded-lg border border-stone-700 transition cursor-pointer"
+                    className="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs px-3 py-1.5 rounded-xl border border-stone-700 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
                   >
-                    Todos 11:00 a 00:00 hrs
+                    <i className="fa-regular fa-sun text-[10px] text-amber-400"></i>
+                    <span>11:00 a 00:00 (Diurno)</span>
                   </button>
                 </div>
               </div>
 
-              {/* Días de la semana */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {/* Días de la semana en grid espacioso de 2 columnas donde NUNCA desborda */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(formSettings.scheduleConfig?.days || DEFAULT_STORE_SCHEDULE.days).map((daySched, idx) => {
                   const isOvernight = daySched.closeTime < daySched.openTime;
                   return (
                     <div
                       key={daySched.day}
-                      className={`p-3 rounded-2xl border transition ${
+                      className={`p-4 rounded-2xl border transition-all ${
                         daySched.isOpen
-                          ? 'bg-[#141414] border-gray-800'
-                          : 'bg-[#121212]/70 border-gray-900 opacity-60'
+                          ? 'bg-[#161618] border-stone-800 hover:border-stone-700 shadow-sm'
+                          : 'bg-[#121213]/90 border-stone-900 opacity-65'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-black uppercase text-white flex items-center gap-1.5">
-                          <span>{daySched.label}</span>
-                          {isOvernight && daySched.isOpen && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold" title="Cierra en la madrugada siguiente">
-                              🌙 Madrugada
-                            </span>
-                          )}
-                        </span>
-                        <label className="flex items-center gap-1.5 text-[11px] font-bold cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={daySched.isOpen}
-                            onChange={(e) => handleUpdateDaySchedule(idx, 'isOpen', e.target.checked)}
-                            className="accent-[#ffd025] w-3.5 h-3.5 rounded"
-                          />
-                          <span className={daySched.isOpen ? 'text-emerald-400' : 'text-gray-500'}>
-                            {daySched.isOpen ? 'Abierto' : 'Cerrado'}
-                          </span>
-                        </label>
+                      {/* Cabecera del día */}
+                      <div className="flex items-center justify-between gap-2 pb-3 border-b border-stone-800/80">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${
+                            daySched.isOpen 
+                              ? 'bg-yellow-400/10 text-[#ffd025] border border-yellow-400/20' 
+                              : 'bg-stone-800 text-stone-500'
+                          }`}>
+                            {daySched.label.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs sm:text-sm font-black text-white">{daySched.label}</span>
+                              {isOvernight && daySched.isOpen && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 font-bold border border-indigo-500/25 whitespace-nowrap">
+                                  🌙 Madrugada
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Toggle Abierto / Cerrado */}
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateDaySchedule(idx, 'isOpen', !daySched.isOpen)}
+                          className={`px-3 py-1 rounded-full text-[11px] font-black transition flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+                            daySched.isOpen
+                              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
+                              : 'bg-stone-800 text-stone-400 border-stone-700 hover:bg-stone-700'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${daySched.isOpen ? 'bg-emerald-400 animate-pulse' : 'bg-stone-500'}`}></span>
+                          <span>{daySched.isOpen ? 'Abierto' : 'Cerrado'}</span>
+                        </button>
                       </div>
 
-                      {daySched.isOpen ? (
-                        <div className="grid grid-cols-2 gap-2 pt-1">
-                          <div>
-                            <label className="block text-[10px] text-gray-400 mb-0.5">Apertura</label>
-                            <input
-                              type="time"
-                              value={daySched.openTime}
-                              onChange={(e) => handleUpdateDaySchedule(idx, 'openTime', e.target.value)}
-                              className="w-full bg-[#1a1a1a] border border-gray-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-[#ffd025]"
-                            />
+                      {/* Configuración de horas */}
+                      <div className="pt-3">
+                        {daySched.isOpen ? (
+                          <div className="space-y-2.5">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              {/* Apertura */}
+                              <div className="flex-1 min-w-[120px]">
+                                <label className="block text-[10px] uppercase font-bold text-stone-400 mb-1 flex items-center gap-1">
+                                  <i className="fa-regular fa-sun text-yellow-400/80 text-[10px]"></i>
+                                  <span>Apertura</span>
+                                </label>
+                                <input
+                                  type="time"
+                                  value={daySched.openTime}
+                                  onChange={(e) => handleUpdateDaySchedule(idx, 'openTime', e.target.value)}
+                                  className="w-full bg-[#101011] border border-stone-700 hover:border-stone-600 focus:border-[#ffd025] rounded-xl px-2.5 py-1.5 text-xs text-white font-mono outline-none transition"
+                                />
+                              </div>
+
+                              <div className="hidden sm:flex items-center text-stone-600 pt-5">
+                                <i className="fa-solid fa-arrow-right text-xs"></i>
+                              </div>
+
+                              {/* Cierre */}
+                              <div className="flex-1 min-w-[120px]">
+                                <label className="block text-[10px] uppercase font-bold text-stone-400 mb-1 flex items-center gap-1">
+                                  <i className="fa-regular fa-moon text-indigo-400 text-[10px]"></i>
+                                  <span>Cierre</span>
+                                </label>
+                                <input
+                                  type="time"
+                                  value={daySched.closeTime}
+                                  onChange={(e) => handleUpdateDaySchedule(idx, 'closeTime', e.target.value)}
+                                  className="w-full bg-[#101011] border border-stone-700 hover:border-stone-600 focus:border-[#ffd025] rounded-xl px-2.5 py-1.5 text-xs text-white font-mono outline-none transition"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Detalle y copiar */}
+                            <div className="flex items-center justify-between text-[11px] text-stone-400 pt-0.5">
+                              <span className="font-mono text-stone-300">
+                                Horario: <strong className="text-[#ffd025]">{daySched.openTime}</strong> a <strong className="text-[#ffd025]">{daySched.closeTime} hrs</strong>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleApplyTimeToAllDays(daySched.openTime, daySched.closeTime)}
+                                className="text-[10px] text-stone-400 hover:text-[#ffd025] underline cursor-pointer transition"
+                                title="Copiar este horario a todos los demás días"
+                              >
+                                Copiar a todos
+                              </button>
+                            </div>
                           </div>
-                          <div>
-                            <label className="block text-[10px] text-gray-400 mb-0.5">Cierre</label>
-                            <input
-                              type="time"
-                              value={daySched.closeTime}
-                              onChange={(e) => handleUpdateDaySchedule(idx, 'closeTime', e.target.value)}
-                              className="w-full bg-[#1a1a1a] border border-gray-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-[#ffd025]"
-                            />
+                        ) : (
+                          <div className="py-3 px-3 rounded-xl bg-stone-900/60 border border-stone-800/60 flex items-center justify-between text-xs text-stone-400">
+                            <div className="flex items-center gap-2">
+                              <i className="fa-solid fa-ban text-stone-500 text-xs"></i>
+                              <span>Local cerrado todo este día</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateDaySchedule(idx, 'isOpen', true)}
+                              className="text-[11px] text-[#ffd025] hover:underline font-bold cursor-pointer"
+                            >
+                              Habilitar
+                            </button>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="py-2 text-center text-[11px] text-gray-500 font-medium">
-                          No se reciben pedidos este día
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -3012,6 +3765,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
+        </div>
       </main>
 
       {/* 4. MODAL: ESTUDIO PHOTOSHOOT IA (1.85:1 #141414) - Exact from fellasmarket.cl */}
