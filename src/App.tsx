@@ -315,7 +315,7 @@ export default function App() {
           />
 
           {/* Contenido Principal con espaciado superior prudente respecto al encabezado */}
-          <main className={`pb-16 px-4 ${user?.role === 'admin' ? 'pt-36 sm:pt-38 md:pt-40' : 'pt-28 sm:pt-30 md:pt-32'}`}>
+          <main className={`pb-16 px-2 sm:px-4 md:px-6 max-w-[100vw] overflow-x-hidden ${user?.role === 'admin' ? 'pt-32 sm:pt-36 md:pt-40' : 'pt-28 sm:pt-30 md:pt-32'}`}>
             {/* Si el usuario busca algo, mostramos los resultados en tiempo real */}
             {searchQuery.trim() !== '' ? (
               <section className="max-w-7xl mx-auto my-8">

@@ -11,8 +11,8 @@ interface MegaOffersProps {
 export const MegaOffers: React.FC<MegaOffersProps> = ({ onAddToCart, megaOffers }) => {
   const offersToDisplay = (megaOffers && megaOffers.length > 0) ? megaOffers : MEGA_OFFERS;
   return (
-    <section className="max-w-7xl mx-auto mt-6">
-      <div className="relative overflow-hidden rounded-3xl border-2 border-blue-400/50 p-6 shadow-2xl text-white bg-[#002b7f]">
+    <section className="max-w-7xl mx-auto mt-6 px-1 sm:px-0">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-blue-400/50 p-3.5 sm:p-6 shadow-2xl text-white bg-[#002b7f]">
         {/* Imagen de fondo: fuegos artificiales rojos y blancos sobre fondo azul sólido */}
         <img
           src={fireworksSolidBg}
@@ -189,7 +189,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({ onAddToCart, megaOffers 
           </div>
 
           {/* Espacio para productos en láminas blancas con textos #141414 y sin descripción */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-5">
               {offersToDisplay.map((offer) => {
                 const autoDiscount = offer.discount || getDiscountPercentage(offer.price, offer.originalPrice);
                 const hasDiscount = offer.originalPrice && offer.originalPrice > offer.price;
@@ -197,7 +197,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({ onAddToCart, megaOffers 
                 return (
                   <div
                     key={offer.id}
-                    className="bg-white rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4 group transition-all duration-300 shadow-xl border border-white hover:border-[#ffd129] text-[#141414] min-w-0"
+                    className="bg-white rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 group transition-all duration-300 shadow-xl border border-white hover:border-[#ffd129] text-[#141414] min-w-0"
                   >
                     <div className="relative w-full sm:w-32 h-32 rounded-xl overflow-hidden bg-stone-50 shrink-0 border border-stone-200/70 flex items-center justify-center p-2">
                       <img

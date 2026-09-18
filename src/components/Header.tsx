@@ -136,23 +136,23 @@ export const Header: React.FC<HeaderProps> = ({
       ref={headerRef}
       className={`fixed left-1/2 -translate-x-1/2 z-50 bg-[#141414] text-white transition-all duration-500 ease-in-out ${
         isScrolled
-          ? 'top-4 w-[92%] max-w-6xl px-6 py-2.5 rounded-3xl shadow-2xl border border-stone-800'
-          : 'top-0 w-full px-4 md:px-8 py-3 shadow-xl border border-transparent rounded-none'
+          ? 'top-2 sm:top-4 w-[96%] sm:w-[92%] max-w-6xl px-3 sm:px-6 py-2 sm:py-2.5 rounded-2xl sm:rounded-3xl shadow-2xl border border-stone-800'
+          : 'top-0 w-full px-3 sm:px-4 md:px-8 py-2.5 sm:py-3 shadow-xl border border-transparent rounded-none'
       }`}
     >
-      <div className="max-w-7xl mx-auto flex flex-col gap-2.5">
+      <div className="max-w-7xl mx-auto flex flex-col gap-2 sm:gap-2.5">
         
         {/* ÁREA SUPERIOR: Logo, Despacho, Búsqueda, Login & Carrito */}
-        <div className="flex items-center justify-between gap-3 md:gap-4">
+        <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4">
           
           {/* Logo Marca Dinámico */}
-          <div className="flex items-center gap-2 shrink-0">
-            <a href="#" className="text-xl md:text-2xl font-extrabold tracking-wider text-white hover:opacity-90 transition flex items-center">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <a href="#" className="text-lg sm:text-xl md:text-2xl font-extrabold tracking-wider text-white hover:opacity-90 transition flex items-center">
               {settings.logoImage ? (
                 <img
                   src={settings.logoImage}
                   alt={settings.storeName || 'Logo de la tienda'}
-                  className="h-9 sm:h-10 md:h-11 w-auto max-w-[180px] sm:max-w-[220px] object-contain"
+                  className="h-8 sm:h-9 md:h-11 w-auto max-w-[130px] sm:max-w-[180px] md:max-w-[220px] object-contain"
                 />
               ) : (
                 <>
@@ -184,7 +184,7 @@ export const Header: React.FC<HeaderProps> = ({
             {activePopup === 'delivery' && (
               <div
                 id="delivery-modal"
-                className="absolute left-0 mt-2 w-72 bg-[#141414] border border-stone-700 rounded-2xl shadow-2xl p-4 z-50 text-white animate-in fade-in zoom-in-95 duration-200"
+                className="absolute left-0 mt-2 w-[calc(100vw-2rem)] sm:w-72 max-w-xs bg-[#141414] border border-stone-700 rounded-2xl shadow-2xl p-4 z-50 text-white animate-in fade-in zoom-in-95 duration-200"
               >
                 <div className="flex items-center justify-between mb-3 border-b border-stone-800 pb-2">
                   <span className="text-sm font-semibold flex items-center gap-2">
@@ -221,9 +221,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Barra de Búsqueda Interactiva */}
-          <div className="flex-1 max-w-xl mx-2 min-w-0">
+          <div className="flex-1 max-w-xl mx-1 sm:mx-2 min-w-0">
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-stone-400">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 sm:pl-3.5 pointer-events-none text-stone-400">
                 <i className="fa-solid fa-magnifying-glass text-xs"></i>
               </span>
               <input
@@ -232,13 +232,13 @@ export const Header: React.FC<HeaderProps> = ({
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Buscar pisco, cerveza, whisky, vino, hielo..."
-                className="w-full bg-stone-800/90 text-white text-xs md:text-sm rounded-xl pl-10 pr-8 py-2 border border-stone-700 focus:outline-none focus:border-[#ffd129] focus:ring-1 focus:ring-[#ffd129] transition placeholder-stone-400"
+                className="w-full bg-stone-800/90 text-white text-[11px] sm:text-xs md:text-sm rounded-xl pl-8 sm:pl-10 pr-7 sm:pr-8 py-1.5 sm:py-2 border border-stone-700 focus:outline-none focus:border-[#ffd129] focus:ring-1 focus:ring-[#ffd129] transition placeholder-stone-400 truncate"
               />
               {searchQuery && (
                 <button
                   id="clear-search-btn"
                   onClick={() => onSearchChange('')}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-stone-400 hover:text-white"
+                  className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-stone-400 hover:text-white"
                 >
                   <i className="fa-solid fa-circle-xmark text-xs"></i>
                 </button>
@@ -247,14 +247,14 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Botones Acceso Usuario y Carrito */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             
             {/* Botón Mi Cuenta (con Modal desplegable) */}
             <div className="relative">
               <button
                 id="user-account-btn"
                 onClick={() => togglePopup('login')}
-                className="flex items-center gap-2 bg-stone-800 hover:bg-stone-700 text-white px-3 md:px-3.5 py-2 rounded-xl text-xs font-medium border border-stone-700 transition"
+                className="flex items-center gap-1.5 sm:gap-2 bg-stone-800 hover:bg-stone-700 text-white px-2.5 sm:px-3 md:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-medium border border-stone-700 transition"
               >
                 <i className={`fa-solid ${user?.isLoggedIn ? (user.role === 'admin' ? 'fa-shield-halved text-[#ffd129]' : 'fa-user-check text-green-400') : 'fa-user text-[#ffd129]'}`}></i>
                 <span className="hidden sm:inline font-semibold">
@@ -266,7 +266,7 @@ export const Header: React.FC<HeaderProps> = ({
               {activePopup === 'login' && (
                 <div
                   id="login-modal"
-                  className="absolute right-0 mt-2 w-84 bg-[#141414] border border-stone-700 rounded-2xl shadow-2xl p-5 z-50 text-white animate-in fade-in zoom-in-95 duration-200"
+                  className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-84 max-w-[340px] bg-[#141414] border border-stone-700 rounded-2xl shadow-2xl p-4 sm:p-5 z-50 text-white animate-in fade-in zoom-in-95 duration-200"
                 >
                   {user?.isLoggedIn ? (
                     <div>
@@ -497,7 +497,7 @@ export const Header: React.FC<HeaderProps> = ({
               {activePopup === 'cart' && (
                 <div
                   id="cart-modal"
-                  className="absolute right-0 mt-2 w-80 sm:w-96 bg-[#141414] border border-stone-700 rounded-2xl shadow-2xl p-4 z-50 text-white animate-in fade-in zoom-in-95 duration-200"
+                  className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-[380px] bg-[#141414] border border-stone-700 rounded-2xl shadow-2xl p-3.5 sm:p-4 z-50 text-white animate-in fade-in zoom-in-95 duration-200"
                 >
                   <div className="flex items-center justify-between border-b border-stone-800 pb-3 mb-3">
                     <div className="flex items-center gap-2">
@@ -608,8 +608,8 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* ÁREA INFERIOR: Menú Navegación Dinámico */}
-        <nav id="header-menu" className="border-t border-stone-800 pt-2 flex items-center justify-between overflow-x-auto no-scrollbar">
-          <ul className="flex items-center gap-5 md:gap-6 text-xs font-medium whitespace-nowrap text-stone-300">
+        <nav id="header-menu" className="border-t border-stone-800 pt-2 pb-1 flex items-center justify-between overflow-x-auto no-scrollbar touch-pan-x">
+          <ul className="flex items-center gap-4 sm:gap-5 md:gap-6 text-xs font-medium whitespace-nowrap text-stone-300">
             <li>
               <a href="#" className="text-[#ffd129] font-bold flex items-center gap-1.5 hover:opacity-90 transition">
                 <i className="fa-solid fa-house"></i> Inicio

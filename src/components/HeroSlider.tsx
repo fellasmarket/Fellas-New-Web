@@ -50,12 +50,12 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ slides = [] }) => {
   if (activeSlides.length === 0) return null;
 
   return (
-    <section className="max-w-7xl mx-auto mt-2">
+    <section className="max-w-7xl mx-auto mt-2 px-1 sm:px-0">
       <div
         id="hero-banner-carousel"
         onMouseEnter={stopTimer}
         onMouseLeave={startTimer}
-        className="relative w-full h-[52vh] min-h-[380px] max-h-[480px] rounded-3xl overflow-hidden shadow-2xl bg-[#141414]"
+        className="relative w-full h-[40vh] sm:h-[48vh] md:h-[52vh] min-h-[290px] sm:min-h-[360px] max-h-[480px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl bg-[#141414]"
       >
         {/* Slides */}
         {activeSlides.map((slide, index) => {
@@ -74,23 +74,23 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ slides = [] }) => {
               />
               <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/90 sm:via-[#141414]/80 to-transparent"></div>
 
-              {/* Contenedor de texto restringido exactamente a 1/3 de la altura del banner */}
-              <div className="relative z-10 w-full md:w-1/2 lg:w-5/12 h-1/3 min-h-[120px] max-h-[160px] flex flex-col justify-between px-8 md:px-14 text-white">
+              {/* Contenedor de texto adaptativo para móviles, tablets y escritorio */}
+              <div className="relative z-10 w-full sm:w-2/3 md:w-1/2 lg:w-5/12 flex flex-col justify-center px-4 sm:px-8 md:px-14 text-white py-4">
                 <div>
-                  <span className="inline-flex items-center gap-1.5 text-[#ffd129] font-bold text-xs uppercase tracking-widest mb-1.5">
+                  <span className="inline-flex items-center gap-1.5 text-[#ffd129] font-bold text-[11px] sm:text-xs uppercase tracking-widest mb-1 sm:mb-1.5">
                     <i className={slide.icon}></i> {slide.badge}
                   </span>
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight text-white line-clamp-1">
+                  <h2 className="text-lg sm:text-2xl md:text-3xl font-extrabold leading-tight text-white line-clamp-2">
                     {slide.title}
                   </h2>
-                  <p className="text-xs sm:text-sm text-stone-300 font-light leading-snug mt-1 line-clamp-2">
+                  <p className="text-[11px] sm:text-xs md:text-sm text-stone-300 font-light leading-snug mt-1 line-clamp-2">
                     {slide.description}
                   </p>
                 </div>
-                <div className="pt-2">
+                <div className="pt-2 sm:pt-3">
                   <a
                     href={slide.ctaLink}
-                    className="inline-flex items-center gap-2 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-bold text-xs px-5 py-2 rounded-xl transition shadow-lg w-fit"
+                    className="inline-flex items-center gap-2 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-bold text-xs px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl transition shadow-lg w-fit active:scale-95"
                   >
                     {slide.ctaText} <i className="fa-solid fa-arrow-right text-[10px]"></i>
                   </a>

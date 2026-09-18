@@ -69,7 +69,7 @@ const CATEGORY_ITEMS: CategoryCardItem[] = [
 
 export const CategoryGrid: React.FC = () => {
   return (
-    <section className="max-w-7xl mx-auto mt-8">
+    <section className="max-w-7xl mx-auto mt-8 px-1 sm:px-0">
       <div className="mb-4 px-2">
         <h3 className="text-base font-bold text-[#141414] flex items-center gap-2">
           <i className="fa-solid fa-wine-bottle text-yellow-600"></i> Explorar Colecciones & Áreas
@@ -80,11 +80,11 @@ export const CategoryGrid: React.FC = () => {
       </div>
 
       {/* 2 filas horizontales de 4 columnas (2x4 = 8 colecciones) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
         {CATEGORY_ITEMS.map((item) => (
           <div
             key={item.id}
-            className="relative group overflow-hidden rounded-2xl bg-stone-900 border border-stone-300 h-56 flex flex-col justify-end p-4 md:p-5 transition-all duration-500 hover:border-[#ffd129] hover:shadow-[0_10px_30px_rgba(255,209,41,0.2)]"
+            className="relative group overflow-hidden rounded-2xl bg-stone-900 border border-stone-300 h-44 sm:h-52 md:h-56 flex flex-col justify-end p-3.5 sm:p-4 md:p-5 transition-all duration-500 hover:border-[#ffd129] hover:shadow-[0_10px_30px_rgba(255,209,41,0.2)]"
           >
             <img
               src={item.image}
@@ -103,7 +103,7 @@ export const CategoryGrid: React.FC = () => {
               </div>
               <a
                 href={item.targetId}
-                className="w-1/2 shrink-0 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-bold text-xs py-2 px-2 rounded-xl transition flex items-center justify-center gap-1 shadow active:scale-95 whitespace-nowrap"
+                className="shrink-0 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-bold text-[11px] sm:text-xs py-1.5 sm:py-2 px-2.5 sm:px-3 rounded-xl transition flex items-center justify-center gap-1 shadow active:scale-95 whitespace-nowrap"
               >
                 <span>Ver ofertas</span> <i className="fa-solid fa-arrow-right text-[9px]"></i>
               </a>
