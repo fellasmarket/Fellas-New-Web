@@ -3,6 +3,8 @@ import { StoreSettings } from '../types';
 
 interface BottomPromoBannerProps {
   settings: StoreSettings;
+  isVisualEditMode?: boolean;
+  onQuickEdit?: () => void;
   onOpenWhatsApp?: () => void;
   onExploreProducts?: () => void;
 }
@@ -12,6 +14,8 @@ const DEFAULT_BANNER_IMAGE =
 
 export const BottomPromoBanner: React.FC<BottomPromoBannerProps> = ({
   settings,
+  isVisualEditMode = false,
+  onQuickEdit,
   onOpenWhatsApp,
   onExploreProducts
 }) => {
@@ -23,6 +27,12 @@ export const BottomPromoBanner: React.FC<BottomPromoBannerProps> = ({
   const bannerLink = settings.bottomBannerLink?.trim() || '';
 
   const handleClick = (e: React.MouseEvent) => {
+    if (isVisualEditMode && onQuickEdit) {
+      e.preventDefault();
+      onQuickEdit();
+      return;
+    }
+
     if (!bannerLink) {
       if (onExploreProducts) {
         e.preventDefault();
@@ -47,10 +57,30 @@ export const BottomPromoBanner: React.FC<BottomPromoBannerProps> = ({
   return (
     <section
       id="bottom-promo-banner"
-      className="max-w-7xl mx-auto my-6 sm:my-8 px-2 sm:px-4 md:px-0"
+      className="max-w-7xl mx-auto mt-6 sm:mt-8 mb-2 sm:mb-3 px-2 sm:px-4 md:px-0 relative"
       aria-label="Banner promocional"
     >
-      <div className="w-full relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl bg-[#121214] group">
+      <div
+        className={`w-full relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl bg-[#121214] group ${
+          isVisualEditMode ? 'ring-2 ring-[#ffd025] ring-dashed' : ''
+        }`}
+      >
+        {isVisualEditMode && (
+          <div className="absolute top-2 right-2 z-30 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onQuickEdit) onQuickEdit();
+              }}
+              className="bg-[#ffd025] hover:bg-yellow-400 text-stone-950 text-xs font-black px-3 py-1 rounded-lg shadow-xl flex items-center gap-1.5 transition uppercase tracking-wider cursor-pointer"
+            >
+              <i className="fa-solid fa-pen-to-square"></i>
+              <span>Editar Banner Promo</span>
+            </button>
+          </div>
+        )}
+
         <a
           href={bannerLink || '#'}
           onClick={handleClick}
@@ -58,15 +88,13 @@ export const BottomPromoBanner: React.FC<BottomPromoBannerProps> = ({
         >
           <img
             src={bannerImage}
-            alt={settings.storeName ? `${settings.storeName} Banner` : 'Banner Promocional'}
-            className="w-full h-full object-cover object-center transform group-hover:scale-102 transition-transform duration-500 ease-out"
+            alt="Promoción Especial Botillería Fellas"
+            className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
             loading="lazy"
           />
-          {/* Sutil overlay brillante en hover */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-white/5 transition-colors duration-300 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 group-hover:opacity-60 transition-opacity"></div>
         </a>
       </div>
     </section>
   );
 };
-

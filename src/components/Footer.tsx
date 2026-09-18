@@ -8,7 +8,7 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ settings, categories }) => {
   return (
-    <footer className="bg-[#141414] text-white border-t border-stone-800 mt-16 sm:mt-20 pt-8 sm:pt-12 pb-8 px-4">
+    <footer className="bg-[#141414] text-white border-t border-stone-800 mt-1 sm:mt-1.5 pt-8 sm:pt-12 pb-8 px-4">
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-12">
         {/* Columna 1: Info Marca */}
         <div>

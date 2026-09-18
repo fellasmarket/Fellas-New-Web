@@ -9,12 +9,14 @@ import { CategoryGrid } from './components/CategoryGrid';
 import { CategorySection } from './components/CategorySection';
 import { CategoryCatalogView } from './components/CategoryCatalogView';
 import { BottomPromoBanner } from './components/BottomPromoBanner';
+import { BottomDualBanners } from './components/BottomDualBanners';
 import { FloatingActions } from './components/FloatingActions';
 import { CheckoutModal } from './components/CheckoutModal';
 import { Footer } from './components/Footer';
 import { Toast } from './components/Toast';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DeliveryDashboard } from './components/DeliveryDashboard';
+import { VisualQuickEditorModal, QuickEditTarget } from './components/admin/VisualQuickEditorModal';
 
 const DEFAULT_SETTINGS: StoreSettings = {
   storeName: 'Botillería Nova Express',
@@ -32,6 +34,11 @@ const DEFAULT_SETTINGS: StoreSettings = {
   bottomBannerImage: 'https://images.unsplash.com/photo-1527061011665-3652c757a4d4?q=80&w=1600&auto=format&fit=crop',
   bottomBannerLink: '#mega-ofertas',
   showBottomBanner: true,
+  showBottomDualBanners: true,
+  bottomDualBanner1Image: 'https://images.unsplash.com/photo-1608270190578-831e51b32d2e?q=80&w=800&auto=format&fit=crop',
+  bottomDualBanner1Link: '#mega-ofertas',
+  bottomDualBanner2Image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?q=80&w=800&auto=format&fit=crop',
+  bottomDualBanner2Link: '#mega-ofertas',
   deliveryZones: [
     'Santiago Centro',
     'Providencia',
@@ -102,6 +109,10 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Visual In-Context Editor State
+  const [isVisualEditMode, setIsVisualEditMode] = useState<boolean>(true);
+  const [quickEditTarget, setQuickEditTarget] = useState<QuickEditTarget | null>(null);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -295,6 +306,93 @@ export default function App() {
     setHeroSlides(updatedSlides);
   };
 
+  // QUICK EDIT HANDLERS (From Visual Popup Editor)
+  const handleQuickSaveProduct = async (updatedProduct: Product) => {
+    // Update in categories
+    setCategories((prevCategories) =>
+      prevCategories.map((cat) => ({
+        ...cat,
+        products: cat.products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+      }))
+    );
+
+    // Update in mega offers if present
+    setMegaOffers((prevOffers) =>
+      prevOffers.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+    );
+
+    // Save to backend
+    try {
+      await fetch(`/api/products/${updatedProduct.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedProduct)
+      });
+    } catch (err) {
+      console.warn('Backend product update error:', err);
+    }
+
+    showToast(`Producto "${updatedProduct.name}" actualizado correctamente.`);
+    setQuickEditTarget(null);
+  };
+
+  const handleQuickSaveCategory = async (updatedCategory: CategoryData) => {
+    setCategories((prevCategories) =>
+      prevCategories.map((cat) => (cat.id === updatedCategory.id ? updatedCategory : cat))
+    );
+
+    try {
+      await fetch(`/api/categories/${updatedCategory.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedCategory)
+      });
+    } catch (err) {
+      console.warn('Backend category update error:', err);
+    }
+
+    showToast(`Categoría "${updatedCategory.name}" actualizada.`);
+    setQuickEditTarget(null);
+  };
+
+  const handleQuickSaveHeroSlide = async (updatedSlide: HeroSlide) => {
+    const updated = heroSlides.map((slide) =>
+      slide.id === updatedSlide.id ? updatedSlide : slide
+    );
+    setHeroSlides(updated);
+
+    try {
+      await fetch('/api/hero-slides', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+    } catch (err) {
+      console.warn('Backend hero slides update error:', err);
+    }
+
+    showToast(`Banner "${updatedSlide.title || 'Principal'}" actualizado.`);
+    setQuickEditTarget(null);
+  };
+
+  const handleQuickSaveSettings = async (partialSettings: Partial<StoreSettings>) => {
+    const newSettings = { ...settings, ...partialSettings };
+    setSettings(newSettings);
+
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings)
+      });
+    } catch (err) {
+      console.warn('Backend settings update error:', err);
+    }
+
+    showToast('Banner / Configuración actualizada con éxito.');
+    setQuickEditTarget(null);
+  };
+
   // All searchable products
   const allProducts: Product[] = [
     ...megaOffers,
@@ -405,8 +503,27 @@ export default function App() {
                       return (
                         <div
                           key={product.id}
-                          className="bg-white border border-stone-200 hover:border-[#ffd129] rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group"
+                          className={`bg-white border border-stone-200 hover:border-[#ffd129] rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative ${
+                            user?.role === 'admin' && isVisualEditMode ? 'cursor-pointer ring-1 ring-amber-400 ring-dashed' : ''
+                          }`}
+                          onClick={() => {
+                            if (user?.role === 'admin' && isVisualEditMode) {
+                              setQuickEditTarget({ type: 'product', data: product });
+                            }
+                          }}
                         >
+                          {user?.role === 'admin' && isVisualEditMode && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setQuickEditTarget({ type: 'product', data: product });
+                              }}
+                              className="absolute top-2 right-2 z-20 bg-stone-900 hover:bg-stone-800 text-[#ffd129] text-[9px] font-black px-2 py-0.5 rounded shadow flex items-center gap-1 border border-stone-700 cursor-pointer"
+                            >
+                              <i className="fa-solid fa-pen"></i> Editar
+                            </button>
+                          )}
                           <div>
                             <div className="h-44 bg-stone-100 rounded-xl mb-3 overflow-hidden relative">
                               <img
@@ -488,17 +605,31 @@ export default function App() {
                   setSelectedCatalogCategoryId(catId);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
+                isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
+                onQuickEditProduct={(product) => setQuickEditTarget({ type: 'product', data: product })}
+                onQuickEditCategory={(category) => setQuickEditTarget({ type: 'category', data: category })}
               />
             ) : (
               <>
                 {/* 1. Hero Banner Carousel Dinámico */}
-                <HeroSlider slides={heroSlides} />
+                <HeroSlider
+                  slides={heroSlides}
+                  isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
+                  onQuickEdit={(slide) => setQuickEditTarget({ type: 'slide', data: slide })}
+                />
 
                 {/* 2. Banner de Suscripción Newsletter */}
                 <Newsletter onSubscribe={handleNewsletterSubscribe} />
 
                 {/* 3. Mega Oferta Destacada */}
-                <MegaOffers onAddToCart={handleAddToCart} megaOffers={megaOffers} settings={settings} />
+                <MegaOffers
+                  onAddToCart={handleAddToCart}
+                  megaOffers={megaOffers}
+                  settings={settings}
+                  isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
+                  onQuickEditProduct={(product) => setQuickEditTarget({ type: 'product', data: product })}
+                  onQuickEditSection={() => setQuickEditTarget({ type: 'mega_offers', data: settings })}
+                />
 
                 {/* 4. Colecciones & Áreas (Grid 2 filas horizontales de 4 y 4 = 8 tarjetas con botón ver más) */}
                 <CategoryGrid />
@@ -513,12 +644,17 @@ export default function App() {
                       setSelectedCatalogCategoryId(catId);
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
+                    isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
+                    onQuickEditCategory={(cat) => setQuickEditTarget({ type: 'category', data: cat })}
+                    onQuickEditProduct={(prod) => setQuickEditTarget({ type: 'product', data: prod })}
                   />
                 ))}
 
                 {/* 6. Banner Promocional Final (Entre las secciones de productos y el pie de página) */}
                 <BottomPromoBanner
                   settings={settings}
+                  isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
+                  onQuickEdit={() => setQuickEditTarget({ type: 'bottom_promo', data: settings })}
                   onOpenWhatsApp={() => {
                     const cleanNum = (settings.socialWhatsapp || settings.contactPhone || '+56958866754').replace(/[^0-9]/g, '');
                     const message = encodeURIComponent(
@@ -526,6 +662,19 @@ export default function App() {
                     );
                     window.open(`https://wa.me/${cleanNum}?text=${message}`, '_blank', 'noopener,noreferrer');
                   }}
+                  onExploreProducts={() => {
+                    if (categories.length > 0) {
+                      setSelectedCatalogCategoryId(categories[0].id);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                />
+
+                {/* 7. Dos Banners Promocionales Lado a Lado (Solo imagen, sin marcos ni textos, pegados al pie de página) */}
+                <BottomDualBanners
+                  settings={settings}
+                  isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
+                  onQuickEdit={() => setQuickEditTarget({ type: 'bottom_dual', data: settings })}
                   onExploreProducts={() => {
                     if (categories.length > 0) {
                       setSelectedCatalogCategoryId(categories[0].id);
@@ -555,6 +704,53 @@ export default function App() {
             whatsappNumber={settings.socialWhatsapp || settings.contactPhone}
             storeName={settings.storeName}
           />
+
+          {/* BARRA FLOTANTE DE CONTROL ADMIN PARA EDICIÓN VISUAL CLICK-TO-EDIT */}
+          {user?.role === 'admin' && (
+            <div className="fixed bottom-4 left-4 z-40 bg-stone-950/95 text-white border border-amber-500/40 rounded-2xl p-2 sm:p-2.5 shadow-2xl backdrop-blur-md flex items-center gap-2 text-xs">
+              <div className="w-8 h-8 rounded-xl bg-[#ffd025] text-stone-950 flex items-center justify-center font-black text-sm shrink-0">
+                <i className="fa-solid fa-wand-magic-sparkles"></i>
+              </div>
+              <div className="hidden sm:block pr-1">
+                <p className="font-extrabold text-[11px] text-[#ffd025] leading-tight">Editor Visual</p>
+                <p className="text-[10px] text-stone-400">Click en cualquier elemento</p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsVisualEditMode(!isVisualEditMode);
+                  showToast(isVisualEditMode ? 'Edición visual pausada' : 'Edición visual activada (haz clic en cualquier elemento)');
+                }}
+                className={`px-3 py-1.5 rounded-xl font-black text-[11px] uppercase transition cursor-pointer flex items-center gap-1.5 ${
+                  isVisualEditMode
+                    ? 'bg-amber-400 text-stone-950 hover:bg-yellow-400'
+                    : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                }`}
+              >
+                <i className={`fa-solid ${isVisualEditMode ? 'fa-toggle-on text-emerald-950' : 'fa-toggle-off'}`}></i>
+                <span>{isVisualEditMode ? 'Activo' : 'Inactivo'}</span>
+              </button>
+              <button
+                onClick={() => setCurrentView('admin')}
+                className="bg-stone-800 hover:bg-stone-700 text-stone-200 px-3 py-1.5 rounded-xl font-bold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                title="Ir al panel completo"
+              >
+                <i className="fa-solid fa-gauge-high text-[10px]"></i>
+                <span className="hidden md:inline">Panel</span>
+              </button>
+            </div>
+          )}
+
+          {/* MODAL POPUP DE EDICIÓN RÁPIDA VISUAL */}
+          {quickEditTarget && (
+            <VisualQuickEditorModal
+              target={quickEditTarget}
+              onClose={() => setQuickEditTarget(null)}
+              onSaveProduct={handleQuickSaveProduct}
+              onSaveCategory={handleQuickSaveCategory}
+              onSaveHeroSlide={handleQuickSaveHeroSlide}
+              onSaveSettings={handleQuickSaveSettings}
+            />
+          )}
         </>
       )}
 

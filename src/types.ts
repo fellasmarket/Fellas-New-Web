@@ -208,6 +208,11 @@ export interface StoreSettings {
   bottomBannerImage?: string;
   bottomBannerLink?: string;
   showBottomBanner?: boolean;
+  showBottomDualBanners?: boolean;
+  bottomDualBanner1Image?: string;
+  bottomDualBanner1Link?: string;
+  bottomDualBanner2Image?: string;
+  bottomDualBanner2Link?: string;
   renderKeepAliveEnabled?: boolean;
   renderAppUrl?: string;
   renderPingIntervalMinutes?: number;

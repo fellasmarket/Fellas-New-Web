@@ -3,9 +3,15 @@ import { HeroSlide } from '../types';
 
 interface HeroSliderProps {
   slides?: HeroSlide[];
+  isVisualEditMode?: boolean;
+  onQuickEditSlide?: (slide: HeroSlide, index: number) => void;
 }
 
-export const HeroSlider: React.FC<HeroSliderProps> = ({ slides = [] }) => {
+export const HeroSlider: React.FC<HeroSliderProps> = ({
+  slides = [],
+  isVisualEditMode = false,
+  onQuickEditSlide
+}) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -55,8 +61,36 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ slides = [] }) => {
         id="hero-banner-carousel"
         onMouseEnter={stopTimer}
         onMouseLeave={startTimer}
-        className="relative w-full h-[40vh] sm:h-[48vh] md:h-[52vh] min-h-[290px] sm:min-h-[360px] max-h-[480px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl bg-[#141414]"
+        className={`relative w-full h-[40vh] sm:h-[48vh] md:h-[52vh] min-h-[290px] sm:min-h-[360px] max-h-[480px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl bg-[#141414] ${
+          isVisualEditMode
+            ? 'ring-2 ring-[#ffd129] ring-dashed cursor-pointer group/hero'
+            : ''
+        }`}
+        onClick={() => {
+          if (isVisualEditMode && onQuickEditSlide && activeSlides[currentSlide]) {
+            onQuickEditSlide(activeSlides[currentSlide], currentSlide);
+          }
+        }}
       >
+        {/* Floating Quick Edit Badge in Visual Mode */}
+        {isVisualEditMode && (
+          <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onQuickEditSlide && activeSlides[currentSlide]) {
+                  onQuickEditSlide(activeSlides[currentSlide], currentSlide);
+                }
+              }}
+              className="bg-[#ffd129] hover:bg-yellow-400 text-stone-950 text-xs font-black px-3.5 py-1.5 rounded-xl shadow-xl flex items-center gap-1.5 transition uppercase tracking-wider animate-bounce cursor-pointer"
+            >
+              <i className="fa-solid fa-pen-to-square"></i>
+              <span>Editar este Banner</span>
+            </button>
+          </div>
+        )}
+
         {/* Slides */}
         {activeSlides.map((slide, index) => {
           const isActive = index === currentSlide;

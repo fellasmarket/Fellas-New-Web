@@ -6,12 +6,18 @@ interface CategorySectionProps {
   category: CategoryData;
   onAddToCart: (product: Product) => void;
   onOpenCategoryCatalog?: (categoryId: string) => void;
+  isVisualEditMode?: boolean;
+  onQuickEditProduct?: (product: Product, categoryId: string) => void;
+  onQuickEditCategory?: (category: CategoryData) => void;
 }
 
 export const CategorySection: React.FC<CategorySectionProps> = ({
   category,
   onAddToCart,
-  onOpenCategoryCatalog
+  onOpenCategoryCatalog,
+  isVisualEditMode = false,
+  onQuickEditProduct,
+  onQuickEditCategory
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -33,13 +39,38 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   };
 
   return (
-    <section id={category.id} className="max-w-7xl mx-auto mt-6 sm:mt-8 pt-4 border-t border-stone-200 px-1 sm:px-0">
-      {/* Banner de Categoría: Solo la imagen sin textos sobrepuestos */}
-      <div className="relative w-full h-[22vh] sm:h-[26vh] md:h-[28vh] min-h-[160px] sm:min-h-[200px] max-h-[270px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl bg-stone-900">
+    <section id={category.id} className="max-w-7xl mx-auto mt-6 sm:mt-8 pt-4 border-t border-stone-200 px-1 sm:px-0 relative">
+      {/* Banner de Categoría */}
+      <div
+        className={`relative w-full h-[22vh] sm:h-[26vh] md:h-[28vh] min-h-[160px] sm:min-h-[200px] max-h-[270px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl bg-stone-900 group ${
+          isVisualEditMode ? 'ring-2 ring-blue-400 ring-dashed cursor-pointer' : ''
+        }`}
+        onClick={() => {
+          if (isVisualEditMode && onQuickEditCategory) {
+            onQuickEditCategory(category);
+          }
+        }}
+      >
+        {isVisualEditMode && (
+          <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onQuickEditCategory) onQuickEditCategory(category);
+              }}
+              className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black px-3.5 py-1.5 rounded-xl shadow-xl flex items-center gap-1.5 transition uppercase tracking-wider cursor-pointer"
+            >
+              <i className="fa-solid fa-image"></i>
+              <span>Editar Portada de {category.name}</span>
+            </button>
+          </div>
+        )}
+
         <img
           src={category.bannerImage}
           alt={category.name || category.title}
-          className={`w-full h-full object-cover ${
+          className={`w-full h-full object-cover group-hover:scale-101 transition-transform duration-500 ${
             category.bannerPosition === 'top'
               ? 'object-top'
               : category.bannerPosition === 'bottom'
@@ -63,7 +94,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Botón Ver Más (Abre el catálogo completo en vista dedicada) */}
+            {/* Botón Ver Más */}
             <a
               id={`ver-mas-${category.id}`}
               href={`#catalogo-${category.id}`}
@@ -108,8 +139,28 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
             return (
               <div
                 key={product.id}
-                className="w-[185px] sm:w-[210px] md:w-[220px] min-w-[185px] sm:min-w-[210px] md:min-w-[220px] max-w-[185px] sm:max-w-[210px] md:max-w-[220px] snap-start bg-white border border-stone-200 hover:border-[#ffd129] rounded-2xl p-3 sm:p-3.5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between shrink-0 group"
+                className={`w-[185px] sm:w-[210px] md:w-[220px] min-w-[185px] sm:min-w-[210px] md:min-w-[220px] max-w-[185px] sm:max-w-[210px] md:max-w-[220px] snap-start bg-white border border-stone-200 hover:border-[#ffd129] rounded-2xl p-3 sm:p-3.5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between shrink-0 group relative ${
+                  isVisualEditMode ? 'cursor-pointer ring-1 ring-amber-400 ring-dashed hover:ring-2' : ''
+                }`}
+                onClick={() => {
+                  if (isVisualEditMode && onQuickEditProduct) {
+                    onQuickEditProduct(product, category.id);
+                  }
+                }}
               >
+                {isVisualEditMode && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onQuickEditProduct) onQuickEditProduct(product, category.id);
+                    }}
+                    className="absolute top-2 right-2 z-20 bg-stone-900/90 hover:bg-stone-900 text-[#ffd129] text-[9px] font-black px-2 py-0.5 rounded shadow flex items-center gap-1 border border-stone-700 cursor-pointer"
+                  >
+                    <i className="fa-solid fa-pen"></i> Editar
+                  </button>
+                )}
+
                 <div>
                   <div className="h-28 sm:h-32 bg-stone-100 rounded-xl mb-2 sm:mb-2.5 overflow-hidden relative">
                     <img
@@ -163,7 +214,11 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                   ) : (
                     <button
                       id={`buy-btn-${product.id}`}
-                      onClick={() => onAddToCart(product)}
+                      onClick={(e) => {
+                        if (!isVisualEditMode) {
+                          onAddToCart(product);
+                        }
+                      }}
                       className="bg-[#ffd129] text-[#141414] text-[10px] font-bold px-2.5 sm:px-3 py-1.5 rounded-lg hover:bg-yellow-400 transition shadow-sm active:scale-95 flex items-center gap-1 cursor-pointer shrink-0"
                     >
                       <i className="fa-solid fa-cart-plus text-[9px]"></i>

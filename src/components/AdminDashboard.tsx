@@ -1095,7 +1095,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     {
       title: 'Diseño & Marca',
       tabs: [
-        { id: 'hero_banner', label: 'Banner Principal', icon: 'fa-solid fa-images' },
+        { id: 'hero_banner', label: 'Gestor de Banners (Todos)', icon: 'fa-solid fa-images' },
         { id: 'footer_editor', label: 'Pie de Página', icon: 'fa-solid fa-window-maximize' },
         { id: 'popup', label: 'Popup Suscripción', icon: 'fa-solid fa-envelope-open-text' },
         { id: 'social', label: 'Community & Redes', icon: 'fa-solid fa-share-nodes' },
@@ -1780,7 +1780,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
-        {/* TAB: BANNER PRINCIPAL Y BANNER INFERIOR */}
+        {/* TAB: GESTOR DE BANNERS (TODOS LOS BANNERS) */}
         {activeTab === 'hero_banner' && (
           <HeroBannerEditor
             heroSlides={heroSlides}
@@ -1790,6 +1790,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               setFormSettings(updated);
               onUpdateSettings(updated);
             }}
+            categories={categories}
+            onUpdateCategories={onUpdateCategories}
             showToast={showToast}
           />
         )}

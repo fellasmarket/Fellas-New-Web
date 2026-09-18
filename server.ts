@@ -113,6 +113,11 @@ let settings: StoreSettings = {
   bottomBannerImage: 'https://images.unsplash.com/photo-1527061011665-3652c757a4d4?q=80&w=1600&auto=format&fit=crop',
   bottomBannerLink: '#mega-ofertas',
   showBottomBanner: true,
+  showBottomDualBanners: true,
+  bottomDualBanner1Image: 'https://images.unsplash.com/photo-1608270190578-831e51b32d2e?q=80&w=800&auto=format&fit=crop',
+  bottomDualBanner1Link: '#mega-ofertas',
+  bottomDualBanner2Image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?q=80&w=800&auto=format&fit=crop',
+  bottomDualBanner2Link: '#mega-ofertas',
   scheduleConfig: JSON.parse(JSON.stringify(DEFAULT_STORE_SCHEDULE))
 };
 

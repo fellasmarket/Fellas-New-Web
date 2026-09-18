@@ -8,6 +8,9 @@ interface CategoryCatalogViewProps {
   onBack: () => void;
   allCategories?: CategoryData[];
   onSelectCategory?: (categoryId: string) => void;
+  isVisualEditMode?: boolean;
+  onQuickEditProduct?: (product: Product) => void;
+  onQuickEditCategory?: (category: CategoryData) => void;
 }
 
 export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
@@ -15,7 +18,10 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
   onAddToCart,
   onBack,
   allCategories = [],
-  onSelectCategory
+  onSelectCategory,
+  isVisualEditMode = false,
+  onQuickEditProduct,
+  onQuickEditCategory
 }) => {
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -161,7 +167,32 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
       </nav>
 
       {/* 2. Banner de Cabecera de la Categoría */}
-      <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg bg-stone-900 mb-6">
+      <div
+        className={`relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg bg-stone-900 mb-6 ${
+          isVisualEditMode ? 'ring-2 ring-blue-400 ring-dashed cursor-pointer' : ''
+        }`}
+        onClick={() => {
+          if (isVisualEditMode && onQuickEditCategory) {
+            onQuickEditCategory(category);
+          }
+        }}
+      >
+        {isVisualEditMode && (
+          <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onQuickEditCategory) onQuickEditCategory(category);
+              }}
+              className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black px-3.5 py-1.5 rounded-xl shadow-xl flex items-center gap-1.5 transition uppercase tracking-wider cursor-pointer"
+            >
+              <i className="fa-solid fa-image"></i>
+              <span>Editar Portada de {category.name}</span>
+            </button>
+          </div>
+        )}
+
         <div className="h-36 sm:h-44 md:h-52 relative">
           <img
             src={category.bannerImage}
@@ -313,8 +344,28 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
                 return (
                   <div
                     key={product.id}
-                    className="bg-white border border-stone-200 hover:border-[#ffd129] rounded-2xl p-3.5 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between group"
+                    className={`bg-white border border-stone-200 hover:border-[#ffd129] rounded-2xl p-3.5 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative ${
+                      isVisualEditMode ? 'cursor-pointer ring-1 ring-amber-400 ring-dashed hover:ring-2' : ''
+                    }`}
+                    onClick={() => {
+                      if (isVisualEditMode && onQuickEditProduct) {
+                        onQuickEditProduct(product);
+                      }
+                    }}
                   >
+                    {isVisualEditMode && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onQuickEditProduct) onQuickEditProduct(product);
+                        }}
+                        className="absolute top-2 right-2 z-20 bg-stone-900 hover:bg-stone-800 text-[#ffd129] text-[9px] font-black px-2 py-0.5 rounded shadow flex items-center gap-1 border border-stone-700 cursor-pointer"
+                      >
+                        <i className="fa-solid fa-pen"></i> Editar
+                      </button>
+                    )}
+
                     <div>
                       {/* Imagen con badges */}
                       <div className="h-40 bg-stone-100 rounded-xl mb-3 overflow-hidden relative border border-stone-100">
