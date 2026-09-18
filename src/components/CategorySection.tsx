@@ -28,7 +28,13 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ category, onAd
         <img
           src={category.bannerImage}
           alt={category.name || category.title}
-          className="w-full h-full object-cover object-center"
+          className={`w-full h-full object-cover ${
+            category.bannerPosition === 'top'
+              ? 'object-top'
+              : category.bannerPosition === 'bottom'
+              ? 'object-bottom'
+              : 'object-center'
+          }`}
         />
       </div>
 

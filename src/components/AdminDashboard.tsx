@@ -24,6 +24,7 @@ import { ExcelImportModal } from './ExcelImportModal';
 import { HeroBannerEditor } from './admin/HeroBannerEditor';
 import { MegaOffersEditor } from './admin/MegaOffersEditor';
 import { FooterEditor } from './admin/FooterEditor';
+import { CategoryBannerModal } from './admin/CategoryBannerModal';
 
 interface AdminDashboardProps {
   onExitAdmin: () => void;
@@ -121,6 +122,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [catBadge, setCatBadge] = useState('');
   const [catIcon, setCatIcon] = useState('fa-solid fa-wine-bottle');
   const [catImage, setCatImage] = useState('');
+  const [selectedBannerCategory, setSelectedBannerCategory] = useState<CategoryData | null>(null);
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
 
   // TAB 4: ESTADÍSTICAS
   const [visitStats, setVisitStats] = useState<any>({
@@ -659,6 +662,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setIsCategoryModalOpen(false);
     setCatName('');
     showToast(`Categoría "${newCategory.name}" agregada con éxito`);
+  };
+
+  // CATEGORY BANNER ADJUSTMENT & PERSISTENCE
+  const handleSaveCategoryBanner = async (
+    categoryId: string,
+    bannerUrl: string,
+    bannerPosition: 'center' | 'top' | 'bottom'
+  ) => {
+    try {
+      await fetch(`/api/categories/${categoryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bannerImage: bannerUrl, bannerPosition })
+      });
+    } catch (err) {
+      console.error('Error al persistir banner de categoría:', err);
+    }
+
+    const updatedCategories = categories.map((cat) =>
+      cat.id === categoryId
+        ? { ...cat, bannerImage: bannerUrl, bannerPosition }
+        : cat
+    );
+    onUpdateCategories(updatedCategories);
   };
 
   // ORDER STATUS CHANGE
@@ -1429,39 +1456,133 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <i className="fa-solid fa-tags text-[#ffd025]"></i> Clasificaciones & Pasillos
                 </h2>
                 <p className="text-xs text-gray-400">
-                  Organiza las secciones temáticas de la tienda (Destilados, Cervezas, Vinos, Snacks, etc.).
+                  Organiza las secciones temáticas de la tienda (Destilados, Cervezas, Vinos, Snacks, etc.) y ajusta sus banners.
                 </p>
               </div>
               <button
                 onClick={() => setIsCategoryModalOpen(true)}
-                className="bg-[#ffd025] hover:bg-yellow-400 text-[#141414] font-black text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow"
+                className="bg-[#ffd025] hover:bg-yellow-400 text-[#141414] font-black text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow cursor-pointer active:scale-95 uppercase"
               >
                 <i className="fa-solid fa-plus"></i>
                 <span>Nuevo Pasillo</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {categories.map((cat) => (
-                <div key={cat.id} className="bg-[#1a1a1a] border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-                  <div className="h-32 relative overflow-hidden bg-gray-800">
-                    <img src={cat.bannerImage} alt={cat.name} className="w-full h-full object-cover opacity-60" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-transparent to-transparent"></div>
-                    <span className="absolute top-3 left-3 bg-black/80 backdrop-blur-xs text-[#ffd025] text-[10px] font-bold px-2.5 py-1 rounded-md border border-[#ffd025]/30 flex items-center gap-1.5">
-                      <i className={cat.icon}></i> {cat.badge}
-                    </span>
+            {/* GUÍA DE MEDIDAS EXACTAS DE LOS BANNERS DE CLASIFICACIÓN */}
+            <div className="bg-[#141414] border border-stone-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden shadow-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 border-b border-stone-800/80 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-yellow-400/10 text-yellow-400 flex items-center justify-center text-sm border border-yellow-400/20 shrink-0">
+                    <i className="fa-solid fa-ruler-combined text-base"></i>
                   </div>
-                  <div className="p-4 space-y-2">
-                    <h4 className="font-extrabold text-white text-sm">{cat.name}</h4>
-                    <p className="text-xs text-gray-400 line-clamp-2">{cat.description}</p>
-                    <div className="pt-3 border-t border-gray-800 flex items-center justify-between text-xs">
-                      <span className="text-[#ffd025] font-bold">
-                        {cat.products.length} productos en pasillo
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-black text-white uppercase flex items-center gap-2 flex-wrap">
+                      <span>Especificaciones y Medidas Exactas del Banner</span>
+                      <span className="text-[10px] bg-yellow-400/20 text-[#ffd025] px-2 py-0.5 rounded font-mono font-bold">
+                        1200 × 260 px
                       </span>
-                      <span className="text-[10px] text-gray-500 font-mono">
-                        #{cat.id}
+                    </h3>
+                    <p className="text-[11px] text-stone-400">
+                      Cada pasillo cuenta con un banner panorámico visible al inicio de su sección en la tienda.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[11px] text-stone-300 bg-[#1a1a1a] px-3 py-1.5 rounded-xl border border-stone-800 shrink-0">
+                  <i className="fa-solid fa-circle-info text-[#ffd025]"></i>
+                  <span>Relación de aspecto: <strong className="text-white font-mono">16:4 / 4.6:1</strong></span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 text-xs">
+                <div className="bg-[#1a1a1a] border border-stone-800/80 rounded-xl p-2.5">
+                  <span className="text-[10px] text-stone-400 font-bold uppercase block">Ancho Óptimo</span>
+                  <span className="text-sm font-mono font-black text-white block mt-0.5">1200 px</span>
+                  <span className="text-[10px] text-stone-400 block mt-0.5">Hasta 1920 px (Full HD)</span>
+                </div>
+                <div className="bg-[#1a1a1a] border border-stone-800/80 rounded-xl p-2.5">
+                  <span className="text-[10px] text-stone-400 font-bold uppercase block">Alto Óptimo</span>
+                  <span className="text-sm font-mono font-black text-white block mt-0.5">260 px</span>
+                  <span className="text-[10px] text-stone-400 block mt-0.5">Pantalla: 200px a 270px</span>
+                </div>
+                <div className="bg-[#1a1a1a] border border-stone-800/80 rounded-xl p-2.5">
+                  <span className="text-[10px] text-stone-400 font-bold uppercase block">Formato Recomendado</span>
+                  <span className="text-sm font-mono font-black text-white block mt-0.5">JPG / WEBP / PNG</span>
+                  <span className="text-[10px] text-stone-400 block mt-0.5">Peso máx. sugerido: 1.5MB</span>
+                </div>
+                <div className="bg-[#1a1a1a] border border-stone-800/80 rounded-xl p-2.5">
+                  <span className="text-[10px] text-stone-400 font-bold uppercase block">Alineación</span>
+                  <span className="text-sm font-mono font-black text-[#ffd025] block mt-0.5">Ajuste Inteligente</span>
+                  <span className="text-[10px] text-stone-400 block mt-0.5">Arriba, Centro o Abajo</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {categories.map((cat) => (
+                <div key={cat.id} className="bg-[#1a1a1a] border border-gray-800 hover:border-stone-700 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between transition group">
+                  <div>
+                    <div className="h-36 relative overflow-hidden bg-gray-900">
+                      <img
+                        src={cat.bannerImage}
+                        alt={cat.name}
+                        className={`w-full h-full object-cover group-hover:scale-105 transition duration-500 ${
+                          cat.bannerPosition === 'top'
+                            ? 'object-top'
+                            : cat.bannerPosition === 'bottom'
+                            ? 'object-bottom'
+                            : 'object-center'
+                        }`}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-transparent to-black/30"></div>
+                      
+                      {/* Badge superior con icono */}
+                      <span className="absolute top-2.5 left-2.5 bg-black/80 backdrop-blur-xs text-[#ffd025] text-[10px] font-bold px-2.5 py-1 rounded-md border border-[#ffd025]/30 flex items-center gap-1.5 shadow">
+                        <i className={cat.icon}></i> {cat.badge}
+                      </span>
+
+                      {/* Medida exacta del banner */}
+                      <span className="absolute top-2.5 right-2.5 bg-black/80 backdrop-blur-xs text-stone-300 font-mono text-[9px] font-bold px-2 py-0.5 rounded border border-stone-700 flex items-center gap-1 shadow">
+                        <i className="fa-solid fa-ruler text-yellow-400"></i>
+                        <span>1200 × 260 px</span>
+                      </span>
+
+                      {/* Indicador de posición/enfoque */}
+                      <span className="absolute bottom-2.5 right-2.5 bg-black/75 backdrop-blur-xs text-stone-300 text-[9px] font-mono px-2 py-0.5 rounded border border-stone-800">
+                        {cat.bannerPosition === 'top' ? '⬆️ Enfoque Superior' : cat.bannerPosition === 'bottom' ? '⬇️ Enfoque Inferior' : '⏺️ Enfoque Centrado'}
                       </span>
                     </div>
+
+                    <div className="p-4 space-y-2">
+                      <h4 className="font-extrabold text-white text-sm flex items-center justify-between">
+                        <span>{cat.name}</span>
+                        <span className="text-[10px] text-gray-500 font-mono font-normal">
+                          #{cat.id}
+                        </span>
+                      </h4>
+                      <p className="text-xs text-gray-400 line-clamp-2">{cat.description}</p>
+                      
+                      <div className="pt-2 flex items-center justify-between text-xs text-stone-400">
+                        <span className="text-[#ffd025] font-bold">
+                          {cat.products.length} productos en pasillo
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Botón para Ajustar Banner y Ver Medidas */}
+                  <div className="p-4 pt-0 border-t border-gray-800/80 mt-2">
+                    <button
+                      id={`btn-adjust-banner-${cat.id}`}
+                      onClick={() => {
+                        setSelectedBannerCategory(cat);
+                        setIsBannerModalOpen(true);
+                      }}
+                      className="w-full mt-3 bg-stone-900 hover:bg-[#ffd025] text-stone-200 hover:text-[#141414] border border-stone-700 hover:border-[#ffd025] font-black text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow active:scale-95 group/btn"
+                    >
+                      <i className="fa-solid fa-ruler-combined text-yellow-400 group-hover/btn:text-[#141414]"></i>
+                      <span>Ajustar Imagen de Banner & Medidas</span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -3156,7 +3277,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">URL Imagen de Banner</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-gray-400 uppercase">URL Imagen de Banner</label>
+                  <span className="text-[10px] text-[#ffd025] font-mono font-bold">1200 × 260 px</span>
+                </div>
                 <input
                   type="text"
                   value={catImage}
@@ -3164,6 +3288,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   placeholder="https://images.unsplash.com/..."
                   className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
                 />
+                <p className="text-[10px] text-stone-400 mt-1">
+                  💡 Medida exacta óptima: <strong>1200 × 260 píxeles</strong> (proporción 16:4 panorámico).
+                </p>
               </div>
 
               <div className="pt-3 border-t border-gray-800 flex justify-end gap-2">
@@ -3383,6 +3510,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* MODAL: AJUSTE DE BANNER Y MEDIDAS DE CLASIFICACIÓN */}
+      <CategoryBannerModal
+        isOpen={isBannerModalOpen}
+        category={selectedBannerCategory}
+        onClose={() => {
+          setIsBannerModalOpen(false);
+          setSelectedBannerCategory(null);
+        }}
+        onSaveBanner={handleSaveCategoryBanner}
+        showToast={showToast}
+      />
 
     </div>
   );

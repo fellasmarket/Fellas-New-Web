@@ -93,6 +93,7 @@ export interface CategoryData {
   title: string;
   description: string;
   bannerImage: string;
+  bannerPosition?: 'center' | 'top' | 'bottom';
   products: Product[];
   subcategories?: string[];
 }
