@@ -103,7 +103,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               className="inline-flex items-center gap-1.5 bg-stone-900 hover:bg-[#141414] text-[#ffd129] hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-bold border border-stone-800 transition shadow-sm active:scale-95 cursor-pointer"
             >
               <span>Ver más</span>
-              <Emoji3D name="right" className="w-3.5 h-3.5" alt="Ver más" />
+              <i className="fa-solid fa-arrow-right text-[10px]"></i>
             </a>
 
             {/* Controles del Carrusel */}

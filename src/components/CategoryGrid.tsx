@@ -104,9 +104,9 @@ export const CategoryGrid: React.FC = () => {
               </div>
               <a
                 href={item.targetId}
-                className="shrink-0 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-bold text-[9px] sm:text-xs py-1 sm:py-2 px-1.5 sm:px-3 rounded-lg sm:rounded-xl transition flex items-center justify-center gap-0.5 sm:gap-1 shadow active:scale-95 whitespace-nowrap"
+                className="shrink-0 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-bold text-[9px] sm:text-xs py-1 sm:py-2 px-1.5 sm:px-3 rounded-lg sm:rounded-xl transition flex items-center justify-center gap-1 shadow active:scale-95 whitespace-nowrap"
               >
-                <span>Ver</span> <span>👉</span>
+                <span>Ver</span> <i className="fa-solid fa-arrow-right text-[9px] sm:text-xs"></i>
               </a>
             </div>
           </div>
