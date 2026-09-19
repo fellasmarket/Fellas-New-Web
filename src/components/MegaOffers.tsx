@@ -2,6 +2,7 @@ import React from 'react';
 import { Product } from '../types';
 import { MEGA_OFFERS, formatPrice, getDiscountPercentage } from '../data/products';
 import fireworksSolidBg from '../assets/images/fireworks_blue_solid_1789491291395.jpg';
+import { Emoji3D } from './Emoji3D';
 
 interface MegaOffersProps {
   onAddToCart: (product: Product) => void;
@@ -105,8 +106,8 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
           {/* Encabezado Banner Mega Oferta */}
           <div className="flex flex-row items-center justify-between gap-1.5 mb-1.5 sm:mb-5 pb-1 sm:pb-3 border-b border-white/20">
             <div className="flex items-center gap-1 sm:gap-2.5 min-w-0">
-              <div className="w-5 h-5 sm:w-8 sm:h-8 rounded-full bg-[#ffd129] text-red-600 flex items-center justify-center text-[10px] sm:text-sm shadow-md shrink-0">
-                <i className="fa-solid fa-bolt text-red-600"></i>
+              <div className="w-5 h-5 sm:w-8 sm:h-8 rounded-full bg-[#ffd129] flex items-center justify-center shadow-md shrink-0 select-none">
+                <Emoji3D name="fire" className="w-3.5 h-3.5 sm:w-5 sm:h-5" alt="Mega Oferta" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-[11px] sm:text-base md:text-lg font-black text-white drop-shadow tracking-wide truncate">
@@ -127,7 +128,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                   onClick={() => onQuickEditSection && onQuickEditSection()}
                   className="px-1.5 sm:px-3 py-0.5 sm:py-1 bg-red-600 hover:bg-red-500 text-white text-[8px] sm:text-[11px] font-black rounded sm:rounded-xl shadow-lg flex items-center gap-1 transition cursor-pointer"
                 >
-                  <i className="fa-solid fa-pen-to-square"></i>
+                  <Emoji3D name="pen" className="w-3 h-3" alt="Editar" />
                   <span className="hidden xs:inline">Editar Fondo</span>
                 </button>
               )}
@@ -167,7 +168,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                       }}
                       className="absolute top-1 right-1 z-20 bg-stone-900 hover:bg-stone-800 text-[#ffd129] text-[8px] sm:text-[10px] font-black px-1.5 py-0.5 rounded shadow flex items-center gap-0.5 border border-stone-700 cursor-pointer"
                     >
-                      <i className="fa-solid fa-pen"></i> <span className="hidden xs:inline">Editar</span>
+                      <Emoji3D name="pen" className="w-3 h-3" alt="Editar" /> <span className="hidden xs:inline">Editar</span>
                     </button>
                   )}
 
@@ -185,7 +186,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                     )}
                     {offer.inStock === false && (
                       <span className="absolute top-0.5 left-0.5 sm:top-2 sm:left-2 bg-stone-900/90 text-red-400 border border-red-500/40 text-[7px] sm:text-[9px] font-black px-1 py-0.2 rounded shadow uppercase tracking-wider flex items-center gap-0.5">
-                        <i className="fa-solid fa-ban text-[6px]"></i> Sin stock
+                        <Emoji3D name="prohibited" className="w-3 h-3" alt="Sin stock" /> Sin stock
                       </span>
                     )}
                   </div>
@@ -215,7 +216,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                           aria-label={`${offer.name} sin stock`}
                           className="bg-stone-200 text-stone-500 text-[9px] sm:text-xs font-black px-1.5 sm:px-4 py-0.5 sm:py-2 rounded sm:rounded-xl cursor-not-allowed flex items-center gap-0.5 opacity-70 shrink-0"
                         >
-                          <i className="fa-solid fa-ban text-[7px]"></i> <span className="hidden xs:inline">Agotado</span>
+                          <Emoji3D name="prohibited" className="w-3 h-3" alt="Agotado" /> <span className="hidden xs:inline">Agotado</span>
                         </button>
                       ) : (
                         <button
@@ -225,9 +226,9 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                               onAddToCart(offer);
                             }
                           }}
-                          className="bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-black text-[9px] sm:text-xs px-2 sm:px-4 py-0.5 sm:py-2 rounded sm:rounded-xl transition flex items-center gap-0.5 shadow active:scale-95 cursor-pointer shrink-0"
+                          className="bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-black text-[9px] sm:text-xs px-2 sm:px-4 py-0.5 sm:py-2 rounded sm:rounded-xl transition flex items-center gap-1 shadow active:scale-95 cursor-pointer shrink-0"
                         >
-                          <i className="fa-solid fa-cart-plus text-[8px] sm:text-xs"></i> <span>Comprar</span>
+                          <Emoji3D name="cart" className="w-3.5 h-3.5" alt="Comprar" /> <span>Comprar</span>
                         </button>
                       )}
                     </div>

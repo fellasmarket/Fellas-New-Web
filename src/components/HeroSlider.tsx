@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HeroSlide } from '../types';
+import { Emoji3D } from './Emoji3D';
 
 interface HeroSliderProps {
   slides?: HeroSlide[];
@@ -61,7 +62,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({
         id="hero-banner-carousel"
         onMouseEnter={stopTimer}
         onMouseLeave={startTimer}
-        className={`relative w-full h-28 sm:h-[44vh] md:h-[50vh] min-h-[105px] sm:min-h-[320px] max-h-[460px] rounded-xl sm:rounded-3xl overflow-hidden shadow-xl sm:shadow-2xl bg-[#141414] ${
+        className={`relative w-full h-[150px] sm:h-[44vh] md:h-[50vh] min-h-[140px] sm:min-h-[320px] max-h-[460px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl sm:shadow-2xl bg-[#141414] ${
           isVisualEditMode
             ? 'ring-2 ring-[#ffd129] ring-dashed cursor-pointer group/hero'
             : ''
@@ -85,7 +86,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({
               }}
               className="bg-[#ffd129] hover:bg-yellow-400 text-stone-950 text-[9px] sm:text-xs font-black px-2 sm:px-3.5 py-0.5 sm:py-1.5 rounded-lg sm:rounded-xl shadow-xl flex items-center gap-1 sm:gap-1.5 transition uppercase tracking-wider cursor-pointer"
             >
-              <i className="fa-solid fa-pen-to-square"></i>
+              <Emoji3D name="pen" className="w-3.5 h-3.5" alt="Editar" />
               <span className="hidden xs:inline">Editar Banner</span>
             </button>
           </div>
@@ -104,29 +105,31 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({
               <img
                 src={slide.image}
                 alt={slide.title}
-                className="absolute inset-0 w-full h-full object-cover opacity-50 sm:opacity-40"
+                className="absolute inset-0 w-full h-full object-cover opacity-80 sm:opacity-75"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/90 sm:via-[#141414]/80 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#141414]/95 via-[#141414]/70 sm:via-[#141414]/80 to-transparent"></div>
 
-              {/* Contenedor de texto y botón: ocupa solo una fracción (1/6 a 1/3) alineado a la izquierda al centro */}
-              <div className="relative z-10 w-[55%] sm:w-2/3 md:w-1/2 lg:w-5/12 flex flex-col justify-center px-3 sm:px-8 md:px-14 text-white py-1 sm:py-4">
+              {/* Contenedor de texto y botón: reducido en celular a 2/3 de tamaño para no tapar la imagen del banner */}
+              <div className="relative z-10 w-[50%] xs:w-[52%] sm:w-2/3 md:w-1/2 lg:w-5/12 flex flex-col justify-center px-2.5 sm:px-8 md:px-14 text-white py-1.5 sm:py-4">
                 <div>
                   <span className="inline-flex items-center gap-1 text-[#ffd129] font-bold text-[7px] sm:text-xs uppercase tracking-wider mb-0.5 sm:mb-1.5">
-                    <i className={`${slide.icon} text-[7px] sm:text-[10px]`}></i> {slide.badge}
+                    <Emoji3D name="sparkles" className="w-3 h-3 sm:w-3.5 sm:h-3.5" alt="Destacado" />
+                    <span>{slide.badge}</span>
                   </span>
-                  <h2 className="text-xs sm:text-2xl md:text-3xl font-extrabold leading-tight text-white line-clamp-1 sm:line-clamp-2">
+                  <h2 className="text-[11px] sm:text-2xl md:text-3xl font-extrabold leading-tight text-white line-clamp-2">
                     {slide.title}
                   </h2>
-                  <p className="text-[9px] sm:text-xs md:text-sm text-stone-300 font-light leading-snug mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-2 hidden xs:block">
+                  <p className="text-[8px] sm:text-xs md:text-sm text-stone-300 font-light leading-tight mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-2">
                     {slide.description}
                   </p>
                 </div>
                 <div className="pt-1 sm:pt-3">
                   <a
                     href={slide.ctaLink}
-                    className="inline-flex items-center gap-1 sm:gap-2 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-bold text-[8px] sm:text-xs px-2.5 sm:px-5 py-0.5 sm:py-2 rounded-md sm:rounded-xl transition shadow-lg w-fit active:scale-95 whitespace-nowrap"
+                    className="inline-flex items-center gap-1 sm:gap-2 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-bold text-[8px] sm:text-xs px-2.5 sm:px-5 py-0.5 sm:py-2 rounded-md sm:rounded-xl transition shadow-md w-fit active:scale-95 whitespace-nowrap"
                   >
-                    <span>{slide.ctaText}</span> <i className="fa-solid fa-arrow-right text-[7px] sm:text-[10px]"></i>
+                    <span>{slide.ctaText}</span>
+                    <Emoji3D name="right" className="w-3 h-3 sm:w-3.5 sm:h-3.5" alt="Ir" />
                   </a>
                 </div>
               </div>
@@ -140,18 +143,18 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({
             <button
               id="hero-prev-btn"
               onClick={() => changeSlide(-1)}
-              className="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-black/50 hover:bg-[#ffd129] hover:text-[#141414] text-white rounded-full items-center justify-center transition border border-white/20 shadow-md"
+              className="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-black/50 hover:bg-[#ffd129] hover:text-[#141414] text-white font-bold rounded-full items-center justify-center transition border border-white/20 shadow-md text-xs cursor-pointer"
               aria-label="Slide anterior"
             >
-              <i className="fa-solid fa-chevron-left text-xs"></i>
+              ◀
             </button>
             <button
               id="hero-next-btn"
               onClick={() => changeSlide(1)}
-              className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-black/50 hover:bg-[#ffd129] hover:text-[#141414] text-white rounded-full items-center justify-center transition border border-white/20 shadow-md"
+              className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-black/50 hover:bg-[#ffd129] hover:text-[#141414] text-white font-bold rounded-full items-center justify-center transition border border-white/20 shadow-md text-xs cursor-pointer"
               aria-label="Siguiente slide"
             >
-              <i className="fa-solid fa-chevron-right text-xs"></i>
+              ▶
             </button>
 
             <div className="absolute bottom-1.5 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 sm:gap-2">

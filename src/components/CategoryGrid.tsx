@@ -72,7 +72,7 @@ export const CategoryGrid: React.FC = () => {
     <section className="max-w-7xl mx-auto mt-8 px-1 sm:px-0">
       <div className="mb-4 px-2">
         <h3 className="text-base font-bold text-[#141414] flex items-center gap-2">
-          <i className="fa-solid fa-wine-bottle text-yellow-600"></i> Explorar Colecciones & Áreas
+          <span>🍾</span> Explorar Colecciones & Áreas
         </h3>
         <p className="text-xs text-stone-600 font-light mt-0.5">
           Encuentra tus licores favoritos, cervezas heladas, vinos y acompañamientos para cada ocasión.
@@ -106,7 +106,7 @@ export const CategoryGrid: React.FC = () => {
                 href={item.targetId}
                 className="shrink-0 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-bold text-[9px] sm:text-xs py-1 sm:py-2 px-1.5 sm:px-3 rounded-lg sm:rounded-xl transition flex items-center justify-center gap-0.5 sm:gap-1 shadow active:scale-95 whitespace-nowrap"
               >
-                <span>Ver</span> <i className="fa-solid fa-arrow-right text-[8px] sm:text-[9px]"></i>
+                <span>Ver</span> <span>👉</span>
               </a>
             </div>
           </div>

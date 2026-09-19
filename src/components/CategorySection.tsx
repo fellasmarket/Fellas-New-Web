@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { CategoryData, Product } from '../types';
 import { formatPrice, getDiscountPercentage } from '../data/products';
+import { Emoji3D, getCategoryEmoji3DKey } from './Emoji3D';
 
 interface CategorySectionProps {
   category: CategoryData;
@@ -61,7 +62,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               }}
               className="bg-blue-600 hover:bg-blue-500 text-white text-[9px] sm:text-xs font-black px-2 sm:px-3.5 py-0.5 sm:py-1.5 rounded-lg sm:rounded-xl shadow-xl flex items-center gap-1 sm:gap-1.5 transition uppercase tracking-wider cursor-pointer"
             >
-              <i className="fa-solid fa-image"></i>
+              <Emoji3D name="image" className="w-3.5 h-3.5" alt="Imagen" />
               <span className="hidden xs:inline">Editar Portada de {category.name}</span>
             </button>
           </div>
@@ -85,7 +86,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 mb-3 px-1">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <h4 className="text-sm md:text-base font-bold text-[#141414] flex items-center gap-2 truncate">
-              <i className="fa-solid fa-wine-bottle text-yellow-600 shrink-0"></i> 
+              <Emoji3D name={getCategoryEmoji3DKey(category.id, category.name)} className="w-5 h-5 shrink-0" alt={category.name} /> 
               <span className="truncate">{category.name}</span>
             </h4>
             <span className="text-[11px] text-stone-500 font-normal hidden sm:inline shrink-0">
@@ -102,26 +103,26 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               className="inline-flex items-center gap-1.5 bg-stone-900 hover:bg-[#141414] text-[#ffd129] hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-bold border border-stone-800 transition shadow-sm active:scale-95 cursor-pointer"
             >
               <span>Ver más</span>
-              <i className="fa-solid fa-arrow-right text-[10px]"></i>
+              <Emoji3D name="right" className="w-3.5 h-3.5" alt="Ver más" />
             </a>
 
             {/* Controles del Carrusel */}
             <div className="flex items-center gap-1">
               <button
                 onClick={() => scroll('left')}
-                className="w-7 h-7 rounded-lg bg-stone-200 hover:bg-[#ffd129] text-stone-700 hover:text-[#141414] transition flex items-center justify-center text-xs shadow-sm cursor-pointer"
+                className="w-7 h-7 rounded-lg bg-stone-200 hover:bg-[#ffd129] text-stone-700 hover:text-[#141414] transition flex items-center justify-center text-xs font-bold shadow-sm cursor-pointer"
                 title="Desplazar a la izquierda"
                 aria-label="Desplazar productos a la izquierda"
               >
-                <i className="fa-solid fa-chevron-left"></i>
+                ◀
               </button>
               <button
                 onClick={() => scroll('right')}
-                className="w-7 h-7 rounded-lg bg-stone-200 hover:bg-[#ffd129] text-stone-700 hover:text-[#141414] transition flex items-center justify-center text-xs shadow-sm cursor-pointer"
+                className="w-7 h-7 rounded-lg bg-stone-200 hover:bg-[#ffd129] text-stone-700 hover:text-[#141414] transition flex items-center justify-center text-xs font-bold shadow-sm cursor-pointer"
                 title="Desplazar a la derecha"
                 aria-label="Desplazar productos a la derecha"
               >
-                <i className="fa-solid fa-chevron-right"></i>
+                ▶
               </button>
             </div>
           </div>
@@ -157,7 +158,8 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                     }}
                     className="absolute top-2 right-2 z-20 bg-stone-900/90 hover:bg-stone-900 text-[#ffd129] text-[9px] font-black px-2 py-0.5 rounded shadow flex items-center gap-1 border border-stone-700 cursor-pointer"
                   >
-                    <i className="fa-solid fa-pen"></i> Editar
+                    <Emoji3D name="pen" className="w-3 h-3" alt="Editar" />
+                    <span>Editar</span>
                   </button>
                 )}
 
@@ -176,7 +178,8 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                     )}
                     {product.inStock === false && (
                       <span className="absolute top-2 left-2 bg-stone-900/90 text-red-400 border border-red-500/40 text-[9px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider flex items-center gap-1">
-                        <i className="fa-solid fa-ban text-[8px]"></i> Sin stock
+                        <Emoji3D name="prohibited" className="w-3 h-3" alt="Sin stock" />
+                        <span>Sin stock</span>
                       </span>
                     )}
                   </div>
@@ -208,7 +211,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                       aria-label={`${product.name} sin stock`}
                       className="bg-stone-200 text-stone-500 text-[10px] font-bold px-2 py-1.5 rounded-lg cursor-not-allowed flex items-center gap-1 opacity-70 shrink-0"
                     >
-                      <i className="fa-solid fa-ban text-[8px]"></i>
+                      <Emoji3D name="prohibited" className="w-3 h-3" alt="Sin stock" />
                       <span>Sin stock</span>
                     </button>
                   ) : (
@@ -221,7 +224,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                       }}
                       className="bg-[#ffd129] text-[#141414] text-[10px] font-bold px-2.5 sm:px-3 py-1.5 rounded-lg hover:bg-yellow-400 transition shadow-sm active:scale-95 flex items-center gap-1 cursor-pointer shrink-0"
                     >
-                      <i className="fa-solid fa-cart-plus text-[9px]"></i>
+                      <Emoji3D name="cart" className="w-3.5 h-3.5" alt="Comprar" />
                       <span>Comprar</span>
                     </button>
                   )}

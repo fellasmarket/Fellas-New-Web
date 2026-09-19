@@ -216,6 +216,9 @@ export interface StoreSettings {
   renderKeepAliveEnabled?: boolean;
   renderAppUrl?: string;
   renderPingIntervalMinutes?: number;
+  agencyLogoImage?: string;
+  agencyName?: string;
+  agencyLink?: string;
 }
 
 export interface KeepAliveLog {

@@ -19,6 +19,7 @@ export const FooterEditor: React.FC<FooterEditorProps> = ({
   const [newZone, setNewZone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const agencyLogoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setForm({ ...settings });
@@ -79,7 +80,22 @@ export const FooterEditor: React.FC<FooterEditorProps> = ({
       const dataUrl = event.target?.result as string;
       if (dataUrl) {
         setForm(prev => ({ ...prev, logoImage: dataUrl }));
-        showToast('Logo cargado correctamente');
+        showToast('Logo de la tienda cargado correctamente');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAgencyLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setForm(prev => ({ ...prev, agencyLogoImage: dataUrl }));
+        showToast('Logo de la agencia cargado correctamente');
       }
     };
     reader.readAsDataURL(file);
@@ -535,6 +551,121 @@ export const FooterEditor: React.FC<FooterEditorProps> = ({
               placeholder="Todos los derechos reservados. Venta exclusiva para mayores de 18 años."
               className="w-full bg-[#141414] border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:border-[#ffd025]"
             />
+          </div>
+        </div>
+
+        {/* BLOQUE 6: LOGO Y CRÉDITOS DE LA AGENCIA DESARROLLADORA */}
+        <div className="bg-[#1a1a1a] border border-gray-800 rounded-3xl p-6 space-y-4">
+          <div className="flex items-center gap-2 pb-3 border-b border-gray-800">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-sm border border-purple-500/30">
+              <i className="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div>
+              <h3 className="text-sm font-black uppercase text-white">
+                Créditos & Logo de la Agencia (Desarrollador Web)
+              </h3>
+              <p className="text-[11px] text-gray-400">
+                Permite mostrar el logo oficial de la agencia en el pie de página (móvil y computador) en vez de solo texto.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-300 uppercase mb-1">
+                Nombre de la Agencia / Desarrollador
+              </label>
+              <input
+                type="text"
+                value={form.agencyName || ''}
+                onChange={(e) => setForm({ ...form, agencyName: e.target.value })}
+                placeholder="Muller Ads and Design"
+                className="w-full bg-[#141414] border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:border-[#ffd025]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-300 uppercase mb-1">
+                Enlace Web / Portafolio de la Agencia (Opcional)
+              </label>
+              <input
+                type="url"
+                value={form.agencyLink || ''}
+                onChange={(e) => setForm({ ...form, agencyLink: e.target.value })}
+                placeholder="https://mullerads.com"
+                className="w-full bg-[#141414] border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:border-[#ffd025]"
+              />
+            </div>
+          </div>
+
+          {/* Carga del Logo de la Agencia */}
+          <div className="border border-gray-800 rounded-2xl p-4 bg-[#141414]">
+            <label className="block text-xs font-bold text-gray-300 uppercase mb-2">
+              Logotipo Imagen de la Agencia
+            </label>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="w-40 h-14 rounded-xl bg-black border border-gray-700 flex items-center justify-center p-2 shrink-0">
+                {form.agencyLogoImage ? (
+                  <img
+                    src={form.agencyLogoImage}
+                    alt="Logo Agencia"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <div className="text-center">
+                    <i className="fa-solid fa-image text-gray-600 text-lg block"></i>
+                    <span className="text-[9px] text-gray-500 font-bold uppercase">Sin logo subido</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 space-y-2 w-full">
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    type="file"
+                    ref={agencyLogoInputRef}
+                    onChange={handleAgencyLogoUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => agencyLogoInputRef.current?.click()}
+                    className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl transition shadow flex items-center gap-2 cursor-pointer"
+                  >
+                    <i className="fa-solid fa-cloud-arrow-up"></i>
+                    <span>Subir Imagen del Logo</span>
+                  </button>
+
+                  {form.agencyLogoImage && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForm({ ...form, agencyLogoImage: undefined });
+                        showToast('Logo de la agencia eliminado. Se usará el badge de texto.');
+                      }}
+                      className="px-3 py-2 bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-300 font-bold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <i className="fa-solid fa-trash-can"></i>
+                      <span>Quitar Logo (Volver a texto)</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="url"
+                    value={form.agencyLogoImage || ''}
+                    onChange={(e) => setForm({ ...form, agencyLogoImage: e.target.value })}
+                    placeholder="O pega aquí la URL de la imagen del logo (https://...)"
+                    className="flex-1 bg-[#1a1a1a] border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:border-[#ffd025]"
+                  />
+                </div>
+                <p className="text-[10px] text-gray-500">
+                  Formatos recomendados: PNG transparente o SVG. Se redimensionará automáticamente manteniendo la proporción en móvil y PC.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

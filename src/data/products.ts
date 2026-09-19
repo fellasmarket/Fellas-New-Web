@@ -757,4 +757,18 @@ export const checkStoreOpenStatus = (
   };
 };
 
+export function getCategoryEmoji(catIdOrIcon?: string, name?: string): string {
+  const query = `${catIdOrIcon || ''} ${name || ''}`.toLowerCase();
+  if (query.includes('destilad') || query.includes('pisco') || query.includes('whiskey') || query.includes('whisky') || query.includes('gin') || query.includes('vodka') || query.includes('ron')) return '🥃';
+  if (query.includes('cerveza') || query.includes('beer') || query.includes('artesanal') || query.includes('ipa') || query.includes('lager')) return '🍺';
+  if (query.includes('vino') || query.includes('wine') || query.includes('espumante') || query.includes('champagne') || query.includes('tinto') || query.includes('blanco')) return '🍷';
+  if (query.includes('promo') || query.includes('mega') || query.includes('oferta') || query.includes('fire') || query.includes('bolt')) return '🔥';
+  if (query.includes('bebida') || query.includes('jugo') || query.includes('energetica') || query.includes('cola')) return '🥤';
+  if (query.includes('hielo') || query.includes('ice')) return '🧊';
+  if (query.includes('snack') || query.includes('papa') || query.includes('picoteo')) return '🍟';
+  if (query.includes('aperitivo') || query.includes('cocktail') || query.includes('trago')) return '🍸';
+  return '🍾';
+}
+
+
 

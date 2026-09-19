@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Emoji3D } from './Emoji3D';
 
 interface FloatingActionsProps {
   whatsappNumber?: string;
@@ -59,7 +60,9 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
           title="Volver al inicio de la página"
           aria-label="Volver arriba"
         >
-          <i className="fa-solid fa-arrow-up text-sm sm:text-base group-hover:-translate-y-0.5 transition-transform duration-200"></i>
+          <div className="w-5 h-5 sm:w-6 sm:h-6 group-hover:-translate-y-0.5 transition-transform duration-200 flex items-center justify-center">
+            <Emoji3D name="up" className="w-5 h-5 sm:w-6 sm:h-6" alt="Arriba" />
+          </div>
           
           {/* Tooltip flotante a la izquierda */}
           <span className="absolute right-full mr-3 px-2.5 py-1 bg-stone-900 text-stone-200 text-[11px] font-semibold rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none border border-stone-700">

@@ -6,6 +6,7 @@ import {
   getLocationPrice,
   checkStoreOpenStatus
 } from '../data/products';
+import { Emoji3D, getCategoryEmoji3DKey } from './Emoji3D';
 
 interface HeaderProps {
   cartItems: CartItem[];
@@ -339,8 +340,8 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Barra de Búsqueda Interactiva */}
           <div className="flex-1 max-w-xl mx-1 sm:mx-2 min-w-0">
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 sm:pl-3.5 pointer-events-none text-stone-400">
-                <i className="fa-solid fa-magnifying-glass text-xs"></i>
+              <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 sm:pl-3 pointer-events-none">
+                <Emoji3D name="search" className="w-4 h-4" alt="Buscar" />
               </span>
               <input
                 id="search-input"
@@ -348,15 +349,15 @@ export const Header: React.FC<HeaderProps> = ({
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Buscar pisco, cerveza, whisky, vino, hielo..."
-                className="w-full bg-stone-800/90 text-white text-[11px] sm:text-xs md:text-sm rounded-xl pl-8 sm:pl-10 pr-7 sm:pr-8 py-1.5 sm:py-2 border border-stone-700 focus:outline-none focus:border-[#ffd129] focus:ring-1 focus:ring-[#ffd129] transition placeholder-stone-400 truncate"
+                className="w-full bg-stone-800/90 text-white text-[11px] sm:text-xs md:text-sm rounded-xl pl-8 sm:pl-9 pr-7 sm:pr-8 py-1.5 sm:py-2 border border-stone-700 focus:outline-none focus:border-[#ffd129] focus:ring-1 focus:ring-[#ffd129] transition placeholder-stone-400 truncate"
               />
               {searchQuery && (
                 <button
                   id="clear-search-btn"
                   onClick={() => onSearchChange('')}
-                  className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-stone-400 hover:text-white"
+                  className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-stone-400 hover:text-white cursor-pointer"
                 >
-                  <i className="fa-solid fa-circle-xmark text-xs"></i>
+                  <Emoji3D name="cross" className="w-3.5 h-3.5" alt="Limpiar" />
                 </button>
               )}
             </div>
@@ -370,9 +371,14 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 id="user-account-btn"
                 onClick={() => togglePopup('login')}
-                className="flex items-center gap-1.5 sm:gap-2 bg-stone-800 hover:bg-stone-700 text-white px-2.5 sm:px-3 md:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-medium border border-stone-700 transition"
+                className="h-9 w-9 sm:h-9 sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 bg-stone-800 hover:bg-stone-700 text-white p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium border border-stone-700 transition cursor-pointer shrink-0"
+                aria-label="Cuenta de usuario"
               >
-                <i className={`fa-solid ${user?.isLoggedIn ? (user.role === 'admin' ? 'fa-shield-halved text-[#ffd129]' : 'fa-user-check text-green-400') : 'fa-user text-[#ffd129]'}`}></i>
+                <Emoji3D
+                  name={user?.isLoggedIn ? (user.role === 'admin' ? 'shield' : 'check') : 'user'}
+                  className="w-4 h-4 sm:w-4.5 sm:h-4.5"
+                  alt="Usuario"
+                />
                 <span className="hidden sm:inline font-semibold">
                   {user?.isLoggedIn ? (user.role === 'admin' ? 'Admin Botillería' : user.name) : 'Mi Cuenta'}
                 </span>
@@ -409,7 +415,7 @@ export const Header: React.FC<HeaderProps> = ({
                           onClick={() => setActivePopup(null)}
                           className="text-stone-400 hover:text-white cursor-pointer"
                         >
-                          <i className="fa-solid fa-xmark"></i>
+                          <Emoji3D name="cross" className="w-3.5 h-3.5" alt="Cerrar" />
                         </button>
                       </div>
 
@@ -423,7 +429,7 @@ export const Header: React.FC<HeaderProps> = ({
                             }}
                             className="w-full flex items-center gap-2.5 text-xs text-[#141414] font-black bg-[#ffd129] hover:bg-yellow-400 p-2.5 rounded-xl transition shadow cursor-pointer"
                           >
-                            <i className="fa-solid fa-gauge-high"></i>
+                            <Emoji3D name="chart" className="w-4 h-4" alt="Panel" />
                             <span>Panel de Autoadministración</span>
                           </button>
                         )}
@@ -437,7 +443,7 @@ export const Header: React.FC<HeaderProps> = ({
                             }}
                             className="w-full flex items-center gap-2.5 text-xs text-white font-black bg-blue-600 hover:bg-blue-500 p-2.5 rounded-xl transition shadow cursor-pointer"
                           >
-                            <i className="fa-solid fa-motorcycle"></i>
+                            <Emoji3D name="scooter" className="w-4 h-4" alt="Delivery" />
                             <span>Panel de Delivery / Pedidos</span>
                           </button>
                         )}
@@ -447,7 +453,8 @@ export const Header: React.FC<HeaderProps> = ({
                           onClick={() => setActivePopup(null)}
                           className="flex items-center gap-2 text-xs text-stone-300 hover:text-[#ffd129] p-2 rounded-lg hover:bg-stone-800 transition"
                         >
-                          <i className="fa-solid fa-receipt text-stone-400"></i> Historial de Compras
+                          <Emoji3D name="package" className="w-4 h-4" alt="Pedidos" />
+                          <span>Historial de Compras</span>
                         </a>
                       </div>
 
@@ -459,7 +466,8 @@ export const Header: React.FC<HeaderProps> = ({
                         }}
                         className="w-full mt-4 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold py-2 rounded-lg transition flex items-center justify-center gap-2 border border-stone-700 cursor-pointer"
                       >
-                        <i className="fa-solid fa-arrow-right-from-bracket text-red-400"></i> Cerrar Sesión
+                        <Emoji3D name="door" className="w-4 h-4" alt="Salir" />
+                        <span>Cerrar Sesión</span>
                       </button>
                     </div>
                   ) : (
@@ -607,14 +615,14 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 id="cart-toggle-btn"
                 onClick={() => togglePopup('cart')}
-                className="relative bg-stone-800 hover:bg-stone-700 text-white p-2.5 rounded-xl border border-stone-700 transition flex items-center justify-center"
+                className="relative h-9 w-9 sm:h-9 sm:w-auto bg-stone-800 hover:bg-stone-700 text-white p-2 sm:px-3 sm:py-2 rounded-xl border border-stone-700 transition flex items-center justify-center cursor-pointer shrink-0"
                 aria-label="Abrir carrito de compras"
               >
-                <i className="fa-solid fa-cart-shopping text-base text-[#ffd129]"></i>
+                <Emoji3D name="cart" className="w-5 h-5" alt="Carrito" />
                 {totalCartCount > 0 && (
                   <span
                     id="cart-badge-count"
-                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#141414] animate-pulse"
+                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-extrabold w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border-2 border-[#141414] animate-pulse"
                   >
                     {totalCartCount}
                   </span>
@@ -629,22 +637,24 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <div className="flex items-center justify-between border-b border-stone-800 pb-3 mb-3">
                     <div className="flex items-center gap-2">
-                      <i className="fa-solid fa-cart-shopping text-[#ffd129]"></i>
+                      <Emoji3D name="cart" className="w-4 h-4" alt="Carrito" />
                       <h4 className="text-sm font-bold">Carrito de Compras</h4>
                       <span className="text-[11px] text-stone-400">({totalCartCount} items)</span>
                     </div>
                     <button
                       id="close-cart-btn"
                       onClick={() => setActivePopup(null)}
-                      className="text-stone-400 hover:text-white"
+                      className="text-stone-400 hover:text-white cursor-pointer"
                     >
-                      <i className="fa-solid fa-xmark"></i>
+                      <Emoji3D name="cross" className="w-3.5 h-3.5" alt="Cerrar" />
                     </button>
                   </div>
 
                   {cartItems.length === 0 ? (
                     <div className="py-8 text-center text-stone-400">
-                      <i className="fa-solid fa-bottle-water text-3xl mb-2 text-stone-600 block"></i>
+                      <div className="flex justify-center mb-2">
+                        <Emoji3D name="champagne" className="w-10 h-10" alt="Botella vacía" />
+                      </div>
                       <p className="text-xs">Tu carrito está vacío.</p>
                       <p className="text-[11px] text-stone-500 mt-1">¡Agrega tus piscos o cervezas heladas!</p>
                     </div>
@@ -695,10 +705,10 @@ export const Header: React.FC<HeaderProps> = ({
                             </div>
                             <button
                               onClick={() => onRemoveFromCart(item.product.id)}
-                              className="text-stone-500 hover:text-red-400 p-1 transition"
+                              className="text-stone-400 hover:text-red-400 p-1 transition cursor-pointer"
                               title="Eliminar producto"
                             >
-                              <i className="fa-solid fa-trash-can text-xs"></i>
+                              <Emoji3D name="trash" className="w-4 h-4" alt="Eliminar" />
                             </button>
                           </div>
                         ))}
@@ -720,9 +730,9 @@ export const Header: React.FC<HeaderProps> = ({
                             setActivePopup(null);
                             onOpenCheckout();
                           }}
-                          className="w-full bg-[#ffd129] text-[#141414] font-extrabold text-xs py-2.5 rounded-xl hover:bg-yellow-400 transition shadow flex items-center justify-center gap-2 mt-2"
+                          className="w-full bg-[#ffd129] text-[#141414] font-extrabold text-xs py-2.5 rounded-xl hover:bg-yellow-400 transition shadow flex items-center justify-center gap-2 mt-2 cursor-pointer"
                         >
-                          <i className="fa-solid fa-lock text-xs"></i>
+                          <Emoji3D name="lock" className="w-4 h-4" alt="Seguro" />
                           <span>Proceder al Pago Seguro</span>
                         </button>
                       </div>
@@ -757,7 +767,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }}
                   className="text-[#ffd129] font-black flex items-center gap-1.5 hover:text-white transition"
                 >
-                  <i className="fa-solid fa-house text-[10px]"></i>
+                  <Emoji3D name="home" className="w-3.5 h-3.5 sm:w-4 sm:h-4" alt="Inicio" />
                   <span>Inicio</span>
                 </a>
                 {categories.map((cat) => (
@@ -772,7 +782,7 @@ export const Header: React.FC<HeaderProps> = ({
                     }}
                     className="hover:text-[#ffd129] text-stone-200 transition flex items-center gap-1.5 shrink-0"
                   >
-                    <i className={`${cat.icon} text-[#ffd129]/80 text-[11px]`}></i>
+                    <Emoji3D name={getCategoryEmoji3DKey(cat.id, cat.name)} className="w-3.5 h-3.5 sm:w-4 sm:h-4" alt={cat.name} />
                     <span>{cat.name}</span>
                   </a>
                 ))}
@@ -781,7 +791,7 @@ export const Header: React.FC<HeaderProps> = ({
                   href="#mega-ofertas"
                   className="text-amber-400 font-bold flex items-center gap-1.5 hover:text-amber-300 transition shrink-0"
                 >
-                  <i className="fa-solid fa-fire text-red-500 text-[11px]"></i>
+                  <Emoji3D name="fire" className="w-3.5 h-3.5 sm:w-4 sm:h-4" alt="Mega Ofertas" />
                   <span>Mega Ofertas</span>
                 </a>
                 <span className="text-stone-600 text-[10px]">✦</span>
@@ -799,7 +809,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }}
                   className="text-[#ffd129] font-black flex items-center gap-1.5 hover:text-white transition"
                 >
-                  <i className="fa-solid fa-house text-[10px]"></i>
+                  <Emoji3D name="home" className="w-3.5 h-3.5 sm:w-4 sm:h-4" alt="Inicio" />
                   <span>Inicio</span>
                 </a>
                 {categories.map((cat) => (
@@ -814,7 +824,7 @@ export const Header: React.FC<HeaderProps> = ({
                     }}
                     className="hover:text-[#ffd129] text-stone-200 transition flex items-center gap-1.5 shrink-0"
                   >
-                    <i className={`${cat.icon} text-[#ffd129]/80 text-[11px]`}></i>
+                    <Emoji3D name={getCategoryEmoji3DKey(cat.id, cat.name)} className="w-3.5 h-3.5 sm:w-4 sm:h-4" alt={cat.name} />
                     <span>{cat.name}</span>
                   </a>
                 ))}
@@ -823,7 +833,7 @@ export const Header: React.FC<HeaderProps> = ({
                   href="#mega-ofertas"
                   className="text-amber-400 font-bold flex items-center gap-1.5 hover:text-amber-300 transition shrink-0"
                 >
-                  <i className="fa-solid fa-fire text-red-500 text-[11px]"></i>
+                  <Emoji3D name="fire" className="w-3.5 h-3.5 sm:w-4 sm:h-4" alt="Mega Ofertas" />
                   <span>Mega Ofertas</span>
                 </a>
                 <span className="text-stone-600 text-[10px]">✦</span>
@@ -839,18 +849,20 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={onOpenAdmin}
                 className="text-[#ffd129] hover:underline font-bold flex items-center gap-1 cursor-pointer"
               >
-                <i className="fa-solid fa-gauge"></i> Ir a Admin
+                <Emoji3D name="gear" className="w-3.5 h-3.5" alt="Admin" />
+                <span>Ir a Admin</span>
               </button>
             ) : user?.role === 'delivery' ? (
               <button
                 onClick={onOpenDelivery}
                 className="text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
               >
-                <i className="fa-solid fa-motorcycle"></i> Delivery
+                <Emoji3D name="scooter" className="w-3.5 h-3.5" alt="Delivery" />
+                <span>Delivery</span>
               </button>
             ) : (
               <div className="flex items-center gap-1.5 text-stone-300 font-medium">
-                <i className="fa-solid fa-motorcycle text-[#ffd129]"></i>
+                <Emoji3D name="scooter" className="w-3.5 h-3.5" alt="Delivery" />
                 <span>Despacho 45 min</span>
               </div>
             )}

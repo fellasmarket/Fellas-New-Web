@@ -118,6 +118,7 @@ let settings: StoreSettings = {
   bottomDualBanner1Link: '#mega-ofertas',
   bottomDualBanner2Image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?q=80&w=800&auto=format&fit=crop',
   bottomDualBanner2Link: '#mega-ofertas',
+  agencyName: 'Muller Ads and Design',
   scheduleConfig: JSON.parse(JSON.stringify(DEFAULT_STORE_SCHEDULE))
 };
 

@@ -54,7 +54,8 @@ const DEFAULT_SETTINGS: StoreSettings = {
     { name: 'Cliente Frecuente', minPurchases: 3, discountPercent: 5 },
     { name: 'Cliente VIP Sediento', minPurchases: 8, discountPercent: 10 },
     { name: 'Parrillero de Oro', minPurchases: 15, discountPercent: 15 }
-  ]
+  ],
+  agencyName: 'Muller Ads and Design'
 };
 
 export default function App() {
