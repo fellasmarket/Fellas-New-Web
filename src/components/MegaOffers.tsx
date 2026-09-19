@@ -28,9 +28,9 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
   const bgImg = config?.bgImage || fireworksSolidBg;
 
   return (
-    <section className="max-w-7xl mx-auto mt-6 px-1 sm:px-0 relative">
+    <section className="max-w-7xl mx-auto mt-2.5 sm:mt-6 px-1 sm:px-0 relative">
       <div
-        className={`relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-2xl text-white bg-[#002b7f] ${
+        className={`relative overflow-hidden rounded-xl sm:rounded-3xl p-2 sm:p-6 shadow-xl sm:shadow-2xl text-white bg-[#002b7f] ${
           isVisualEditMode ? 'ring-2 ring-red-400 ring-dashed' : ''
         }`}
       >
@@ -103,45 +103,45 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
         {/* Contenido en primer plano */}
         <div className="relative z-10">
           {/* Encabezado Banner Mega Oferta */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5 pb-3 border-b border-white/25">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-[#ffd129] text-red-600 flex items-center justify-center text-sm shadow-md shrink-0">
+          <div className="flex flex-row items-center justify-between gap-1.5 mb-1.5 sm:mb-5 pb-1 sm:pb-3 border-b border-white/20">
+            <div className="flex items-center gap-1 sm:gap-2.5 min-w-0">
+              <div className="w-5 h-5 sm:w-8 sm:h-8 rounded-full bg-[#ffd129] text-red-600 flex items-center justify-center text-[10px] sm:text-sm shadow-md shrink-0">
                 <i className="fa-solid fa-bolt text-red-600"></i>
               </div>
-              <div>
-                <h3 className="text-base md:text-lg font-black text-white drop-shadow tracking-wide">
+              <div className="min-w-0">
+                <h3 className="text-[11px] sm:text-base md:text-lg font-black text-white drop-shadow tracking-wide truncate">
                   {sectionTitle}
                 </h3>
                 {sectionSubtitle && (
-                  <p className="text-xs text-blue-100 font-medium">
+                  <p className="text-[9px] sm:text-xs text-blue-100 font-medium truncate hidden sm:block">
                     {sectionSubtitle}
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 shrink-0">
               {isVisualEditMode && (
                 <button
                   type="button"
                   onClick={() => onQuickEditSection && onQuickEditSection()}
-                  className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-[11px] font-black rounded-xl shadow-lg flex items-center gap-1.5 transition cursor-pointer"
+                  className="px-1.5 sm:px-3 py-0.5 sm:py-1 bg-red-600 hover:bg-red-500 text-white text-[8px] sm:text-[11px] font-black rounded sm:rounded-xl shadow-lg flex items-center gap-1 transition cursor-pointer"
                 >
                   <i className="fa-solid fa-pen-to-square"></i>
-                  <span>Editar Fondo & Títulos</span>
+                  <span className="hidden xs:inline">Editar Fondo</span>
                 </button>
               )}
 
               {badgeText && (
-                <span className="self-start sm:self-center px-3 py-1 bg-[#ffd129] text-[#141414] text-[11px] font-black rounded-full uppercase tracking-wider shadow">
+                <span className="px-1.5 sm:px-3 py-0.5 sm:py-1 bg-[#ffd129] text-[#141414] text-[8px] sm:text-[11px] font-black rounded-full uppercase tracking-wider shadow">
                   {badgeText}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Espacio para productos */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-5">
+          {/* Espacio para productos: 2 columnas compactas en móvil */}
+          <div className="grid grid-cols-2 gap-1.5 sm:gap-4 md:gap-5">
             {offersToDisplay.map((offer) => {
               const autoDiscount = offer.discount || getDiscountPercentage(offer.price, offer.originalPrice);
               const hasDiscount = offer.originalPrice && offer.originalPrice > offer.price;
@@ -149,7 +149,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
               return (
                 <div
                   key={offer.id}
-                  className={`bg-white rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 group transition-all duration-300 shadow-xl border border-white hover:border-[#ffd129] text-[#141414] min-w-0 relative ${
+                  className={`bg-white rounded-lg sm:rounded-2xl p-1.5 sm:p-3.5 md:p-4 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-3.5 md:gap-4 group transition-all duration-300 shadow-lg border border-white hover:border-[#ffd129] text-[#141414] min-w-0 relative ${
                     isVisualEditMode ? 'cursor-pointer ring-2 ring-amber-400 ring-dashed hover:shadow-2xl' : ''
                   }`}
                   onClick={() => {
@@ -165,13 +165,13 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                         e.stopPropagation();
                         if (onQuickEditProduct) onQuickEditProduct(offer);
                       }}
-                      className="absolute top-2 right-2 z-20 bg-stone-900 hover:bg-stone-800 text-[#ffd129] text-[10px] font-black px-2.5 py-1 rounded-lg shadow-lg flex items-center gap-1 border border-stone-700 cursor-pointer"
+                      className="absolute top-1 right-1 z-20 bg-stone-900 hover:bg-stone-800 text-[#ffd129] text-[8px] sm:text-[10px] font-black px-1.5 py-0.5 rounded shadow flex items-center gap-0.5 border border-stone-700 cursor-pointer"
                     >
-                      <i className="fa-solid fa-pen"></i> Editar
+                      <i className="fa-solid fa-pen"></i> <span className="hidden xs:inline">Editar</span>
                     </button>
                   )}
 
-                  <div className="relative w-full sm:w-36 h-36 rounded-xl overflow-hidden bg-stone-50 shrink-0 border border-stone-200/70 flex items-center justify-center p-2.5">
+                  <div className="relative w-full sm:w-28 md:w-36 h-14 sm:h-28 md:h-36 rounded-md sm:rounded-xl overflow-hidden bg-stone-50 shrink-0 border border-stone-200/70 flex items-center justify-center p-0.5 sm:p-2.5">
                     <img
                       src={offer.image}
                       alt={offer.name}
@@ -179,33 +179,33 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                       className={`max-w-full max-h-full w-auto h-auto object-contain aspect-auto group-hover:scale-105 transition-transform duration-300 ${offer.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
                     />
                     {autoDiscount && offer.inStock !== false && (
-                      <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md shadow-md animate-pulse">
+                      <span className="absolute top-0.5 left-0.5 sm:top-2 sm:left-2 bg-red-600 text-white text-[7px] sm:text-[10px] font-extrabold px-1 sm:px-2 py-0.2 rounded shadow-md animate-pulse">
                         {autoDiscount}
                       </span>
                     )}
                     {offer.inStock === false && (
-                      <span className="absolute top-2 left-2 bg-stone-900/90 text-red-400 border border-red-500/40 text-[9px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider flex items-center gap-1">
-                        <i className="fa-solid fa-ban text-[8px]"></i> Sin stock
+                      <span className="absolute top-0.5 left-0.5 sm:top-2 sm:left-2 bg-stone-900/90 text-red-400 border border-red-500/40 text-[7px] sm:text-[9px] font-black px-1 py-0.2 rounded shadow uppercase tracking-wider flex items-center gap-0.5">
+                        <i className="fa-solid fa-ban text-[6px]"></i> Sin stock
                       </span>
                     )}
                   </div>
                   <div className="flex-1 flex flex-col justify-between w-full h-full min-w-0">
                     <div>
-                      <span className="block text-[10px] text-stone-500 font-extrabold uppercase tracking-wider leading-none truncate">
+                      <span className="block text-[7px] sm:text-[10px] text-stone-500 font-extrabold uppercase tracking-wider leading-none truncate">
                         {offer.subcategory}
                       </span>
-                      <h4 className="text-sm sm:text-base font-black text-[#141414] mt-1 leading-tight line-clamp-2 break-words group-hover:text-amber-600 transition">
+                      <h4 className="text-[10px] sm:text-sm md:text-base font-black text-[#141414] mt-0.5 leading-tight line-clamp-1 sm:line-clamp-2 break-words group-hover:text-amber-600 transition">
                         {offer.name}
                       </h4>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
+                    <div className="mt-1 sm:mt-3 pt-1 sm:pt-3 border-t border-stone-100 flex items-center justify-between gap-1 sm:gap-2">
                       <div className="min-w-0">
                         {hasDiscount && (
-                          <span className="block text-[11px] font-extrabold text-red-600 line-through decoration-red-600 decoration-2 leading-tight">
+                          <span className="block text-[8px] sm:text-[11px] font-extrabold text-red-600 line-through decoration-red-600 decoration-2 leading-tight">
                             {formatPrice(offer.originalPrice!)}
                           </span>
                         )}
-                        <span className="text-base font-black text-[#141414] block truncate">
+                        <span className="text-[11px] sm:text-base font-black text-[#141414] block truncate">
                           {formatPrice(offer.price)}
                         </span>
                       </div>
@@ -213,9 +213,9 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                         <button
                           disabled
                           aria-label={`${offer.name} sin stock`}
-                          className="bg-stone-200 text-stone-500 text-xs font-black px-4 py-2 rounded-xl cursor-not-allowed flex items-center gap-1.5 opacity-70 shrink-0"
+                          className="bg-stone-200 text-stone-500 text-[9px] sm:text-xs font-black px-1.5 sm:px-4 py-0.5 sm:py-2 rounded sm:rounded-xl cursor-not-allowed flex items-center gap-0.5 opacity-70 shrink-0"
                         >
-                          <i className="fa-solid fa-ban"></i> Sin stock
+                          <i className="fa-solid fa-ban text-[7px]"></i> <span className="hidden xs:inline">Agotado</span>
                         </button>
                       ) : (
                         <button
@@ -225,9 +225,9 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                               onAddToCart(offer);
                             }
                           }}
-                          className="bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-black text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow active:scale-95 cursor-pointer shrink-0"
+                          className="bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-black text-[9px] sm:text-xs px-2 sm:px-4 py-0.5 sm:py-2 rounded sm:rounded-xl transition flex items-center gap-0.5 shadow active:scale-95 cursor-pointer shrink-0"
                         >
-                          <i className="fa-solid fa-cart-plus"></i> Comprar
+                          <i className="fa-solid fa-cart-plus text-[8px] sm:text-xs"></i> <span>Comprar</span>
                         </button>
                       )}
                     </div>

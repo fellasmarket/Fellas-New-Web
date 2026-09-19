@@ -193,7 +193,7 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
           </div>
         )}
 
-        <div className="h-36 sm:h-44 md:h-52 relative">
+        <div className="h-20 sm:h-44 md:h-52 relative">
           <img
             src={category.bannerImage}
             alt={category.name}
@@ -207,26 +207,26 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-950/40 to-transparent"></div>
           
-          <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-white">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-[#ffd129] text-[#141414] flex items-center justify-center text-lg sm:text-xl font-black shadow-lg shrink-0">
+          <div className="absolute bottom-2 left-2 right-2 sm:bottom-6 sm:left-6 flex flex-row items-center sm:items-end justify-between gap-2 sm:gap-3 text-white">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="w-7 h-7 sm:w-13 sm:h-13 rounded-lg sm:rounded-2xl bg-[#ffd129] text-[#141414] flex items-center justify-center text-xs sm:text-xl font-black shadow-lg shrink-0">
                 <i className={category.icon}></i>
               </div>
               <div className="min-w-0">
-                <div className="inline-block bg-amber-500 text-stone-950 text-[10px] font-black uppercase px-2 py-0.5 rounded-md mb-1">
-                  {category.badge || 'Catálogo Oficial'}
+                <div className="inline-block bg-amber-500 text-stone-950 text-[8px] sm:text-[10px] font-black uppercase px-1.5 sm:px-2 py-0.2 rounded-sm sm:rounded-md mb-0.5">
+                  {category.badge || 'Catálogo'}
                 </div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-black truncate drop-shadow-sm">
+                <h1 className="text-sm sm:text-2xl md:text-3xl font-black truncate drop-shadow-sm">
                   {category.name}
                 </h1>
-                <p className="text-xs text-stone-300 font-light truncate max-w-xl">
+                <p className="text-[10px] sm:text-xs text-stone-300 font-light truncate max-w-xl hidden xs:block">
                   {category.description}
                 </p>
               </div>
             </div>
 
-            <div className="shrink-0 bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/20 text-xs font-semibold text-stone-200">
-              Mostrando <strong className="text-[#ffd129]">{filteredProducts.length}</strong> de {category.products.length} productos
+            <div className="shrink-0 bg-black/50 backdrop-blur-md px-2 sm:px-3.5 py-0.5 sm:py-1.5 rounded-lg sm:rounded-xl border border-white/20 text-[9px] sm:text-xs font-semibold text-stone-200">
+              <strong className="text-[#ffd129]">{filteredProducts.length}</strong>/{category.products.length}
             </div>
           </div>
         </div>
@@ -336,7 +336,7 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
               {filteredProducts.map((product) => {
                 const autoDiscount = product.discount || getDiscountPercentage(product.price, product.originalPrice);
                 const hasDiscount = product.originalPrice && product.originalPrice > product.price;
@@ -344,7 +344,7 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
                 return (
                   <div
                     key={product.id}
-                    className={`bg-white border border-stone-200 hover:border-[#ffd129] rounded-2xl p-3.5 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative ${
+                    className={`bg-white border border-stone-200 hover:border-[#ffd129] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative ${
                       isVisualEditMode ? 'cursor-pointer ring-1 ring-amber-400 ring-dashed hover:ring-2' : ''
                     }`}
                     onClick={() => {
@@ -360,15 +360,15 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
                           e.stopPropagation();
                           if (onQuickEditProduct) onQuickEditProduct(product);
                         }}
-                        className="absolute top-2 right-2 z-20 bg-stone-900 hover:bg-stone-800 text-[#ffd129] text-[9px] font-black px-2 py-0.5 rounded shadow flex items-center gap-1 border border-stone-700 cursor-pointer"
+                        className="absolute top-1.5 right-1.5 z-20 bg-stone-900 hover:bg-stone-800 text-[#ffd129] text-[9px] font-black px-1.5 sm:px-2 py-0.5 rounded shadow flex items-center gap-1 border border-stone-700 cursor-pointer"
                       >
-                        <i className="fa-solid fa-pen"></i> Editar
+                        <i className="fa-solid fa-pen"></i> <span className="hidden xs:inline">Editar</span>
                       </button>
                     )}
 
                     <div>
                       {/* Imagen con badges */}
-                      <div className="h-40 bg-stone-100 rounded-xl mb-3 overflow-hidden relative border border-stone-100">
+                      <div className="h-28 sm:h-40 bg-stone-100 rounded-lg sm:rounded-xl mb-2 sm:mb-3 overflow-hidden relative border border-stone-100">
                         <img
                           src={product.image}
                           alt={product.name}
@@ -379,46 +379,46 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
                         />
 
                         {autoDiscount && product.inStock !== false && (
-                          <span className="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-md animate-pulse">
+                          <span className="absolute top-1 left-1 sm:top-2 sm:left-2 bg-red-600 text-white text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded shadow-md animate-pulse">
                             {autoDiscount}
                           </span>
                         )}
 
                         {product.inStock === false ? (
-                          <span className="absolute top-2 left-2 bg-stone-900/90 text-red-400 border border-red-500/40 text-[9px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider flex items-center gap-1">
-                            <i className="fa-solid fa-ban text-[8px]"></i> Sin stock
+                          <span className="absolute top-1 left-1 sm:top-2 sm:left-2 bg-stone-900/90 text-red-400 border border-red-500/40 text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded shadow uppercase tracking-wider flex items-center gap-0.5">
+                            <i className="fa-solid fa-ban text-[7px]"></i> <span className="hidden xs:inline">Sin stock</span>
                           </span>
                         ) : (
-                          <span className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-xs text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 rounded">
+                          <span className="absolute bottom-1.5 right-1.5 bg-black/60 backdrop-blur-xs text-emerald-300 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded">
                             En stock
                           </span>
                         )}
                       </div>
 
                       {/* Info del producto */}
-                      <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block truncate">
+                      <span className="text-[8px] sm:text-[10px] font-bold text-amber-700 uppercase tracking-wider block truncate">
                         {product.subcategory || category.name}
                       </span>
                       <h3 className="text-xs sm:text-sm font-bold text-stone-900 mt-0.5 group-hover:text-amber-600 transition line-clamp-2 leading-snug">
                         {product.name}
                       </h3>
-                      <p className="text-[11px] text-stone-500 mt-1 line-clamp-2 font-light">
+                      <p className="text-[10px] sm:text-[11px] text-stone-500 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-2 font-light">
                         {product.description}
                       </p>
                     </div>
 
                     {/* Precios y Botón de Compra */}
-                    <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
+                    <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-stone-100 flex items-center justify-between gap-1 sm:gap-2">
                       <div className="min-w-0">
                         {hasDiscount && (
-                          <span className="text-[11px] font-bold text-red-600 line-through decoration-red-600 decoration-2 block leading-tight">
+                          <span className="text-[9px] sm:text-[11px] font-bold text-red-600 line-through decoration-red-600 decoration-2 block leading-tight">
                             {formatPrice(product.originalPrice!)}
                           </span>
                         )}
-                        <span className="text-sm font-black text-[#141414] block truncate">
+                        <span className="text-xs sm:text-sm font-black text-[#141414] block truncate">
                           {formatPrice(product.price)}
                           {product.unit && (
-                            <span className="text-[10px] font-normal text-stone-500 ml-1">{product.unit}</span>
+                            <span className="text-[8px] sm:text-[10px] font-normal text-stone-500 ml-0.5">{product.unit}</span>
                           )}
                         </span>
                       </div>
@@ -427,17 +427,17 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
                         <button
                           disabled
                           aria-label={`${product.name} sin stock`}
-                          className="bg-stone-200 text-stone-500 text-[11px] font-bold px-3 py-2 rounded-xl cursor-not-allowed flex items-center gap-1 opacity-70 shrink-0"
+                          className="bg-stone-200 text-stone-500 text-[10px] sm:text-[11px] font-bold px-2 sm:px-3 py-1 sm:py-2 rounded-lg sm:rounded-xl cursor-not-allowed flex items-center gap-1 opacity-70 shrink-0"
                         >
-                          <i className="fa-solid fa-ban text-[9px]"></i>
-                          <span>Agotado</span>
+                          <i className="fa-solid fa-ban text-[8px]"></i>
+                          <span className="hidden xs:inline">Agotado</span>
                         </button>
                       ) : (
                         <button
                           onClick={() => onAddToCart(product)}
-                          className="bg-[#ffd129] text-[#141414] text-xs font-bold px-3 py-2 rounded-xl hover:bg-yellow-400 transition shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                          className="bg-[#ffd129] text-[#141414] text-[10px] sm:text-xs font-bold px-2.5 sm:px-3 py-1 sm:py-2 rounded-lg sm:rounded-xl hover:bg-yellow-400 transition shadow-xs flex items-center gap-1 cursor-pointer active:scale-95 shrink-0"
                         >
-                          <i className="fa-solid fa-cart-plus text-[10px]"></i>
+                          <i className="fa-solid fa-cart-plus text-[9px] sm:text-[10px]"></i>
                           <span>{product.buttonText || 'Comprar'}</span>
                         </button>
                       )}

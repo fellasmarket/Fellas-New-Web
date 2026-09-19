@@ -464,8 +464,8 @@ export default function App() {
             }}
           />
 
-          {/* Contenido Principal con espaciado superior prudente respecto al encabezado */}
-          <main className={`pb-16 px-2 sm:px-4 md:px-6 max-w-[100vw] overflow-x-hidden ${(user?.role === 'admin' || user?.role === 'delivery') ? 'pt-32 sm:pt-36 md:pt-40' : 'pt-28 sm:pt-30 md:pt-32'}`}>
+          {/* Contenido Principal con espaciado superior e inferior optimizado para celular */}
+          <main className={`pb-3 sm:pb-16 px-2 sm:px-4 md:px-6 max-w-[100vw] overflow-x-hidden ${(user?.role === 'admin' || user?.role === 'delivery') ? 'pt-30 sm:pt-36 md:pt-40' : 'pt-25 sm:pt-30 md:pt-32'}`}>
             {/* Si el usuario busca algo, mostramos los resultados en tiempo real */}
             {searchQuery.trim() !== '' ? (
               <section className="max-w-7xl mx-auto my-8">
@@ -495,7 +495,7 @@ export default function App() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
                     {searchResults.map((product) => {
                       const autoDiscount = product.discount || getDiscountPercentage(product.price, product.originalPrice);
                       const hasDiscount = product.originalPrice && product.originalPrice > product.price;
@@ -503,7 +503,7 @@ export default function App() {
                       return (
                         <div
                           key={product.id}
-                          className={`bg-white border border-stone-200 hover:border-[#ffd129] rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative ${
+                          className={`bg-white border border-stone-200 hover:border-[#ffd129] rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative ${
                             user?.role === 'admin' && isVisualEditMode ? 'cursor-pointer ring-1 ring-amber-400 ring-dashed' : ''
                           }`}
                           onClick={() => {
@@ -519,66 +519,66 @@ export default function App() {
                                 e.stopPropagation();
                                 setQuickEditTarget({ type: 'product', data: product });
                               }}
-                              className="absolute top-2 right-2 z-20 bg-stone-900 hover:bg-stone-800 text-[#ffd129] text-[9px] font-black px-2 py-0.5 rounded shadow flex items-center gap-1 border border-stone-700 cursor-pointer"
+                              className="absolute top-1.5 right-1.5 z-20 bg-stone-900 hover:bg-stone-800 text-[#ffd129] text-[9px] font-black px-1.5 sm:px-2 py-0.5 rounded shadow flex items-center gap-1 border border-stone-700 cursor-pointer"
                             >
-                              <i className="fa-solid fa-pen"></i> Editar
+                              <i className="fa-solid fa-pen"></i> <span className="hidden xs:inline">Editar</span>
                             </button>
                           )}
                           <div>
-                            <div className="h-44 bg-stone-100 rounded-xl mb-3 overflow-hidden relative">
+                            <div className="h-32 sm:h-44 bg-stone-100 rounded-lg sm:rounded-xl mb-2 sm:mb-3 overflow-hidden relative">
                               <img
                                 src={product.image}
                                 alt={product.name}
                                 className={`w-full h-full object-cover group-hover:scale-105 transition duration-500 ${product.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
                               />
                               {autoDiscount && product.inStock !== false && (
-                                <span className="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-md animate-pulse">
+                                <span className="absolute top-1 left-1 sm:top-2 sm:left-2 bg-red-600 text-white text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded shadow-md animate-pulse">
                                   {autoDiscount}
                                 </span>
                               )}
                               {product.inStock === false && (
-                                <span className="absolute top-2 left-2 bg-stone-900/90 text-red-400 border border-red-500/40 text-[9px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider flex items-center gap-1">
-                                  <i className="fa-solid fa-ban text-[8px]"></i> Sin stock
+                                <span className="absolute top-1 left-1 sm:top-2 sm:left-2 bg-stone-900/90 text-red-400 border border-red-500/40 text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider flex items-center gap-0.5 sm:gap-1">
+                                  <i className="fa-solid fa-ban text-[7px] sm:text-[8px]"></i> <span className="hidden xs:inline">Sin stock</span>
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">
+                            <span className="text-[8px] sm:text-[10px] font-bold text-amber-600 uppercase tracking-wider">
                               {product.subcategory}
                             </span>
-                            <h4 className="text-sm font-bold text-stone-900 mt-0.5 group-hover:text-amber-600 transition">
+                            <h4 className="text-xs sm:text-sm font-bold text-stone-900 mt-0.5 group-hover:text-amber-600 transition line-clamp-2 leading-tight">
                               {product.name}
                             </h4>
-                            <p className="text-xs text-stone-500 mt-1 line-clamp-2">
+                            <p className="text-[10px] sm:text-xs text-stone-500 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-2">
                               {product.description}
                             </p>
                           </div>
-                          <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
-                            <div>
+                          <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-stone-100 flex items-center justify-between gap-1">
+                            <div className="min-w-0">
                               {hasDiscount && (
-                                <span className="text-[11px] font-bold text-red-600 line-through decoration-red-600 decoration-2 block leading-tight">
+                                <span className="text-[9px] sm:text-[11px] font-bold text-red-600 line-through decoration-red-600 decoration-2 block leading-tight">
                                   {formatPrice(product.originalPrice!)}
                                 </span>
                               )}
-                              <span className="text-sm font-black text-[#141414] block">
+                              <span className="text-xs sm:text-sm font-black text-[#141414] block truncate">
                                 {formatPrice(product.price)}
-                                {product.unit && <span className="text-[10px] font-normal text-stone-500">{product.unit}</span>}
+                                {product.unit && <span className="text-[8px] sm:text-[10px] font-normal text-stone-500 ml-0.5">{product.unit}</span>}
                               </span>
                             </div>
                             {product.inStock === false ? (
                               <button
                                 disabled
                                 aria-label={`${product.name} sin stock`}
-                                className="bg-stone-200 text-stone-500 text-xs font-bold px-3 py-2 rounded-xl cursor-not-allowed flex items-center gap-1.5 opacity-70"
+                                className="bg-stone-200 text-stone-500 text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-2 rounded-lg sm:rounded-xl cursor-not-allowed flex items-center gap-1 opacity-70 shrink-0"
                               >
-                                <i className="fa-solid fa-ban text-[11px]"></i>
-                                <span>Sin stock</span>
+                                <i className="fa-solid fa-ban text-[9px] sm:text-[11px]"></i>
+                                <span className="hidden xs:inline">Agotado</span>
                               </button>
                             ) : (
                               <button
                                 onClick={() => handleAddToCart(product)}
-                                className="bg-[#ffd129] text-[#141414] text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-yellow-400 transition shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                className="bg-[#ffd129] text-[#141414] text-[10px] sm:text-xs font-bold px-2.5 sm:px-3.5 py-1 sm:py-2 rounded-lg sm:rounded-xl hover:bg-yellow-400 transition shadow-sm flex items-center gap-1 cursor-pointer active:scale-95 shrink-0"
                               >
-                                <i className="fa-solid fa-cart-plus text-[11px]"></i>
+                                <i className="fa-solid fa-cart-plus text-[9px] sm:text-[11px]"></i>
                                 <span>{product.buttonText || 'Comprar'}</span>
                               </button>
                             )}

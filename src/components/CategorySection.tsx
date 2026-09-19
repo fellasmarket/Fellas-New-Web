@@ -39,10 +39,10 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   };
 
   return (
-    <section id={category.id} className="max-w-7xl mx-auto mt-6 sm:mt-8 pt-4 border-t border-stone-200 px-1 sm:px-0 relative">
+    <section id={category.id} className="max-w-7xl mx-auto mt-4 sm:mt-8 pt-2 sm:pt-4 border-t border-stone-200 px-1 sm:px-0 relative">
       {/* Banner de Categoría */}
       <div
-        className={`relative w-full h-[22vh] sm:h-[26vh] md:h-[28vh] min-h-[160px] sm:min-h-[200px] max-h-[270px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl bg-stone-900 group ${
+        className={`relative w-full h-20 sm:h-[26vh] md:h-[28vh] min-h-[80px] sm:min-h-[200px] max-h-[270px] rounded-xl sm:rounded-3xl overflow-hidden shadow-md sm:shadow-xl bg-stone-900 group ${
           isVisualEditMode ? 'ring-2 ring-blue-400 ring-dashed cursor-pointer' : ''
         }`}
         onClick={() => {
@@ -52,17 +52,17 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
         }}
       >
         {isVisualEditMode && (
-          <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
+          <div className="absolute top-1.5 right-1.5 sm:top-3 sm:right-3 z-30 flex items-center gap-2">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 if (onQuickEditCategory) onQuickEditCategory(category);
               }}
-              className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black px-3.5 py-1.5 rounded-xl shadow-xl flex items-center gap-1.5 transition uppercase tracking-wider cursor-pointer"
+              className="bg-blue-600 hover:bg-blue-500 text-white text-[9px] sm:text-xs font-black px-2 sm:px-3.5 py-0.5 sm:py-1.5 rounded-lg sm:rounded-xl shadow-xl flex items-center gap-1 sm:gap-1.5 transition uppercase tracking-wider cursor-pointer"
             >
               <i className="fa-solid fa-image"></i>
-              <span>Editar Portada de {category.name}</span>
+              <span className="hidden xs:inline">Editar Portada de {category.name}</span>
             </button>
           </div>
         )}
@@ -139,7 +139,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
             return (
               <div
                 key={product.id}
-                className={`w-[185px] sm:w-[210px] md:w-[220px] min-w-[185px] sm:min-w-[210px] md:min-w-[220px] max-w-[185px] sm:max-w-[210px] md:max-w-[220px] snap-start bg-white border border-stone-200 hover:border-[#ffd129] rounded-2xl p-3 sm:p-3.5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between shrink-0 group relative ${
+                className={`w-[155px] sm:w-[210px] md:w-[220px] min-w-[155px] sm:min-w-[210px] md:min-w-[220px] max-w-[160px] sm:max-w-[210px] md:max-w-[220px] snap-start bg-white border border-stone-200 hover:border-[#ffd129] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between shrink-0 group relative ${
                   isVisualEditMode ? 'cursor-pointer ring-1 ring-amber-400 ring-dashed hover:ring-2' : ''
                 }`}
                 onClick={() => {

@@ -57,7 +57,7 @@ export const BottomPromoBanner: React.FC<BottomPromoBannerProps> = ({
   return (
     <section
       id="bottom-promo-banner"
-      className="max-w-7xl mx-auto mt-6 sm:mt-8 mb-2 sm:mb-3 px-2 sm:px-4 md:px-0 relative"
+      className="max-w-7xl mx-auto mt-3 sm:mt-8 mb-1.5 sm:mb-3 px-2 sm:px-4 md:px-0 relative"
       aria-label="Banner promocional"
     >
       <div

@@ -80,11 +80,11 @@ export const CategoryGrid: React.FC = () => {
       </div>
 
       {/* 2 filas horizontales de 4 columnas (2x4 = 8 colecciones) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-5">
         {CATEGORY_ITEMS.map((item) => (
           <div
             key={item.id}
-            className="relative group overflow-hidden rounded-2xl bg-stone-900 border border-stone-300 h-44 sm:h-52 md:h-56 flex flex-col justify-end p-3.5 sm:p-4 md:p-5 transition-all duration-500 hover:border-[#ffd129] hover:shadow-[0_10px_30px_rgba(255,209,41,0.2)]"
+            className="relative group overflow-hidden rounded-xl sm:rounded-2xl bg-stone-900 border border-stone-300 h-32 sm:h-48 md:h-56 flex flex-col justify-end p-2 sm:p-4 md:p-5 transition-all duration-500 hover:border-[#ffd129] hover:shadow-[0_10px_30px_rgba(255,209,41,0.2)]"
           >
             <img
               src={item.image}
@@ -92,21 +92,21 @@ export const CategoryGrid: React.FC = () => {
               className="absolute inset-0 w-full h-full object-cover opacity-95 group-hover:opacity-100 transition-all duration-700 group-hover:scale-105"
             />
             {/* Solo degradado inferior para contrastar el texto y el botón */}
-            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/95 via-black/60 to-transparent pointer-events-none"></div>
-            <div className="relative z-10 flex items-end justify-between gap-2.5">
+            <div className="absolute inset-x-0 bottom-0 h-24 sm:h-32 bg-gradient-to-t from-black/95 via-black/60 to-transparent pointer-events-none"></div>
+            <div className="relative z-10 flex items-end justify-between gap-1.5 sm:gap-2.5">
               <div className="flex-1 min-w-0">
-                <span className="text-[10px] text-[#ffd129] font-medium block leading-none truncate mb-1">
+                <span className="text-[8px] sm:text-[10px] text-[#ffd129] font-medium block leading-none truncate mb-0.5 sm:mb-1">
                   {item.subtitle}
                 </span>
-                <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-[#ffd129] transition line-clamp-2 leading-tight">
+                <h4 className="text-[11px] sm:text-sm font-bold text-white group-hover:text-[#ffd129] transition line-clamp-1 sm:line-clamp-2 leading-tight">
                   {item.title}
                 </h4>
               </div>
               <a
                 href={item.targetId}
-                className="shrink-0 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-bold text-[11px] sm:text-xs py-1.5 sm:py-2 px-2.5 sm:px-3 rounded-xl transition flex items-center justify-center gap-1 shadow active:scale-95 whitespace-nowrap"
+                className="shrink-0 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-bold text-[9px] sm:text-xs py-1 sm:py-2 px-1.5 sm:px-3 rounded-lg sm:rounded-xl transition flex items-center justify-center gap-0.5 sm:gap-1 shadow active:scale-95 whitespace-nowrap"
               >
-                <span>Ver ofertas</span> <i className="fa-solid fa-arrow-right text-[9px]"></i>
+                <span>Ver</span> <i className="fa-solid fa-arrow-right text-[8px] sm:text-[9px]"></i>
               </a>
             </div>
           </div>
