@@ -73,7 +73,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
         <button
           id="btn-whatsapp-floating"
           onClick={handleOpenWhatsApp}
-          className="group relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white shadow-[0_8px_25px_rgba(37,211,102,0.45)] hover:shadow-[0_10px_30px_rgba(37,211,102,0.6)] transition duration-300 cursor-pointer hover:scale-108 active:scale-95"
+          className="group relative flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white shadow-[0_8px_25px_rgba(37,211,102,0.45)] hover:shadow-[0_10px_30px_rgba(37,211,102,0.6)] transition duration-300 cursor-pointer hover:scale-108 active:scale-95"
           title="Chatear por WhatsApp con el negocio"
           aria-label="Contacto directo por WhatsApp"
         >
@@ -83,7 +83,7 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
             <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-300 border-2 border-[#141414]"></span>
           </span>
 
-          <i className="fa-brands fa-whatsapp text-2xl sm:text-3xl drop-shadow-sm group-hover:rotate-6 transition-transform duration-200"></i>
+          <i className="fa-brands fa-whatsapp text-lg sm:text-xl drop-shadow-sm group-hover:rotate-6 transition-transform duration-200"></i>
 
           {/* Tooltip flotante a la izquierda */}
           <span className="absolute right-full mr-3.5 px-3 py-1.5 bg-[#141414]/95 text-white text-xs font-bold rounded-xl shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none border border-stone-700 flex items-center gap-2">

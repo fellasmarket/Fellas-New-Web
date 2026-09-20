@@ -159,16 +159,11 @@ export const Header: React.FC<HeaderProps> = ({
   const storeStatus = checkStoreOpenStatus(settings.scheduleConfig);
 
   return (
-    <div className="fixed top-0 inset-x-0 z-50 pointer-events-none flex justify-center">
-      <header
-        id="main-header"
-        ref={headerRef}
-        className={`pointer-events-auto text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          isScrolled
-            ? 'mt-1.5 sm:mt-2 w-[98%] sm:w-[95%] max-w-6xl rounded-2xl bg-[#141414]/95 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.65)] border border-stone-800/90 px-3 sm:px-5 py-1.5 sm:py-2'
-            : 'mt-0 w-full rounded-none bg-[#141414] shadow-md border-b border-stone-800/80 px-3 sm:px-4 md:px-8 py-2 sm:py-2.5'
-        }`}
-      >
+    <header
+      id="main-header"
+      ref={headerRef}
+      className="fixed top-0 inset-x-0 z-50 w-full text-white bg-[#141414] border-b border-stone-800/80 px-3 sm:px-4 md:px-8 py-2 sm:py-2.5"
+    >
         <div className="max-w-7xl mx-auto flex flex-col gap-1 sm:gap-1.5">
           {/* DIVISIÓN SUPERIOR INTEGRADA: Sesión Repartidor Activa */}
           {user?.role === 'delivery' && (
@@ -873,6 +868,5 @@ export const Header: React.FC<HeaderProps> = ({
 
       </div>
     </header>
-  </div>
   );
 };

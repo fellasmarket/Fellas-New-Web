@@ -468,7 +468,7 @@ export default function App() {
           />
 
           {/* Contenido Principal con espaciado superior e inferior optimizado para celular */}
-          <main className={`pb-3 sm:pb-16 px-2 sm:px-4 md:px-6 max-w-[100vw] overflow-x-hidden ${(user?.role === 'admin' || user?.role === 'delivery') ? 'pt-30 sm:pt-36 md:pt-40' : 'pt-25 sm:pt-30 md:pt-32'}`}>
+          <main className={`pb-8 sm:pb-8 px-2 sm:px-4 md:px-6 max-w-[100vw] overflow-x-hidden ${(user?.role === 'admin' || user?.role === 'delivery') ? 'pt-24 sm:pt-28 md:pt-32' : 'pt-24 sm:pt-24 md:pt-28'}`}>
             {/* Si el usuario busca algo, mostramos los resultados en tiempo real */}
             {searchQuery.trim() !== '' ? (
               <section className="max-w-7xl mx-auto my-8">

@@ -16,9 +16,9 @@ export const Newsletter: React.FC<NewsletterProps> = ({ onSubscribe }) => {
   };
 
   return (
-    <section className="w-full mt-1 sm:mt-2.5">
+    <section className="max-w-7xl mx-auto mt-1 sm:mt-2.5 px-1 sm:px-0">
       <div className="bg-[#141414] border border-stone-800 rounded-xl sm:rounded-2xl px-2.5 sm:px-4 py-1.5 sm:py-2 shadow-lg text-white">
-        <form onSubmit={handleSubmit} className="flex w-full items-center gap-2">
+        <form onSubmit={handleSubmit} className="flex w-full items-center gap-2 max-w-7xl mx-auto">
           {/* Emoji 3D de buzón de correo / ofertas */}
           <div className="shrink-0 flex items-center justify-center">
             <Emoji3D name="mailbox" className="w-5 h-5 sm:w-6 sm:h-6" alt="Buzón de ofertas" />
