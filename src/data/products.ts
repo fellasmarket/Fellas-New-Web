@@ -46,7 +46,8 @@ export const MEGA_OFFERS: Product[] = [
     image: 'https://images.unsplash.com/photo-1527061011665-3652c757a4d4?q=80&w=600&auto=format&fit=crop',
     description: 'El combo infalible para la previa: Mistral 35°, Coca-Cola Original y bolsa de hielo 1kg.',
     buttonText: 'Comprar',
-    isMegaOffer: true
+    isMegaOffer: true,
+    varieties: ['Con Coca-Cola Original 1.5L', 'Con Coca-Cola Zero 1.5L', 'Con Sprite 1.5L']
   },
   {
     id: 'mega-2',
@@ -60,7 +61,8 @@ export const MEGA_OFFERS: Product[] = [
     image: 'https://images.unsplash.com/photo-1608270190578-831e51b32d2e?q=80&w=600&auto=format&fit=crop',
     description: 'Caja completa de 24 botellas de Corona Extra, listas y refrigeradas para disfrutar con limón.',
     buttonText: 'Comprar',
-    isMegaOffer: true
+    isMegaOffer: true,
+    varieties: ['Corona Extra 330cc', 'Corona Cero (Sin Alcohol)']
   }
 ];
 
@@ -76,7 +78,7 @@ export const CATEGORIES: CategoryData[] = [
     products: [
       {
         id: 'dest-1',
-        name: 'Pisco Alto del Carmen 35° Especial 750ml',
+        name: 'Pisco Alto del Carmen 750ml',
         category: 'Destilados & Piscos',
         categoryId: 'cat-destilados',
         subcategory: 'Pisco',
@@ -84,11 +86,12 @@ export const CATEGORIES: CategoryData[] = [
         originalPrice: 8990,
         image: 'https://images.unsplash.com/photo-1569529465841-dfecdab7503b?q=80&w=400&auto=format&fit=crop',
         description: 'Pisco añejado en roble americano, sabor balanceado ideal para piscola.',
-        buttonText: 'Comprar'
+        buttonText: 'Comprar',
+        varieties: ['35° Especial 750ml', '40° Gran Reserva 750ml']
       },
       {
         id: 'dest-2',
-        name: 'Whisky Johnnie Walker Black Label 12 Años 750ml',
+        name: 'Whisky Johnnie Walker 750ml',
         category: 'Destilados & Piscos',
         categoryId: 'cat-destilados',
         subcategory: 'Whisky',
@@ -96,11 +99,12 @@ export const CATEGORIES: CategoryData[] = [
         originalPrice: 29990,
         image: 'https://images.unsplash.com/photo-1527281400683-1aae777175f8?q=80&w=400&auto=format&fit=crop',
         description: 'Icónico blended scotch con notas ahumadas, vainilla y frutos oscuros.',
-        buttonText: 'Comprar'
+        buttonText: 'Comprar',
+        varieties: ['Black Label 12 Años', 'Red Label', 'Double Black']
       },
       {
         id: 'dest-3',
-        name: 'Gin Tanqueray London Dry 750ml',
+        name: 'Gin Tanqueray 750ml',
         category: 'Destilados & Piscos',
         categoryId: 'cat-destilados',
         subcategory: 'Gin',
@@ -108,11 +112,12 @@ export const CATEGORIES: CategoryData[] = [
         originalPrice: 19990,
         image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?q=80&w=400&auto=format&fit=crop',
         description: 'Cuádruple destilación con enebro perfecto para un Gin Tonic refrescante.',
-        buttonText: 'Comprar'
+        buttonText: 'Comprar',
+        varieties: ['London Dry Classic', 'Flor de Sevilla (Naranja)', 'Rangpur Lime']
       },
       {
         id: 'dest-4',
-        name: 'Vodka Absolut Original 750ml',
+        name: 'Vodka Absolut 750ml',
         category: 'Destilados & Piscos',
         categoryId: 'cat-destilados',
         subcategory: 'Vodka',
@@ -120,7 +125,8 @@ export const CATEGORIES: CategoryData[] = [
         originalPrice: 14490,
         image: 'https://images.unsplash.com/photo-1607622750671-6cd9a99eabd1?q=80&w=400&auto=format&fit=crop',
         description: 'Vodka sueco de invierno ultra puro elaborado con trigo natural.',
-        buttonText: 'Comprar'
+        buttonText: 'Comprar',
+        varieties: ['Original 750ml', 'Raspberri 750ml', 'Citron 750ml', 'Pears 750ml']
       },
       {
         id: 'dest-5',
@@ -204,14 +210,15 @@ export const CATEGORIES: CategoryData[] = [
       },
       {
         id: 'cer-3',
-        name: 'Kross 5 Ale 330ml',
+        name: 'Kross Cerveza 330ml Botella',
         category: 'Cervezas & Artesanales',
         categoryId: 'cat-cervezas',
         subcategory: 'Cerveza Artesanal',
         price: 1990,
         image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?q=80&w=400&auto=format&fit=crop',
         description: 'Cerveza madurada con roble tostado con notas a vainilla, caramelo y frutos secos.',
-        buttonText: 'Comprar'
+        buttonText: 'Comprar',
+        varieties: ['Kross 5 Ale 330ml', 'Kross IPA 330ml', 'Kross Golden 330ml', 'Kross Maibock 330ml']
       },
       {
         id: 'cer-4',
@@ -227,14 +234,15 @@ export const CATEGORIES: CategoryData[] = [
       },
       {
         id: 'cer-5',
-        name: 'Kunstmann Torobayo 330ml Botella',
+        name: 'Kunstmann Cerveza Valdiviana 330ml',
         category: 'Cervezas & Artesanales',
         categoryId: 'cat-cervezas',
         subcategory: 'Cerveza Valdiviana',
         price: 1890,
         image: 'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?q=80&w=400&auto=format&fit=crop',
-        description: 'La clásica English Pale Ale de Valdivia, aromas a caramelo y cuerpo suave.',
-        buttonText: 'Comprar'
+        description: 'La clásica cerveza artesanal de Valdivia, aromas intensos y cuerpo suave.',
+        buttonText: 'Comprar',
+        varieties: ['Torobayo 330ml', 'Miel 330ml', 'Gran Torobayo 330ml', 'Valdivia Pale Lager 330ml']
       },
       {
         id: 'cer-6',
@@ -398,15 +406,16 @@ export const CATEGORIES: CategoryData[] = [
       },
       {
         id: 'beb-4',
-        name: 'Coca-Cola Original 1.5L Helada',
+        name: 'Bebida Coca-Cola 1.5L Helada',
         category: 'Bebidas, Aguas & Hielo',
         categoryId: 'cat-bebidas',
         subcategory: 'Bebidas Gaseosas',
         price: 1990,
         originalPrice: 2390,
         image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=400&auto=format&fit=crop',
-        description: 'La clásica Coca-Cola bien helada para tus combinados o comidas.',
-        buttonText: 'Comprar'
+        description: 'La clásica bebida refrescante bien helada para tus combinados o comidas.',
+        buttonText: 'Comprar',
+        varieties: ['Coca-Cola Original 1.5L', 'Coca-Cola Zero Azúcar 1.5L', 'Coca-Cola Light 1.5L', 'Sprite 1.5L', 'Fanta Naranja 1.5L']
       },
       {
         id: 'beb-5',
@@ -417,7 +426,8 @@ export const CATEGORIES: CategoryData[] = [
         price: 1890,
         image: 'https://images.unsplash.com/photo-1622543925917-763c34d1a86e?q=80&w=400&auto=format&fit=crop',
         description: 'Te da alas cuando más lo necesitas para continuar la fiesta.',
-        buttonText: 'Comprar'
+        buttonText: 'Comprar',
+        varieties: ['Red Bull Regular 250ml', 'Red Bull Sugarfree 250ml', 'Red Bull Yellow Edition (Tropical)']
       },
       {
         id: 'beb-6',

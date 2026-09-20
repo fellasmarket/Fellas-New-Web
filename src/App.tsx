@@ -202,23 +202,25 @@ export default function App() {
     };
   }, []);
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = (product: Product, selectedVariety?: string) => {
     if (product.inStock === false) {
       showToast(`"${product.name}" no tiene stock disponible en este momento.`);
       return;
     }
     setCartItems((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
+      const existing = prev.find(
+        (item) => item.product.id === product.id && item.selectedVariety === selectedVariety
+      );
       if (existing) {
         return prev.map((item) =>
-          item.product.id === product.id
+          item.product.id === product.id && item.selectedVariety === selectedVariety
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: 1, selectedVariety }];
     });
-    showToast(`"${product.name}" agregado al carrito.`);
+    showToast(`"${product.name}" ${selectedVariety ? `(${selectedVariety}) ` : ''}agregado al carrito.`);
   };
 
   const handleRemoveFromCart = (productId: string) => {

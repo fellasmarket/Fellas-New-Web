@@ -16,6 +16,7 @@ export interface Product {
   inStock?: boolean;
   publishedSocial?: boolean;
   brand?: string;
+  varieties?: string[];
 }
 
 export interface BackupStoreConfig {
@@ -64,6 +65,7 @@ export interface CustomerDiscountCode {
 export interface CartItem {
   product: Product;
   quantity: number;
+  selectedVariety?: string;
 }
 
 export interface ClassifiedExcelProduct {
@@ -124,6 +126,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   image: string;
+  selectedVariety?: string;
 }
 
 export interface Order {
@@ -219,6 +222,15 @@ export interface StoreSettings {
   agencyLogoImage?: string;
   agencyName?: string;
   agencyLink?: string;
+  bankTransferConfig?: {
+    bankName: string;
+    accountType: string;
+    accountNumber: string;
+    rut: string;
+    accountHolder: string;
+    email: string;
+    instructions?: string;
+  };
 }
 
 export interface KeepAliveLog {

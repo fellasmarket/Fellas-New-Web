@@ -30,7 +30,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onUpdateLocation
 }) => {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
-  const [paymentMethod, setPaymentMethod] = useState<'webpay' | 'card' | 'transfer'>('webpay');
+  const [copiedBankData, setCopiedBankData] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderCode, setOrderCode] = useState('');
   const [customerName, setCustomerName] = useState(user?.name || '');
@@ -40,6 +40,31 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [customerAddress, setCustomerAddress] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const bankDetails = settings?.bankTransferConfig || {
+    bankName: 'Banco Estado',
+    accountType: 'Cuenta RUT / Vista',
+    accountNumber: '18.765.432-1',
+    rut: '18.765.432-1',
+    accountHolder: "Fella's Market SpA",
+    email: 'transferencias@fellasmarket.cl',
+    instructions: 'Transfiere el monto exacto y envía el comprobante por WhatsApp para despachar de inmediato.'
+  };
+
+  const handleCopyBankData = () => {
+    const text = `🏦 DATOS BANCARIOS FELLA'S MARKET
+Banco: ${bankDetails.bankName}
+Tipo de Cuenta: ${bankDetails.accountType}
+N° de Cuenta: ${bankDetails.accountNumber}
+RUT: ${bankDetails.rut}
+Titular: ${bankDetails.accountHolder}
+Email: ${bankDetails.email}
+Monto: ${formatPrice(total)}`;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedBankData(true);
+      setTimeout(() => setCopiedBankData(false), 3000);
+    });
+  };
 
   useEffect(() => {
     if (initialLocation) {
@@ -138,12 +163,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const code = 'BOTI-' + Math.floor(100000 + Math.random() * 900000);
     setOrderCode(code);
 
-    const paymentMethodNames = {
-      webpay: 'Webpay Plus / Débito',
-      card: 'Tarjeta de Crédito',
-      transfer: 'Transferencia Bancaria'
-    };
-
     const newOrderPayload = {
       code,
       customerName: customerName.trim() || 'Cliente Invitado',
@@ -156,13 +175,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         productName: item.product.name,
         quantity: item.quantity,
         price: item.product.price,
-        image: item.product.image
+        image: item.product.image,
+        selectedVariety: item.selectedVariety
       })),
       subtotal,
       discountAmount,
       shippingCost: finalShippingCost,
       total,
-      paymentMethod: paymentMethodNames[paymentMethod],
+      paymentMethod: 'Transferencia Bancaria',
       status: 'nuevo'
     };
 
@@ -189,6 +209,30 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     onConfirmOrder();
   };
 
+  const getWhatsAppMessageUrl = () => {
+    const phone = settings?.socialWhatsapp?.replace(/[^0-9]/g, '') || '56987654321';
+    const itemsText = cartItems
+      .map(
+        i =>
+          `• ${i.quantity}x ${i.product.name}${i.selectedVariety ? ` [Variedad: ${i.selectedVariety}]` : ''} - ${formatPrice(i.product.price * i.quantity)}`
+      )
+      .join('\n');
+
+    const msg =
+      `🍻 *¡HOLA! ACABO DE REALIZAR UN PEDIDO EN LA BOTILLERÍA*\n\n` +
+      `📋 *Orden:* ${orderCode}\n` +
+      `👤 *Cliente:* ${customerName}\n` +
+      `📱 *Teléfono/WhatsApp:* ${customerPhone}\n` +
+      `📍 *Sector:* ${selectedLocation}\n` +
+      `🏠 *Dirección:* ${customerAddress}\n\n` +
+      `🛒 *DETALLE PRODUCTOS:*\n${itemsText}\n\n` +
+      `💰 *TOTAL A TRANSFERIR:* ${formatPrice(total)}\n` +
+      `🏦 *Método:* Transferencia Bancaria (${bankDetails.bankName})\n\n` +
+      `Adjunto el comprobante de transferencia bancaria para despachar mi pedido. ¡Muchas gracias!`;
+
+    return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  };
+
   return (
     <div
       id="checkout-modal-overlay"
@@ -207,48 +251,86 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         </button>
 
         {orderPlaced ? (
-          <div className="text-center py-6 animate-in fade-in">
-            <div className="w-16 h-16 bg-[#ffd129]/20 border border-[#ffd129]/40 text-[#ffd129] rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4">
+          <div className="text-center py-4 animate-in fade-in space-y-4">
+            <div className="w-16 h-16 bg-[#ffd129]/20 border border-[#ffd129]/40 text-[#ffd129] rounded-2xl flex items-center justify-center text-2xl mx-auto">
               <i className="fa-solid fa-check"></i>
             </div>
-            <h3 className="text-xl font-black text-white mb-1">¡Pedido Enviado a la Botillería!</h3>
-            <p className="text-xs text-stone-400 mb-4">
-              Tu orden <span className="font-mono text-[#ffd129] font-bold">{orderCode}</span> ha ingresado en tiempo real a nuestro sistema de despacho.
-            </p>
+            <div>
+              <h3 className="text-xl font-black text-white mb-1">¡Pedido Registrado con Éxito!</h3>
+              <p className="text-xs text-stone-400">
+                Tu orden <span className="font-mono text-[#ffd129] font-bold">{orderCode}</span> ha sido ingresada en el sistema.
+              </p>
+            </div>
 
-            <div className="bg-stone-900 border border-stone-800 rounded-2xl p-4 text-left mb-6 text-xs text-stone-300 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-stone-400">Cliente:</span>
-                <span className="font-semibold text-white">{customerName}</span>
+            {/* CAJA DE DATOS PARA TRANSFERENCIA */}
+            <div className="bg-stone-900/90 border-2 border-amber-500/50 rounded-2xl p-4 text-left space-y-3">
+              <div className="flex items-center justify-between border-b border-stone-800 pb-2">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                  <i className="fa-solid fa-building-columns"></i>
+                  <span>Datos para Transferir</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyBankData}
+                  className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <i className={`fa-solid ${copiedBankData ? 'fa-check text-emerald-400' : 'fa-copy'}`}></i>
+                  <span>{copiedBankData ? '¡Copiado!' : 'Copiar Datos'}</span>
+                </button>
               </div>
-              <div className="flex justify-between">
-                <span className="text-stone-400">WhatsApp de contacto:</span>
-                <span className="font-semibold text-emerald-400">{customerPhone}</span>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-stone-400 block text-[10px]">Banco:</span>
+                  <span className="font-bold text-white">{bankDetails.bankName}</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block text-[10px]">Tipo de Cuenta:</span>
+                  <span className="font-bold text-white">{bankDetails.accountType}</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block text-[10px]">N° de Cuenta:</span>
+                  <span className="font-mono font-bold text-[#ffd129]">{bankDetails.accountNumber}</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block text-[10px]">RUT:</span>
+                  <span className="font-mono font-bold text-white">{bankDetails.rut}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-stone-400 block text-[10px]">Titular:</span>
+                  <span className="font-bold text-white">{bankDetails.accountHolder}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-stone-400 block text-[10px]">Email de Confirmación:</span>
+                  <span className="font-mono text-stone-200">{bankDetails.email}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-stone-400">Área de despacho:</span>
-                <span className="font-semibold text-amber-300">{selectedLocation}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-stone-400">Ubicación exacta:</span>
-                <span className="font-semibold text-white">{customerAddress}</span>
-              </div>
-              <div className="flex justify-between border-t border-stone-800 pt-2">
-                <span className="text-stone-400">Total pagado:</span>
-                <span className="font-bold text-[#ffd129] text-sm">{formatPrice(total)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-stone-400">Tiempo de entrega estimado:</span>
-                <span className="text-emerald-400 font-bold">{estimatedTime} minutos aprox.</span>
+
+              <div className="bg-stone-950/80 p-2.5 rounded-xl border border-stone-800 flex justify-between items-center">
+                <span className="text-stone-300 font-medium text-xs">Monto Total a Transferir:</span>
+                <span className="text-base font-black text-[#ffd129]">{formatPrice(total)}</span>
               </div>
             </div>
 
-            <button
-              onClick={onClose}
-              className="w-full bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-black text-xs py-3 rounded-xl transition shadow cursor-pointer"
-            >
-              Volver a la Tienda
-            </button>
+            {/* BOTON DE ENVÍO DE COMPROBANTE WHATSAPP */}
+            <div className="space-y-2">
+              <a
+                href={getWhatsAppMessageUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3.5 rounded-xl transition shadow flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <i className="fa-brands fa-whatsapp text-lg"></i>
+                <span>Enviar Comprobante por WhatsApp</span>
+              </a>
+
+              <button
+                onClick={onClose}
+                className="w-full bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold text-xs py-2.5 rounded-xl transition cursor-pointer"
+              >
+                Volver a la Tienda
+              </button>
+            </div>
           </div>
         ) : (
           <div>
@@ -562,21 +644,28 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="space-y-3 animate-in fade-in duration-200">
                   <div className="bg-stone-900/60 p-3 rounded-xl border border-stone-800/80">
                     <h4 className="text-xs font-bold text-[#ffd129] flex items-center gap-2 mb-1">
-                      <i className="fa-solid fa-credit-card text-xs"></i>
-                      <span>Paso 3: Método de Pago y Resumen</span>
+                      <i className="fa-solid fa-building-columns text-xs"></i>
+                      <span>Paso 3: Método de Pago (Transferencia)</span>
                     </h4>
                     <p className="text-[11px] text-stone-400">
-                      Revisa tus productos, tus datos de entrega y selecciona cómo deseas abonar tu compra.
+                      El pago se realiza exclusivamente vía transferencia bancaria. Al confirmar, obtendrás los datos y podrás enviar el comprobante.
                     </p>
                   </div>
 
-                  {/* Resumen de productos compacto */}
-                  <div className="bg-stone-900/90 border border-stone-800 rounded-xl p-2.5 max-h-24 overflow-y-auto space-y-1.5">
+                  {/* Resumen de productos compacto con variedades */}
+                  <div className="bg-stone-900/90 border border-stone-800 rounded-xl p-2.5 max-h-28 overflow-y-auto space-y-2">
                     {cartItems.map((item) => (
-                      <div key={item.product.id} className="flex justify-between items-center text-xs">
-                        <span className="truncate max-w-[220px] text-stone-300">
-                          {item.quantity}x {item.product.name}
-                        </span>
+                      <div key={item.product.id + (item.selectedVariety || '')} className="flex justify-between items-start text-xs gap-2">
+                        <div className="truncate max-w-[240px]">
+                          <span className="text-stone-200 font-medium">
+                            {item.quantity}x {item.product.name}
+                          </span>
+                          {item.selectedVariety && (
+                            <span className="block text-[10px] text-amber-400 font-medium truncate">
+                              • Variedad: {item.selectedVariety}
+                            </span>
+                          )}
+                        </div>
                         <span className="font-semibold text-white shrink-0">
                           {formatPrice(item.product.price * item.quantity)}
                         </span>
@@ -604,48 +693,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Selector de Método de pago */}
-                  <div>
-                    <label className="text-xs font-semibold text-stone-300 block mb-2">Selecciona cómo pagar:</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('webpay')}
-                        className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center gap-1 cursor-pointer ${
-                          paymentMethod === 'webpay'
-                            ? 'border-[#ffd129] bg-stone-800 text-white font-bold ring-2 ring-[#ffd129]/30'
-                            : 'border-stone-800 bg-stone-900 text-stone-400 hover:text-white'
-                        }`}
-                      >
-                        <i className="fa-solid fa-credit-card text-sm text-[#ffd129]"></i>
-                        <span className="text-[10px] leading-tight">Webpay / Débito</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('card')}
-                        className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center gap-1 cursor-pointer ${
-                          paymentMethod === 'card'
-                            ? 'border-[#ffd129] bg-stone-800 text-white font-bold ring-2 ring-[#ffd129]/30'
-                            : 'border-stone-800 bg-stone-900 text-stone-400 hover:text-white'
-                        }`}
-                      >
-                        <i className="fa-brands fa-cc-visa text-sm text-sky-400"></i>
-                        <span className="text-[10px] leading-tight">Crédito</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('transfer')}
-                        className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center gap-1 cursor-pointer ${
-                          paymentMethod === 'transfer'
-                            ? 'border-[#ffd129] bg-stone-800 text-white font-bold ring-2 ring-[#ffd129]/30'
-                            : 'border-stone-800 bg-stone-900 text-stone-400 hover:text-white'
-                        }`}
-                      >
-                        <i className="fa-solid fa-building-columns text-sm text-amber-400"></i>
-                        <span className="text-[10px] leading-tight">Transferencia</span>
-                      </button>
+                  {/* Tarjeta de Pago Exclusivo por Transferencia */}
+                  <div className="bg-amber-950/20 border-2 border-amber-500/50 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                        <i className="fa-solid fa-building-columns"></i>
+                        <span>Medio de Pago: Transferencia Bancaria</span>
+                      </div>
+                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded text-[10px] font-bold">
+                        Único Medio
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-stone-300 leading-snug">
+                      Transfiere a nuestra cuenta oficial <strong>{bankDetails.bankName}</strong> ({bankDetails.accountType}).
+                    </p>
+                    <div className="bg-stone-950/70 p-2 rounded-lg border border-stone-800 text-[11px] text-stone-300 space-y-0.5">
+                      <div className="flex justify-between">
+                        <span className="text-stone-400">N° Cuenta:</span>
+                        <span className="font-mono font-bold text-[#ffd129]">{bankDetails.accountNumber}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-stone-400">RUT:</span>
+                        <span className="font-mono text-stone-200">{bankDetails.rut}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-stone-400">Titular:</span>
+                        <span className="text-stone-200">{bankDetails.accountHolder}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -705,8 +779,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         </>
                       ) : (
                         <>
-                          <i className="fa-solid fa-lock"></i>
-                          <span>Confirmar y Pagar {formatPrice(total)}</span>
+                          <i className="fa-solid fa-building-columns"></i>
+                          <span>Confirmar Orden {formatPrice(total)}</span>
                         </>
                       )}
                     </button>

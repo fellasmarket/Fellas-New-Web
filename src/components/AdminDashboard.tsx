@@ -106,6 +106,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     stock: 24,
     inStock: true,
     brand: '',
+    varieties: '',
     publishedSocial: true
   });
 
@@ -354,6 +355,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       stock: prod.stock !== undefined ? prod.stock : 24,
       inStock: prod.inStock !== false,
       brand: prod.brand || '',
+      varieties: prod.varieties ? prod.varieties.join(', ') : '',
       publishedSocial: prod.publishedSocial !== false
     });
     setIsProductModalOpen(true);
@@ -455,6 +457,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         originalPrice: finalOriginalPrice,
         image: prodForm.image,
         description: prodForm.description,
+        varieties: prodForm.varieties ? prodForm.varieties.split(',').map(v => v.trim()).filter(v => v !== '') : undefined,
         discount: computedDiscount,
         stock: Number(prodForm.stock),
         inStock: prodForm.inStock,
@@ -489,6 +492,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         originalPrice: finalOriginalPrice,
         image: prodForm.image,
         description: prodForm.description,
+        varieties: prodForm.varieties ? prodForm.varieties.split(',').map(v => v.trim()).filter(v => v !== '') : undefined,
         discount: computedDiscount,
         buttonText: 'Comprar',
         stock: Number(prodForm.stock),
@@ -4001,6 +4005,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   rows={2}
                   value={prodForm.description}
                   onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
+                  className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Variedades (separadas por coma)</label>
+                <input
+                  type="text"
+                  value={prodForm.varieties}
+                  onChange={(e) => setProdForm({ ...prodForm, varieties: e.target.value })}
+                  placeholder="Ej: Rojo, Azul, Verde"
+                  className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Variedades (separadas por coma)</label>
+                <input
+                  type="text"
+                  value={prodForm.varieties}
+                  onChange={(e) => setProdForm({ ...prodForm, varieties: e.target.value })}
+                  placeholder="Ej: Rojo, Azul, Verde"
                   className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
                 />
               </div>
