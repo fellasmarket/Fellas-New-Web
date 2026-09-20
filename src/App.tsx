@@ -675,48 +675,6 @@ export default function App() {
               />
             ) : (
               <>
-                {/* Aviso Informativo de Modo Tienda Alterna / Express */}
-                {isEmergencyMode && (
-                  <div className="max-w-7xl mx-auto my-4 px-1 sm:px-0">
-                    <div className="bg-stone-900 border-2 border-[#ffd025]/50 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xl text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex items-start sm:items-center gap-3.5">
-                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#ffd025]/20 text-[#ffd025] border border-[#ffd025]/40 flex items-center justify-center text-xl sm:text-2xl shrink-0 shadow-inner">
-                          <i className="fa-solid fa-store"></i>
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[10px] font-black uppercase tracking-wider bg-[#ffd025] text-stone-950 px-2 py-0.5 rounded-md">
-                              Tienda Alterna Express
-                            </span>
-                            <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                              Atención y Despachos Activos
-                            </span>
-                          </div>
-                          <h3 className="text-sm sm:text-base font-black text-white mt-1">
-                            {backupStore.title || "Fella's Market — Tienda Alterna de Contingencia"}
-                          </h3>
-                          <p className="text-xs text-stone-300 max-w-2xl mt-0.5 leading-relaxed">
-                            {backupStore.bannerNotice || "Estamos actualizando y trabajando en el sitio web principal. Los productos a continuación son los seleccionados y disponibles para compra express y entrega inmediata."}
-                          </p>
-                        </div>
-                      </div>
-
-                      {backupStore.whatsappNumber && (
-                        <a
-                          href={`https://wa.me/${backupStore.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, deseo consultar o hacer un pedido express en la Tienda Alterna')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-full sm:w-auto text-center bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xs px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow shrink-0 active:scale-95"
-                        >
-                          <i className="fa-brands fa-whatsapp text-sm"></i>
-                          <span>Pedidos por WhatsApp</span>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
-
                 {/* 1. Hero Banner Carousel Dinámico */}
                 <HeroSlider
                   slides={heroSlides}
