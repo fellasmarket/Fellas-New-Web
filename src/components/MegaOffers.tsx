@@ -177,7 +177,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                       src={offer.image}
                       alt={offer.name}
                       referrerPolicy="no-referrer"
-                      className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${offer.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
+                      className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 rounded-md sm:rounded-xl ${offer.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
                     />
                     {autoDiscount && offer.inStock !== false && (
                       <span className="absolute top-0.5 left-0.5 sm:top-2 sm:left-2 bg-red-600 text-white text-[7px] sm:text-[10px] font-extrabold px-1 sm:px-2 py-0.2 rounded shadow-md animate-pulse">

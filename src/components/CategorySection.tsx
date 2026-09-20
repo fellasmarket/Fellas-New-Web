@@ -26,10 +26,11 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
 
   const displayProducts = React.useMemo(() => {
     if (category.featuredProductIds && category.featuredProductIds.length > 0) {
-      return category.featuredProductIds
+      const featured = category.featuredProductIds
         .map(id => category.products.find(p => p.id === id))
-        .filter((p): p is Product => !!p)
-        .slice(0, 6);
+        .filter((p): p is Product => !!p);
+      const remaining = category.products.filter(p => !category.featuredProductIds?.includes(p.id));
+      return [...featured, ...remaining].slice(0, 6);
     }
     return category.products.slice(0, 6);
   }, [category]);
@@ -46,6 +47,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
 
   const handleOpenCatalog = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (isEmergencyMode) return;
     if (onOpenCategoryCatalog) {
       onOpenCategoryCatalog(category.id);
     }
@@ -102,7 +104,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               <span className="truncate">{category.name}</span>
             </h4>
             <span className="text-[11px] text-stone-500 font-normal hidden sm:inline shrink-0">
-              ({category.products.length} productos)
+              {isEmergencyMode ? '(Selección express disponible)' : `(${category.products.length} productos)`}
             </span>
           </div>
 
@@ -182,7 +184,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                     <img
                       src={product.image}
                       alt={product.name}
-                      className={`w-full h-full object-cover group-hover:scale-105 transition duration-500 ${product.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
+                      className={`w-full h-full object-cover group-hover:scale-105 transition duration-500 rounded-xl ${product.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
                       loading="lazy"
                     />
                     {autoDiscount && product.inStock !== false && (

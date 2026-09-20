@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CartItem, Product, UserAccount, CategoryData, StoreSettings, HeroSlide } from './types';
+import { CartItem, Product, UserAccount, CategoryData, StoreSettings, HeroSlide, BackupStoreConfig } from './types';
 import { CATEGORIES as INITIAL_CATEGORIES, MEGA_OFFERS as INITIAL_MEGA_OFFERS, HERO_SLIDES as INITIAL_HERO_SLIDES, formatPrice, getDiscountPercentage } from './data/products';
 import { Header } from './components/Header';
 import { HeroSlider } from './components/HeroSlider';
@@ -69,6 +69,23 @@ export default function App() {
   const [megaOffers, setMegaOffers] = useState<Product[]>(INITIAL_MEGA_OFFERS);
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(INITIAL_HERO_SLIDES);
+  const [backupStore, setBackupStore] = useState<BackupStoreConfig>({
+    enabled: false,
+    title: "Fella's Market — Tienda Alterna de Contingencia",
+    subtitle: "Pedidos rápidos para despacho y retiro en local",
+    bannerNotice: "⚠️ Estamos actualizando nuestro catálogo principal. Puedes pedir directamente aquí tus productos esenciales.",
+    whatsappNumber: "+56958866754",
+    deliveryCost: 2000,
+    selectedProductIds: []
+  });
+
+  const isEmergencyMode = Boolean(backupStore.enabled || settings.isEmergencyMode);
+
+  useEffect(() => {
+    if (isEmergencyMode && selectedCatalogCategoryId) {
+      setSelectedCatalogCategoryId(null);
+    }
+  }, [isEmergencyMode, selectedCatalogCategoryId]);
 
   // Cart state with 2 initial liquor store items
   const [cartItems, setCartItems] = useState<CartItem[]>([
@@ -127,11 +144,12 @@ export default function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, setRes, banRes, megaRes] = await Promise.all([
+        const [catRes, setRes, banRes, megaRes, backupRes] = await Promise.all([
           fetch('/api/categories'),
           fetch('/api/settings'),
           fetch('/api/banners'),
-          fetch('/api/mega-offers')
+          fetch('/api/mega-offers'),
+          fetch('/api/admin/backup-store')
         ]);
 
         if (catRes.ok) {
@@ -139,6 +157,13 @@ export default function App() {
           const cats = catData.categories || catData;
           if (Array.isArray(cats) && cats.length > 0) {
             setCategories(cats);
+          }
+        }
+
+        if (backupRes && backupRes.ok) {
+          const bData = await backupRes.json();
+          if (bData && typeof bData.enabled === 'boolean') {
+            setBackupStore(bData);
           }
         }
 
@@ -398,10 +423,35 @@ export default function App() {
   };
 
   // All searchable products
-  const allProducts: Product[] = [
-    ...megaOffers,
-    ...categories.flatMap((c) => c.products)
-  ];
+  const allProducts: Product[] = React.useMemo(() => {
+    if (isEmergencyMode) {
+      // In emergency mode, only products visible on the express homepage can be searched/accessed
+      const expressProds: Product[] = [...megaOffers];
+      categories.slice(0, 3).forEach((cat) => {
+        let prods: Product[] = [];
+        if (cat.featuredProductIds && cat.featuredProductIds.length > 0) {
+          const featured = cat.featuredProductIds
+            .map(id => cat.products.find(p => p.id === id))
+            .filter((p): p is Product => !!p);
+          const remaining = cat.products.filter(p => !cat.featuredProductIds?.includes(p.id));
+          prods = [...featured, ...remaining].slice(0, 6);
+        } else {
+          prods = cat.products.slice(0, 6);
+        }
+        prods.forEach(p => {
+          if (!expressProds.some(ep => ep.id === p.id)) {
+            expressProds.push(p);
+          }
+        });
+      });
+      return expressProds;
+    }
+
+    return [
+      ...megaOffers,
+      ...categories.flatMap((c) => c.products)
+    ];
+  }, [categories, megaOffers, isEmergencyMode]);
 
   const searchResults = searchQuery.trim()
     ? allProducts.filter(
@@ -429,6 +479,8 @@ export default function App() {
           megaOffers={megaOffers}
           onUpdateMegaOffers={setMegaOffers}
           onOpenDelivery={() => setCurrentView('delivery')}
+          backupStore={backupStore}
+          onUpdateBackupStore={setBackupStore}
         />
       ) : currentView === 'delivery' ? (
         <DeliveryDashboard
@@ -462,9 +514,17 @@ export default function App() {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             onSelectCategory={(catId) => {
-              setSelectedCatalogCategoryId(catId);
-              setSearchQuery('');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              if (isEmergencyMode) {
+                const el = document.getElementById(catId);
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth' });
+                }
+                setSelectedCatalogCategoryId(null);
+              } else {
+                setSelectedCatalogCategoryId(catId);
+                setSearchQuery('');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
             }}
           />
 
@@ -533,7 +593,7 @@ export default function App() {
                               <img
                                 src={product.image}
                                 alt={product.name}
-                                className={`w-full h-full object-cover group-hover:scale-105 transition duration-500 ${product.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
+                                className={`w-full h-full object-cover group-hover:scale-105 transition duration-500 rounded-lg sm:rounded-xl ${product.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
                               />
                               {autoDiscount && product.inStock !== false && (
                                 <span className="absolute top-1 left-1 sm:top-2 sm:left-2 bg-red-600 text-white text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded shadow-md animate-pulse">
@@ -593,7 +653,7 @@ export default function App() {
                   </div>
                 )}
               </section>
-            ) : selectedCatalogCategoryId ? (
+            ) : !isEmergencyMode && selectedCatalogCategoryId ? (
               /* Vista Completa de Catálogo de Categoría con Menú lateral de filtros y búsqueda */
               <CategoryCatalogView
                 category={
@@ -615,6 +675,48 @@ export default function App() {
               />
             ) : (
               <>
+                {/* Aviso Informativo de Modo Tienda Alterna / Express */}
+                {isEmergencyMode && (
+                  <div className="max-w-7xl mx-auto my-4 px-1 sm:px-0">
+                    <div className="bg-stone-900 border-2 border-[#ffd025]/50 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xl text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-start sm:items-center gap-3.5">
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#ffd025]/20 text-[#ffd025] border border-[#ffd025]/40 flex items-center justify-center text-xl sm:text-2xl shrink-0 shadow-inner">
+                          <i className="fa-solid fa-store"></i>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-black uppercase tracking-wider bg-[#ffd025] text-stone-950 px-2 py-0.5 rounded-md">
+                              Tienda Alterna Express
+                            </span>
+                            <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                              Atención y Despachos Activos
+                            </span>
+                          </div>
+                          <h3 className="text-sm sm:text-base font-black text-white mt-1">
+                            {backupStore.title || "Fella's Market — Tienda Alterna de Contingencia"}
+                          </h3>
+                          <p className="text-xs text-stone-300 max-w-2xl mt-0.5 leading-relaxed">
+                            {backupStore.bannerNotice || "Estamos actualizando y trabajando en el sitio web principal. Los productos a continuación son los seleccionados y disponibles para compra express y entrega inmediata."}
+                          </p>
+                        </div>
+                      </div>
+
+                      {backupStore.whatsappNumber && (
+                        <a
+                          href={`https://wa.me/${backupStore.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, deseo consultar o hacer un pedido express en la Tienda Alterna')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full sm:w-auto text-center bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xs px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow shrink-0 active:scale-95"
+                        >
+                          <i className="fa-brands fa-whatsapp text-sm"></i>
+                          <span>Pedidos por WhatsApp</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* 1. Hero Banner Carousel Dinámico */}
                 <HeroSlider
                   slides={heroSlides}
@@ -635,19 +737,23 @@ export default function App() {
                   onQuickEditSection={() => setQuickEditTarget({ type: 'mega_offers', data: settings })}
                 />
 
-                {/* 4. Colecciones & Áreas (Grid 2 filas horizontales de 4 y 4 = 8 tarjetas con botón ver más) */}
-                <CategoryGrid isEmergencyMode={settings.isEmergencyMode} />
+                {/* 4. Colecciones & Áreas (Oculto estrictamente cuando la Tienda Alterna está activa) */}
+                {!isEmergencyMode && (
+                  <CategoryGrid isEmergencyMode={isEmergencyMode} />
+                )}
 
-                {/* 5. Secciones de Categorías (Exactamente 3 subdivisiones de banner y carrusel de máx 5 productos) */}
+                {/* 5. Secciones de Categorías (Exactamente 3 subdivisiones con selección de 6 productos y sin Ver Más en Tienda Alterna) */}
                 {categories.slice(0, 3).map((category) => (
                   <CategorySection
                     key={category.id}
                     category={category}
-                    isEmergencyMode={settings.isEmergencyMode}
+                    isEmergencyMode={isEmergencyMode}
                     onAddToCart={handleAddToCart}
                     onOpenCategoryCatalog={(catId) => {
-                      setSelectedCatalogCategoryId(catId);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      if (!isEmergencyMode) {
+                        setSelectedCatalogCategoryId(catId);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
                     }}
                     isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
                     onQuickEditCategory={(cat) => setQuickEditTarget({ type: 'category', data: cat })}
@@ -669,8 +775,13 @@ export default function App() {
                   }}
                   onExploreProducts={() => {
                     if (categories.length > 0) {
-                      setSelectedCatalogCategoryId(categories[0].id);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      if (isEmergencyMode) {
+                        const el = document.getElementById(categories[0].id);
+                        if (el) el.scrollIntoView({ behavior: 'smooth' });
+                      } else {
+                        setSelectedCatalogCategoryId(categories[0].id);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
                     }
                   }}
                 />
@@ -682,8 +793,13 @@ export default function App() {
                   onQuickEdit={() => setQuickEditTarget({ type: 'bottom_dual', data: settings })}
                   onExploreProducts={() => {
                     if (categories.length > 0) {
-                      setSelectedCatalogCategoryId(categories[0].id);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      if (isEmergencyMode) {
+                        const el = document.getElementById(categories[0].id);
+                        if (el) el.scrollIntoView({ behavior: 'smooth' });
+                      } else {
+                        setSelectedCatalogCategoryId(categories[0].id);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
                     }
                   }}
                 />

@@ -26,6 +26,7 @@ import { HeroBannerEditor } from './admin/HeroBannerEditor';
 import { MegaOffersEditor } from './admin/MegaOffersEditor';
 import { FooterEditor } from './admin/FooterEditor';
 import { CategoryBannerModal } from './admin/CategoryBannerModal';
+import { CategoryFeaturedProductsModal } from './admin/CategoryFeaturedProductsModal';
 import { KeepAliveEditor } from './admin/KeepAliveEditor';
 
 interface AdminDashboardProps {
@@ -40,6 +41,8 @@ interface AdminDashboardProps {
   megaOffers?: Product[];
   onUpdateMegaOffers?: (offers: Product[]) => void;
   onOpenDelivery?: () => void;
+  backupStore?: BackupStoreConfig;
+  onUpdateBackupStore?: (config: BackupStoreConfig) => void;
 }
 
 // Exact tabs from fellasmarket.cl plus Excel IA and Custom Page Editors
@@ -73,7 +76,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   showToast,
   megaOffers = [],
   onUpdateMegaOffers,
-  onOpenDelivery
+  onOpenDelivery,
+  backupStore: propBackupStore,
+  onUpdateBackupStore
 }) => {
   // Current active tab
   const [activeTab, setActiveTab] = useState<AdminTab>('products');
@@ -131,6 +136,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedBannerCategory, setSelectedBannerCategory] = useState<CategoryData | null>(null);
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
 
+  // Featured Products per Category Modal (6 products per section)
+  const [selectedFeaturedCategory, setSelectedFeaturedCategory] = useState<CategoryData | null>(null);
+  const [isFeaturedModalOpen, setIsFeaturedModalOpen] = useState(false);
+
+  const handleSaveCategoryFeaturedProducts = async (categoryId: string, featuredProductIds: string[]) => {
+    try {
+      const res = await fetch(`/api/categories/${categoryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featuredProductIds })
+      });
+
+      const updatedCategories = categories.map((c) =>
+        c.id === categoryId ? { ...c, featuredProductIds } : c
+      );
+      onUpdateCategories(updatedCategories);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.categories) {
+          onUpdateCategories(data.categories);
+        }
+      }
+      showToast('Selección de 6 productos guardada con éxito');
+    } catch (err) {
+      console.error('Error saving featured products:', err);
+      showToast('Error al guardar productos de portada');
+    }
+  };
+
   // TAB 4: ESTADÍSTICAS
   const [visitStats, setVisitStats] = useState<any>({
     totalVisits: 1482,
@@ -149,15 +184,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   });
 
   // TAB 5: TIENDA ALTERNA (MODO CONTINGENCIA)
-  const [backupStore, setBackupStore] = useState<BackupStoreConfig>({
-    enabled: false,
-    title: "Fella's Market — Tienda Alterna de Contingencia",
-    subtitle: "Pedidos rápidos para despacho y retiro en local",
-    bannerNotice: "⚠️ Estamos actualizando nuestro catálogo principal. Puedes pedir directamente aquí tus productos esenciales.",
-    whatsappNumber: "+56958866754",
-    deliveryCost: 2000,
-    selectedProductIds: []
+  const [backupStore, setBackupStore] = useState<BackupStoreConfig>(() => {
+    if (propBackupStore) return propBackupStore;
+    return {
+      enabled: false,
+      title: "Fella's Market — Tienda Alterna de Contingencia",
+      subtitle: "Pedidos rápidos para despacho y retiro en local",
+      bannerNotice: "⚠️ Estamos actualizando nuestro catálogo principal. Puedes pedir directamente aquí tus productos esenciales.",
+      whatsappNumber: "+56958866754",
+      deliveryCost: 2000,
+      selectedProductIds: []
+    };
   });
+
+  useEffect(() => {
+    if (propBackupStore) {
+      setBackupStore(propBackupStore);
+    }
+  }, [propBackupStore]);
 
   // TAB 6: AJUSTES GENERALES & PERSONALIZACIÓN
   const [pageTitle, setPageTitle] = useState("Fella's Market — Botillería en Alerce");
@@ -777,9 +821,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     showToast('¡Comanda copiada en formato WhatsApp!');
   };
 
-  // BACKUP STORE SAVE
+  // BACKUP STORE SAVE & TOGGLE
+  const handleToggleBackupStore = async () => {
+    const updated = { ...backupStore, enabled: !backupStore.enabled };
+    setBackupStore(updated);
+    if (onUpdateBackupStore) {
+      onUpdateBackupStore(updated);
+    }
+    try {
+      await fetch('/api/admin/backup-store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+      showToast(
+        updated.enabled
+          ? '🟢 Tienda Alterna ACTIVADA: Vista express para clientes activa (sin "Ver más" ni colecciones completas)'
+          : '⚪ Tienda Alterna DESACTIVADA: Catálogo completo restaurado para los clientes'
+      );
+    } catch (e) {
+      showToast('Error al actualizar estado de Tienda Alterna');
+    }
+  };
+
   const handleSaveBackupStore = async () => {
     try {
+      if (onUpdateBackupStore) {
+        onUpdateBackupStore(backupStore);
+      }
       await fetch('/api/admin/backup-store', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1764,15 +1833,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Botón para Ajustar Banner y Ver Medidas */}
-                  <div className="p-4 pt-0 border-t border-gray-800/80 mt-2">
+                  {/* Botones de Gestión de Pasillo & Portada */}
+                  <div className="p-4 pt-0 border-t border-gray-800/80 mt-2 space-y-2">
+                    {/* Botón para Elegir los 6 Productos de la Sección */}
                     <button
+                      type="button"
+                      id={`btn-featured-${cat.id}`}
+                      onClick={() => {
+                        setSelectedFeaturedCategory(cat);
+                        setIsFeaturedModalOpen(true);
+                      }}
+                      className="w-full mt-3 bg-amber-500/10 hover:bg-[#ffd025] text-amber-300 hover:text-[#141414] border border-amber-500/30 hover:border-[#ffd025] font-black text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow active:scale-95 group/fbtn"
+                    >
+                      <i className="fa-solid fa-star text-[#ffd025] group-hover/fbtn:text-[#141414]"></i>
+                      <span>Elegir los 6 Productos de la Sección</span>
+                      <span className="text-[10px] bg-stone-900 group-hover/fbtn:bg-stone-900 group-hover/fbtn:text-[#ffd025] px-2 py-0.5 rounded-md font-mono font-bold text-amber-200">
+                        {cat.featuredProductIds && cat.featuredProductIds.length > 0 ? `${cat.featuredProductIds.length}/6` : 'Auto (6)'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
                       id={`btn-adjust-banner-${cat.id}`}
                       onClick={() => {
                         setSelectedBannerCategory(cat);
                         setIsBannerModalOpen(true);
                       }}
-                      className="w-full mt-3 bg-stone-900 hover:bg-[#ffd025] text-stone-200 hover:text-[#141414] border border-stone-700 hover:border-[#ffd025] font-black text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow active:scale-95 group/btn"
+                      className="w-full bg-stone-900 hover:bg-[#ffd025] text-stone-200 hover:text-[#141414] border border-stone-700 hover:border-[#ffd025] font-black text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow active:scale-95 group/btn"
                     >
                       <i className="fa-solid fa-ruler-combined text-yellow-400 group-hover/btn:text-[#141414]"></i>
                       <span>Ajustar Imagen de Banner & Medidas</span>
@@ -2526,7 +2613,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setBackupStore(prev => ({ ...prev, enabled: !prev.enabled }))}
+                  id="btn-toggle-alt-store"
+                  onClick={handleToggleBackupStore}
                   className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${
                     backupStore.enabled ? 'bg-emerald-500' : 'bg-gray-700'
                   }`}
@@ -2535,6 +2623,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     backupStore.enabled ? 'left-7' : 'left-1'
                   }`}></span>
                 </button>
+              </div>
+            </div>
+
+            {/* GESTIÓN DE PRODUCTOS DISPONIBLES EN MODO ALTERNO (6 POR SECCIÓN) */}
+            <div className="bg-[#1a1a1a] p-6 rounded-3xl border border-gray-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-black uppercase text-[#ffd025]">
+                    <i className="fa-solid fa-list-check"></i>
+                    <span>Productos Visibles en Tienda Alterna (6 por sección)</span>
+                  </div>
+                  <h3 className="text-base font-black text-white mt-1">
+                    Selecciona los 6 Productos Visibles por Cada Pasillo
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Cuando la Tienda Alterna está activa, los clientes <strong>no tendrán acceso a toda la página</strong> ni verán botones de "Ver más" ni el área de "Explorar Colecciones & Áreas". Solo podrán ver y comprar estos 6 productos elegidos en cada pasillo.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                {categories.slice(0, 3).map((cat) => (
+                  <div
+                    key={`alt-cat-${cat.id}`}
+                    className="bg-[#141414] border border-stone-800 rounded-2xl p-4 flex flex-col justify-between shadow-md"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-xs font-black text-white flex items-center gap-1.5 truncate">
+                          <i className={cat.icon || 'fa-solid fa-box'}></i> {cat.name}
+                        </span>
+                        <span className="text-[10px] font-bold bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded shrink-0">
+                          {cat.featuredProductIds && cat.featuredProductIds.length > 0
+                            ? `${cat.featuredProductIds.length}/6 elegidos`
+                            : 'Primeros 6 (Auto)'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-400 mb-3">
+                        Total en inventario: {cat.products.length} productos.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      id={`btn-alt-cat-${cat.id}`}
+                      onClick={() => {
+                        setSelectedFeaturedCategory(cat);
+                        setIsFeaturedModalOpen(true);
+                      }}
+                      className="w-full bg-[#ffd025] hover:bg-yellow-400 text-stone-950 font-black text-xs py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow active:scale-95 uppercase tracking-wide"
+                    >
+                      <i className="fa-solid fa-pen-to-square"></i>
+                      <span>Elegir los 6 Productos</span>
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -4333,6 +4477,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           setSelectedBannerCategory(null);
         }}
         onSaveBanner={handleSaveCategoryBanner}
+        showToast={showToast}
+      />
+
+      {/* MODAL: SELECCIÓN DE LOS 6 PRODUCTOS DESTACADOS POR SECCIÓN */}
+      <CategoryFeaturedProductsModal
+        isOpen={isFeaturedModalOpen}
+        category={selectedFeaturedCategory}
+        onClose={() => {
+          setIsFeaturedModalOpen(false);
+          setSelectedFeaturedCategory(null);
+        }}
+        onSaveFeatured={handleSaveCategoryFeaturedProducts}
         showToast={showToast}
       />
 
