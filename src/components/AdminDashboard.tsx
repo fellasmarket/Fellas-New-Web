@@ -4488,7 +4488,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           setIsFeaturedModalOpen(false);
           setSelectedFeaturedCategory(null);
         }}
-        onSaveFeatured={handleSaveCategoryFeaturedProducts}
+        onSaveFeaturedProducts={handleSaveCategoryFeaturedProducts}
         showToast={showToast}
       />
 

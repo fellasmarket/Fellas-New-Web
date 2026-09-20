@@ -824,10 +824,10 @@ export default function App() {
             <VisualQuickEditorModal
               target={quickEditTarget}
               onClose={() => setQuickEditTarget(null)}
-              onSaveProduct={handleQuickSaveProduct}
-              onSaveCategory={handleQuickSaveCategory}
-              onSaveHeroSlide={handleQuickSaveHeroSlide}
-              onSaveSettings={handleQuickSaveSettings}
+              onUpdateProduct={handleQuickSaveProduct}
+              onUpdateCategory={handleQuickSaveCategory}
+              onUpdateHeroSlide={handleQuickSaveHeroSlide}
+              onUpdateSettings={handleQuickSaveSettings}
             />
           )}
         </>
