@@ -67,7 +67,13 @@ const CATEGORY_ITEMS: CategoryCardItem[] = [
   }
 ];
 
-export const CategoryGrid: React.FC = () => {
+interface CategoryGridProps {
+  isEmergencyMode?: boolean;
+}
+
+export const CategoryGrid: React.FC<CategoryGridProps> = ({ isEmergencyMode = false }) => {
+  if (isEmergencyMode) return null;
+
   return (
     <section className="max-w-7xl mx-auto mt-8 px-1 sm:px-0">
       <div className="mb-4 px-2">

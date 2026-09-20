@@ -10,6 +10,7 @@ interface CategorySectionProps {
   isVisualEditMode?: boolean;
   onQuickEditProduct?: (product: Product, categoryId: string) => void;
   onQuickEditCategory?: (category: CategoryData) => void;
+  isEmergencyMode?: boolean;
 }
 
 export const CategorySection: React.FC<CategorySectionProps> = ({
@@ -18,9 +19,20 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   onOpenCategoryCatalog,
   isVisualEditMode = false,
   onQuickEditProduct,
-  onQuickEditCategory
+  onQuickEditCategory,
+  isEmergencyMode = false
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const displayProducts = React.useMemo(() => {
+    if (category.featuredProductIds && category.featuredProductIds.length > 0) {
+      return category.featuredProductIds
+        .map(id => category.products.find(p => p.id === id))
+        .filter((p): p is Product => !!p)
+        .slice(0, 6);
+    }
+    return category.products.slice(0, 6);
+  }, [category]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -96,15 +108,17 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Botón Ver Más */}
-            <a
-              id={`ver-mas-${category.id}`}
-              href={`#catalogo-${category.id}`}
-              onClick={handleOpenCatalog}
-              className="inline-flex items-center gap-1.5 bg-stone-900 hover:bg-[#141414] text-[#ffd129] hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-bold border border-stone-800 transition shadow-sm active:scale-95 cursor-pointer"
-            >
-              <span>Ver más</span>
-              <i className="fa-solid fa-arrow-right text-[10px]"></i>
-            </a>
+            {!isEmergencyMode && (
+              <a
+                id={`ver-mas-${category.id}`}
+                href={`#catalogo-${category.id}`}
+                onClick={handleOpenCatalog}
+                className="inline-flex items-center gap-1.5 bg-stone-900 hover:bg-[#141414] text-[#ffd129] hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-bold border border-stone-800 transition shadow-sm active:scale-95 cursor-pointer"
+              >
+                <span>Ver más</span>
+                <i className="fa-solid fa-arrow-right text-[10px]"></i>
+              </a>
+            )}
 
             {/* Controles del Carrusel */}
             <div className="flex items-center gap-1">
@@ -133,7 +147,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
           ref={scrollContainerRef}
           className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 pt-1 no-scrollbar scroll-smooth snap-x snap-mandatory touch-pan-x"
         >
-          {category.products.slice(0, 6).map((product) => {
+          {displayProducts.map((product) => {
             const autoDiscount = product.discount || getDiscountPercentage(product.price, product.originalPrice);
             const hasDiscount = product.originalPrice && product.originalPrice > product.price;
 

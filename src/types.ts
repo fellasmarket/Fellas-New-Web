@@ -98,6 +98,7 @@ export interface CategoryData {
   bannerPosition?: 'center' | 'top' | 'bottom';
   products: Product[];
   subcategories?: string[];
+  featuredProductIds?: string[];
 }
 
 export interface HeroSlide {
@@ -177,6 +178,7 @@ export interface MegaOffersConfig {
 }
 
 export interface StoreSettings {
+  isEmergencyMode?: boolean;
   storeName?: string;
   logoImage?: string;
   logoTextPrimary: string;

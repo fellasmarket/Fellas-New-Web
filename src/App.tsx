@@ -19,6 +19,7 @@ import { DeliveryDashboard } from './components/DeliveryDashboard';
 import { VisualQuickEditorModal, QuickEditTarget } from './components/admin/VisualQuickEditorModal';
 
 const DEFAULT_SETTINGS: StoreSettings = {
+  isEmergencyMode: false,
   storeName: 'Botillería Nova Express',
   logoTextPrimary: 'BOTI',
   logoTextAccent: '.EXPRESS',
@@ -635,13 +636,14 @@ export default function App() {
                 />
 
                 {/* 4. Colecciones & Áreas (Grid 2 filas horizontales de 4 y 4 = 8 tarjetas con botón ver más) */}
-                <CategoryGrid />
+                <CategoryGrid isEmergencyMode={settings.isEmergencyMode} />
 
                 {/* 5. Secciones de Categorías (Exactamente 3 subdivisiones de banner y carrusel de máx 5 productos) */}
                 {categories.slice(0, 3).map((category) => (
                   <CategorySection
                     key={category.id}
                     category={category}
+                    isEmergencyMode={settings.isEmergencyMode}
                     onAddToCart={handleAddToCart}
                     onOpenCategoryCatalog={(catId) => {
                       setSelectedCatalogCategoryId(catId);
