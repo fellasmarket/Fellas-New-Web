@@ -172,12 +172,12 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                     </button>
                   )}
 
-                  <div className="relative w-full sm:w-28 md:w-36 h-14 sm:h-28 md:h-36 rounded-md sm:rounded-xl overflow-hidden bg-stone-50 shrink-0 border border-stone-200/70 flex items-center justify-center p-0.5 sm:p-2.5">
+                  <div className="relative aspect-square w-full sm:w-28 md:w-36 rounded-md sm:rounded-xl overflow-hidden bg-stone-50 shrink-0 border border-stone-200/70 flex items-center justify-center p-0.5 sm:p-2.5">
                     <img
                       src={offer.image}
                       alt={offer.name}
                       referrerPolicy="no-referrer"
-                      className={`max-w-full max-h-full w-auto h-auto object-contain aspect-auto group-hover:scale-105 transition-transform duration-300 ${offer.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
+                      className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${offer.inStock === false ? 'opacity-50 grayscale-40' : ''}`}
                     />
                     {autoDiscount && offer.inStock !== false && (
                       <span className="absolute top-0.5 left-0.5 sm:top-2 sm:left-2 bg-red-600 text-white text-[7px] sm:text-[10px] font-extrabold px-1 sm:px-2 py-0.2 rounded shadow-md animate-pulse">

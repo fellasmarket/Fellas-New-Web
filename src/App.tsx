@@ -528,7 +528,7 @@ export default function App() {
                             </button>
                           )}
                           <div>
-                            <div className="h-32 sm:h-44 bg-stone-100 rounded-lg sm:rounded-xl mb-2 sm:mb-3 overflow-hidden relative">
+                            <div className="aspect-square w-full bg-stone-100 rounded-lg sm:rounded-xl mb-2 sm:mb-3 overflow-hidden relative">
                               <img
                                 src={product.image}
                                 alt={product.name}

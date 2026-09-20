@@ -164,7 +164,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                 )}
 
                 <div>
-                  <div className="h-28 sm:h-32 bg-stone-100 rounded-xl mb-2 sm:mb-2.5 overflow-hidden relative">
+                  <div className="aspect-square w-full bg-stone-100 rounded-xl mb-2 sm:mb-2.5 overflow-hidden relative">
                     <img
                       src={product.image}
                       alt={product.name}

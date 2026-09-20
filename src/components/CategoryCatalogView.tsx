@@ -368,7 +368,7 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
 
                     <div>
                       {/* Imagen con badges */}
-                      <div className="h-28 sm:h-40 bg-stone-100 rounded-lg sm:rounded-xl mb-2 sm:mb-3 overflow-hidden relative border border-stone-100">
+                      <div className="aspect-square w-full bg-stone-100 rounded-lg sm:rounded-xl mb-2 sm:mb-3 overflow-hidden relative border border-stone-100">
                         <img
                           src={product.image}
                           alt={product.name}
