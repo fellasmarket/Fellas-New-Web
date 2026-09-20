@@ -670,8 +670,8 @@ export default function App() {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
-                onQuickEditProduct={(product) => setQuickEditTarget({ type: 'product', data: product })}
-                onQuickEditCategory={(category) => setQuickEditTarget({ type: 'category', data: category })}
+                onQuickEditProduct={(product) => setQuickEditTarget({ type: 'product', product: product })}
+                onQuickEditCategory={(category) => setQuickEditTarget({ type: 'category', category: category })}
               />
             ) : (
               <>
@@ -679,7 +679,7 @@ export default function App() {
                 <HeroSlider
                   slides={heroSlides}
                   isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
-                  onQuickEdit={(slide) => setQuickEditTarget({ type: 'slide', data: slide })}
+                  onQuickEdit={(slide) => setQuickEditTarget({ type: 'hero_slide', slide: slide, index: 0 })}
                 />
 
                 {/* 2. Banner de Suscripción Newsletter */}
@@ -691,8 +691,8 @@ export default function App() {
                   megaOffers={megaOffers}
                   settings={settings}
                   isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
-                  onQuickEditProduct={(product) => setQuickEditTarget({ type: 'product', data: product })}
-                  onQuickEditSection={() => setQuickEditTarget({ type: 'mega_offers', data: settings })}
+                  onQuickEditProduct={(product) => setQuickEditTarget({ type: 'product', product: product })}
+                  onQuickEditSection={() => setQuickEditTarget({ type: 'mega_offers_section' })}
                 />
 
                 {/* 4. Colecciones & Áreas (Oculto estrictamente cuando la Tienda Alterna está activa) */}
@@ -714,8 +714,8 @@ export default function App() {
                       }
                     }}
                     isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
-                    onQuickEditCategory={(cat) => setQuickEditTarget({ type: 'category', data: cat })}
-                    onQuickEditProduct={(prod) => setQuickEditTarget({ type: 'product', data: prod })}
+                    onQuickEditCategory={(cat) => setQuickEditTarget({ type: 'category', category: cat })}
+                    onQuickEditProduct={(prod) => setQuickEditTarget({ type: 'product', product: prod })}
                   />
                 ))}
 
@@ -723,7 +723,7 @@ export default function App() {
                 <BottomPromoBanner
                   settings={settings}
                   isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
-                  onQuickEdit={() => setQuickEditTarget({ type: 'bottom_promo', data: settings })}
+                  onQuickEdit={() => setQuickEditTarget({ type: 'bottom_promo_banner' })}
                   onOpenWhatsApp={() => {
                     const cleanNum = (settings.socialWhatsapp || settings.contactPhone || '+56958866754').replace(/[^0-9]/g, '');
                     const message = encodeURIComponent(
@@ -748,7 +748,7 @@ export default function App() {
                 <BottomDualBanners
                   settings={settings}
                   isVisualEditMode={user?.role === 'admin' && isVisualEditMode}
-                  onQuickEdit={() => setQuickEditTarget({ type: 'bottom_dual', data: settings })}
+                  onQuickEdit={() => setQuickEditTarget({ type: 'bottom_dual_banners' })}
                   onExploreProducts={() => {
                     if (categories.length > 0) {
                       if (isEmergencyMode) {
