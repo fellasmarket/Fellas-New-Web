@@ -27,6 +27,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
   const [isImporting, setIsImporting] = useState(false);
   const [clearPreviousOnImport, setClearPreviousOnImport] = useState(false);
   const [isClearingNow, setIsClearingNow] = useState(false);
+  const [isReclassifying, setIsReclassifying] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Standard botillería categories to guarantee options in modal
@@ -74,6 +75,27 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
       showToast('Error al vaciar catálogo');
     } finally {
       setIsClearingNow(false);
+    }
+  };
+
+  // Reclassify entire current catalog with deep Gemini Botillería AI
+  const handleReclassifyExistingCatalog = async () => {
+    if (!window.confirm('¿Deseas que la IA analice atentamente TODOS los productos actuales de tu tienda y los reorganice en sus pasillos correctos según sus nombres completos?')) return;
+    setIsReclassifying(true);
+    try {
+      const res = await fetch('/api/admin/reclassify-catalog', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        onImportComplete(data.totalReorganized || 0, data.counts?.megaOffers || 0, data.categories, data.megaOffers);
+        showToast(data.message || '¡Catálogo reorganizado exitosamente con Inteligencia Artificial!');
+      } else {
+        showToast(data.error || 'Error al reorganizar catálogo');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error de conexión al reorganizar catálogo');
+    } finally {
+      setIsReclassifying(false);
     }
   };
 
@@ -522,7 +544,18 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                   <span>Descargar Plantilla Excel (.xlsx)</span>
                 </button>
 
-                <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleReclassifyExistingCatalog}
+                    disabled={isReclassifying}
+                    className="w-full sm:w-auto bg-purple-950/50 hover:bg-purple-900/70 text-purple-200 hover:text-white border border-purple-700/70 text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow"
+                    title="Reorganizar con IA los productos que ya están en la tienda"
+                  >
+                    <i className={`fa-solid ${isReclassifying ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'} text-purple-300`}></i>
+                    <span>{isReclassifying ? 'Reorganizando...' : 'Reorganizar Catálogo con IA'}</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleClearPreviousNow}

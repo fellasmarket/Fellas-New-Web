@@ -1139,6 +1139,501 @@ const STANDARD_BOTILLERIA_TEMPLATES: Record<string, Partial<CategoryData>> = {
   }
 };
 
+// Helper: Botillería AI & Heuristics Classification Engine
+async function classifyProductsWithBotilleriaAI(items: any[], existingCategories?: any[]) {
+  // Build complete available categories guaranteeing all standard botillería sections
+  const provided = Array.isArray(existingCategories) ? existingCategories : [];
+  const availableCategories: Array<{ id: string; name: string }> = [...provided];
+
+  // Ensure all standard botillería categories exist in availableCategories
+  Object.entries(STANDARD_BOTILLERIA_TEMPLATES).forEach(([catId, tmpl]) => {
+    if (!availableCategories.some(c => c.id === catId)) {
+      availableCategories.push({ id: catId, name: tmpl.name || catId });
+    }
+  });
+
+  // Rigorous Chilean Botillería & Minimarket Classifier Engine
+  const runHeuristic = (name: string, price: number, origPrice?: number) => {
+    const n = (name || '').toLowerCase().trim();
+    let categoryId = 'cat-bebidas';
+    let categoryName = 'Bebidas, Aguas & Hielo';
+    let subcategory = 'Bebidas Gaseosas';
+    let image = BEVERAGE_IMAGES.bebida;
+    let brand = '';
+
+    // Check if product is a combo/pack with alcohol
+    const isPackKeyword = n.includes('+') || n.includes('pack') || n.includes('promo') || n.includes('combo') || 
+                          n.includes('piscola') || n.includes('sixpack') || n.includes('six pack') || n.includes('2x1') || n.includes('3x2');
+
+    const hasPiscoKeyword = n.includes('pisco') || n.includes('piscola') || n.includes('alto del carmen') || n.includes('mistral') ||
+                            n.includes('capel') || n.includes('horcon') || n.includes('horcón') || n.includes('tres erres') ||
+                            n.includes('control c') || n.includes('campanario') || n.includes('bauza') || n.includes('bauzá') ||
+                            n.includes('mal paso') || n.includes('waqar') || n.includes('los nichos') || n.includes('el gobernador');
+
+    const hasWhiskyKeyword = n.includes('whisky') || n.includes('whiskey') || n.includes('bourbon') || n.includes('scotch') ||
+                             n.includes('johnnie walker') || n.includes('johnnie') || n.includes('red label') || n.includes('black label') ||
+                             n.includes('jack daniel') || n.includes('chivas') || n.includes('ballantine') || n.includes('sandy mac') ||
+                             n.includes('jameson') || n.includes('grant') || n.includes('j&b') || n.includes('white horse') ||
+                             n.includes('buchanan') || n.includes('glenfiddich') || n.includes('macallan') || n.includes('dewars') ||
+                             n.includes('old parr') || n.includes('passport') || n.includes('vat 69');
+
+    const hasGinKeyword = n.includes('gin') || n.includes('tanqueray') || n.includes('bombay') || n.includes('beefeater') ||
+                          n.includes('hendrick') || n.includes('malfy') || n.includes('gordon') || n.includes('bulldog') ||
+                          n.includes('elemental') || n.includes('tepual') || n.includes('provincia') || n.includes('monkey 47') ||
+                          n.includes('roku') || n.includes('london dry');
+
+    const hasVodkaKeyword = n.includes('vodka') || n.includes('absolut') || n.includes('smirnoff') || n.includes('grey goose') ||
+                            n.includes('stoli') || n.includes('ciroc') || n.includes('cîroc') || n.includes('belvedere') ||
+                            n.includes('skyy') || n.includes('eristoff') || n.includes('finlandia');
+
+    const hasRonKeyword = n.includes('ron') || n.includes('rum') || n.includes('havana') || n.includes('bacardi') || n.includes('bacardí') ||
+                          n.includes('pampero') || n.includes('flor de caña') || n.includes('barcelo') || n.includes('barceló') ||
+                          n.includes('brugal') || n.includes('zacapa') || n.includes('captain morgan') || n.includes('matusalem') || n.includes('malibu');
+
+    const hasTequilaKeyword = n.includes('tequila') || n.includes('mezcal') || n.includes('cuervo') || n.includes('don julio') ||
+                              n.includes('herradura') || n.includes('1800') || n.includes('patron') || n.includes('patrón') ||
+                              n.includes('olmeca') || n.includes('sauza') || n.includes('cazadores') || n.includes('espolon') || n.includes('400 conejos');
+
+    const hasBeerKeyword = n.includes('cerveza') || n.includes('beer') || n.includes('corona') || n.includes('heineken') ||
+                           n.includes('stella') || n.includes('budweiser') || n.includes('austral') || n.includes('kunstmann') ||
+                           n.includes('kross') || n.includes('cristal') || n.includes('escudo') || n.includes('royal guard') ||
+                           n.includes('becker') || n.includes('miller') || n.includes('coors') || n.includes('sol') ||
+                           n.includes('cusqueña') || n.includes('torobayo') || n.includes('calafate') || n.includes('cuello negro') ||
+                           n.includes('lager') || n.includes('ipa') || n.includes('stout') || n.includes('porter') || n.includes('pilsen');
+
+    const hasWineKeyword = n.includes('vino') || n.includes('cabernet') || n.includes('carmenere') || n.includes('carmenère') ||
+                           n.includes('merlot') || n.includes('syrah') || n.includes('sauvignon') || n.includes('chardonnay') ||
+                           n.includes('malbec') || n.includes('pinot') || n.includes('casillero') || n.includes('gato negro') ||
+                           n.includes('tarapaca') || n.includes('tarapacá') || n.includes('concha y toro') || n.includes('santa rita') ||
+                           n.includes('120') || n.includes('montes') || n.includes('misiones de rengo') || n.includes('castillo de molina') ||
+                           n.includes('toro de piedra') || n.includes('espumante') || n.includes('champagne') || n.includes('champaña') ||
+                           n.includes('brut') || n.includes('extra brut') || n.includes('valdivieso') || n.includes('chandon') ||
+                           n.includes('riccadonna') || n.includes('cava') || n.includes('prosecco');
+
+    const hasAperitivoKeyword = n.includes('aperol') || n.includes('ramazzotti') || n.includes('fernet') || n.includes('branca') ||
+                                n.includes('campari') || n.includes('baileys') || n.includes('jagermeister') || n.includes('jägermeister') ||
+                                n.includes('vermouth') || n.includes('vermut') || n.includes('martini') || n.includes('cointreau') ||
+                                n.includes('disaronno') || n.includes('amaretto') || n.includes('kahlua') || n.includes('kahlúa') ||
+                                n.includes('licor 43') || n.includes('sour') || n.includes('pisco sour') || n.includes('mango sour');
+
+    const hasSnackKeyword = n.includes('papas') || n.includes('lays') || n.includes("lay's") || n.includes('dorito') ||
+                            n.includes('cheeto') || n.includes('ramitas') || n.includes('evercrisp') || n.includes('mani') ||
+                            n.includes('maní') || n.includes('frutos secos') || n.includes('almendra') || n.includes('pistacho') ||
+                            n.includes('nacho') || n.includes('snack') || n.includes('galleta') || n.includes('chocolate') ||
+                            n.includes('chocman') || n.includes('super 8') || n.includes('sahne nuss') || n.includes('tika') || n.includes('kryzpo') || n.includes('pringles');
+
+    const hasAguaKeyword = n.includes('agua') || n.includes('mineral') || n.includes('cachantun') || n.includes('cachantún') ||
+                           n.includes('vital') || n.includes('benedictino') || n.includes('puyehue') || n.includes('porvenir') ||
+                           n.includes('nestle') || n.includes('nestlé') || n.includes('aquarius') || n.includes('con gas') ||
+                           n.includes('sin gas') || n.includes('gasificada') || n.includes('smartwater') || n.includes('perrier') ||
+                           n.includes('san pellegrino') || n.includes('más water') || n.includes('mas water');
+
+    const hasEnergeticaKeyword = n.includes('red bull') || n.includes('redbull') || n.includes('monster') ||
+                                 n.includes('score') || n.includes('dark dog') || n.includes('energetica') ||
+                                 n.includes('energética') || n.includes('rockstar') || n.includes('mr big') || n.includes('mr. big');
+
+    const hasHieloKeyword = n.includes('hielo') || n.includes('cubo') || n.includes('bolsa de hielo') || n.includes('hielo purificado') || n.includes('iglu') || n.includes('iglú');
+
+    const hasBebidaGaseosaKeyword = n.includes('coca') || n.includes('coca-cola') || n.includes('coca cola') || n.includes('sprite') ||
+                                    n.includes('fanta') || n.includes('pepsi') || n.includes('bilz') || n.includes('pap') ||
+                                    n.includes('kem') || n.includes('limon soda') || n.includes('limón soda') || n.includes('7up') ||
+                                    n.includes('ginger ale') || n.includes('tonica') || n.includes('tónica') || n.includes('canada dry') ||
+                                    n.includes('nordic') || n.includes('crush') || n.includes('sorbete letelier') || n.includes('jugo') ||
+                                    n.includes('watts') || n.includes('watt\'s') || n.includes('kapo') || n.includes('gatorade') || n.includes('powerade') ||
+                                    (n.includes('ccu') && !hasBeerKeyword && !hasWineKeyword);
+
+    // --- 1. COMBO / PACK WITH ALCOHOL ---
+    if (isPackKeyword && (hasPiscoKeyword || hasWhiskyKeyword || hasGinKeyword || hasVodkaKeyword || hasRonKeyword || hasTequilaKeyword || hasAperitivoKeyword || hasBeerKeyword || hasWineKeyword)) {
+      if (hasPiscoKeyword || hasWhiskyKeyword || hasGinKeyword || hasVodkaKeyword || hasRonKeyword || hasTequilaKeyword) {
+        categoryId = 'cat-destilados';
+        categoryName = 'Destilados & Piscos';
+        subcategory = hasPiscoKeyword ? 'Combos & Packs Piscoleros' : 'Combos & Packs Destilados';
+        brand = hasPiscoKeyword ? (n.includes('mistral') ? 'Mistral' : 'Alto del Carmen') : (hasWhiskyKeyword ? "Johnnie Walker" : 'Pack Destilado');
+      } else if (hasBeerKeyword) {
+        categoryId = 'cat-cervezas';
+        categoryName = 'Cervezas & Artesanales';
+        subcategory = 'Packs de Cervezas Heladas';
+        brand = n.includes('corona') ? 'Corona' : (n.includes('heineken') ? 'Heineken' : 'Pack Cerveza');
+      } else if (hasAperitivoKeyword) {
+        categoryId = 'cat-aperitivos';
+        categoryName = 'Aperitivos & Licores';
+        subcategory = 'Combos & Aperitivos';
+        brand = n.includes('aperol') ? 'Aperol' : (n.includes('ramazzotti') ? 'Ramazzotti' : 'Fernet Branca');
+      } else {
+        categoryId = 'cat-vinos';
+        categoryName = 'Vinos & Espumantes';
+        subcategory = 'Packs de Vinos';
+        brand = 'Pack Selección';
+      }
+      image = BEVERAGE_IMAGES.pack;
+    }
+    // --- 2. DESTILADOS & PISCOS ---
+    else if (hasPiscoKeyword || hasWhiskyKeyword || hasGinKeyword || hasVodkaKeyword || hasRonKeyword || hasTequilaKeyword ||
+             n.includes('35°') || n.includes('40°') || n.includes('46°') || n.includes('destilado')) {
+      categoryId = 'cat-destilados';
+      categoryName = 'Destilados & Piscos';
+      if (hasWhiskyKeyword) {
+        subcategory = 'Whiskies & Bourbons';
+        image = BEVERAGE_IMAGES.whisky;
+        brand = n.includes('johnnie') ? 'Johnnie Walker' : (n.includes('jack') ? "Jack Daniel's" : (n.includes('chivas') ? 'Chivas Regal' : 'Whisky'));
+      } else if (hasGinKeyword) {
+        subcategory = 'Gin Botánico';
+        image = BEVERAGE_IMAGES.vodka_gin;
+        brand = n.includes('tanqueray') ? 'Tanqueray' : (n.includes('bombay') ? 'Bombay Sapphire' : (n.includes('beefeater') ? 'Beefeater' : 'Gin'));
+      } else if (hasVodkaKeyword) {
+        subcategory = 'Vodka Importado';
+        image = BEVERAGE_IMAGES.vodka_gin;
+        brand = n.includes('absolut') ? 'Absolut' : (n.includes('smirnoff') ? 'Smirnoff' : 'Vodka');
+      } else if (hasRonKeyword) {
+        subcategory = 'Ron Añejo & Blanco';
+        image = BEVERAGE_IMAGES.pisco;
+        brand = n.includes('havana') ? 'Havana Club' : (n.includes('bacardi') ? 'Bacardí' : 'Ron');
+      } else if (hasTequilaKeyword) {
+        subcategory = 'Tequila & Mezcal';
+        image = BEVERAGE_IMAGES.pisco;
+        brand = n.includes('cuervo') ? 'José Cuervo' : (n.includes('don julio') ? 'Don Julio' : 'Tequila');
+      } else {
+        subcategory = 'Piscos Chilenos';
+        image = BEVERAGE_IMAGES.pisco;
+        brand = n.includes('alto del carmen') ? 'Alto del Carmen' : (n.includes('mistral') ? 'Mistral' : (n.includes('capel') ? 'Capel' : 'Pisco Chileno'));
+      }
+    }
+    // --- 3. CERVEZAS & ARTESANALES ---
+    else if (hasBeerKeyword) {
+      categoryId = 'cat-cervezas';
+      categoryName = 'Cervezas & Artesanales';
+      if (n.includes('artesanal') || n.includes('kross') || n.includes('kunstmann') || n.includes('austral') ||
+          n.includes('torobayo') || n.includes('calafate') || n.includes('cuello negro') || n.includes('ipa') || n.includes('stout')) {
+        subcategory = 'Cervezas Artesanales';
+        brand = n.includes('austral') ? 'Austral' : (n.includes('kunstmann') ? 'Kunstmann' : (n.includes('kross') ? 'Kross' : 'Cerveza Artesanal'));
+      } else if (n.includes('corona') || n.includes('heineken') || n.includes('stella') || n.includes('budweiser') || n.includes('miller')) {
+        subcategory = 'Cervezas Importadas';
+        brand = n.includes('corona') ? 'Corona' : (n.includes('heineken') ? 'Heineken' : (n.includes('stella') ? 'Stella Artois' : 'Cerveza Importada'));
+      } else {
+        subcategory = 'Cervezas Heladas';
+        brand = n.includes('cristal') ? 'Cristal' : (n.includes('escudo') ? 'Escudo' : (n.includes('royal') ? 'Royal Guard' : 'Cerveza Nacional'));
+      }
+      image = BEVERAGE_IMAGES.cerveza;
+    }
+    // --- 4. VINOS & ESPUMANTES ---
+    else if (hasWineKeyword) {
+      categoryId = 'cat-vinos';
+      categoryName = 'Vinos & Espumantes';
+      if (n.includes('espumante') || n.includes('champagne') || n.includes('champaña') || n.includes('brut') ||
+          n.includes('valdivieso') || n.includes('chandon') || n.includes('riccadonna') || n.includes('cava') || n.includes('prosecco')) {
+        subcategory = 'Espumantes & Cavas';
+        image = BEVERAGE_IMAGES.espumante;
+        brand = n.includes('valdivieso') ? 'Valdivieso' : (n.includes('chandon') ? 'Chandon' : 'Espumante');
+      } else if (n.includes('sauvignon') || n.includes('blanco') || n.includes('chardonnay')) {
+        subcategory = 'Vinos Blancos';
+        image = BEVERAGE_IMAGES.vino;
+        brand = n.includes('casillero') ? 'Casillero del Diablo' : (n.includes('gato negro') ? 'Gato Negro' : 'Vino Blanco');
+      } else {
+        subcategory = (n.includes('gran reserva') || n.includes('reserva')) ? 'Vinos Reserva & Gran Reserva' : 'Vinos Tintos';
+        image = BEVERAGE_IMAGES.vino;
+        brand = n.includes('casillero') ? 'Casillero del Diablo' : (n.includes('tarapaca') ? 'Tarapacá' : (n.includes('montes') ? 'Montes Alpha' : 'Vino Chileno'));
+      }
+    }
+    // --- 5. APERITIVOS & LICORES ---
+    else if (hasAperitivoKeyword) {
+      categoryId = 'cat-aperitivos';
+      categoryName = 'Aperitivos & Licores';
+      if (n.includes('aperol')) { subcategory = 'Aperitivos Italianos'; brand = 'Aperol'; }
+      else if (n.includes('ramazzotti')) { subcategory = 'Aperitivos'; brand = 'Ramazzotti'; }
+      else if (n.includes('fernet') || n.includes('branca')) { subcategory = 'Digestivos & Bitter'; brand = 'Fernet Branca'; }
+      else if (n.includes('baileys')) { subcategory = 'Licores & Cremas'; brand = 'Baileys'; }
+      else if (n.includes('jagermeister') || n.includes('jägermeister')) { subcategory = 'Licores de Hierbas'; brand = 'Jägermeister'; }
+      else if (n.includes('sour')) { subcategory = 'Cócteles Preparados'; brand = 'Sour Chileno'; }
+      else { subcategory = 'Licores & Aperitivos'; brand = 'Aperitivo'; }
+      image = BEVERAGE_IMAGES.aperitivo;
+    }
+    // --- 6. SNACKS & PICOTEOS ---
+    else if (hasSnackKeyword) {
+      categoryId = 'cat-snacks';
+      categoryName = 'Snacks & Picoteos';
+      if (n.includes('papas') || n.includes('lays') || n.includes("lay's") || n.includes('kryzpo') || n.includes('pringles')) {
+        subcategory = 'Papas Fritas';
+        brand = n.includes('lays') || n.includes("lay's") ? "Lay's" : (n.includes('kryzpo') ? 'Kryzpo' : 'Papas Fritas');
+      } else if (n.includes('ramitas') || n.includes('evercrisp') || n.includes('dorito') || n.includes('cheeto')) {
+        subcategory = 'Snacks Salados';
+        brand = 'Evercrisp';
+      } else if (n.includes('mani') || n.includes('maní') || n.includes('almendra') || n.includes('frutos secos') || n.includes('pistacho')) {
+        subcategory = 'Frutos Secos';
+        brand = 'Selección';
+      } else {
+        subcategory = 'Chocolates & Dulces';
+        brand = n.includes('sahne nuss') ? 'Sahne Nuss' : (n.includes('super 8') ? 'Super 8' : 'Snack');
+      }
+      image = BEVERAGE_IMAGES.snack;
+    }
+    // --- 7. BEBIDAS, AGUAS & HIELO ---
+    else {
+      categoryId = 'cat-bebidas';
+      categoryName = 'Bebidas, Aguas & Hielo';
+      if (hasAguaKeyword) {
+        if (n.includes('con gas') || n.includes('gasificada')) subcategory = 'Aguas con Gas';
+        else if (n.includes('sin gas')) subcategory = 'Aguas sin Gas';
+        else subcategory = 'Aguas Minerales';
+        image = BEVERAGE_IMAGES.agua;
+        brand = n.includes('cachantun') ? 'Cachantún' : (n.includes('vital') ? 'Vital' : (n.includes('benedictino') ? 'Benedictino' : 'Agua Mineral'));
+      } else if (hasEnergeticaKeyword) {
+        subcategory = 'Bebidas Energéticas';
+        image = BEVERAGE_IMAGES.energetica;
+        brand = n.includes('red bull') ? 'Red Bull' : (n.includes('monster') ? 'Monster' : (n.includes('score') ? 'Score' : 'Energética'));
+      } else if (hasHieloKeyword) {
+        subcategory = 'Hielo & Complementos';
+        image = BEVERAGE_IMAGES.hielo;
+        brand = 'Hielo Purificado';
+      } else {
+        subcategory = 'Bebidas Gaseosas';
+        image = BEVERAGE_IMAGES.bebida;
+        if (n.includes('coca')) brand = 'Coca-Cola';
+        else if (n.includes('sprite')) brand = 'Sprite';
+        else if (n.includes('fanta')) brand = 'Fanta';
+        else if (n.includes('pepsi')) brand = 'Pepsi';
+        else if (n.includes('bilz')) brand = 'Bilz';
+        else if (n.includes('pap')) brand = 'Pap';
+        else if (n.includes('kem')) brand = 'Kem Piña';
+        else if (n.includes('limon soda') || n.includes('limón soda')) brand = 'Limón Soda';
+        else brand = 'Bebida Gaseosa';
+      }
+    }
+
+    // Offer classification
+    let offerType: 'mega_offer' | 'regular_offer' | 'standard' = 'standard';
+    let suggestedOriginalPrice = origPrice && origPrice > price ? origPrice : undefined;
+    let discount: string | undefined = undefined;
+    let aiReason = `Clasificado atentamente en pasillo ${categoryName} (${subcategory}).`;
+
+    const isComboOrPack = isPackKeyword || n.includes('pack 24') || n.includes('pack 12') ||
+                          n.includes('combo') || n.includes('2x1') || n.includes('3x2') ||
+                          n.includes('mega oferta') || n.includes('promocion') || n.includes('promoción');
+
+    if (isComboOrPack) {
+      offerType = 'mega_offer';
+      image = BEVERAGE_IMAGES.pack;
+      if (!suggestedOriginalPrice) {
+        suggestedOriginalPrice = Math.round((price * 1.28) / 100) * 100;
+      }
+      const pct = Math.round(((suggestedOriginalPrice - price) / suggestedOriginalPrice) * 100);
+      discount = `-${pct}%`;
+      aiReason = '🔥 Detectado como Pack/Promo estelar: clasificado como Mega Oferta para portada.';
+    } else if (suggestedOriginalPrice && suggestedOriginalPrice > price) {
+      const pct = Math.round(((suggestedOriginalPrice - price) / suggestedOriginalPrice) * 100);
+      offerType = pct >= 25 ? 'mega_offer' : 'regular_offer';
+      discount = `-${pct}%`;
+      aiReason = `🏷️ Detectado con precio promocional (${discount}): clasificado como Oferta destacada.`;
+    } else if (price > 12000 && (n.includes('whisky') || n.includes('gin') || n.includes('reserva') || n.includes('gran reserva'))) {
+      offerType = 'regular_offer';
+      suggestedOriginalPrice = Math.round((price * 1.20) / 100) * 100;
+      const pct = Math.round(((suggestedOriginalPrice - price) / suggestedOriginalPrice) * 100);
+      discount = `-${pct}%`;
+      aiReason = '✨ Producto premium de alta rotación con precio de referencia de mercado.';
+    }
+
+    return {
+      categoryId,
+      categoryName,
+      subcategory,
+      offerType,
+      discount,
+      suggestedOriginalPrice,
+      description: `Selección Fella's Market. ${name}, disponible con despacho exprés a tu puerta.`,
+      image,
+      brand,
+      aiReason
+    };
+  };
+
+  // Attempt Gemini AI classification with batching & responseMimeType: "application/json"
+  const ai = getGeminiAi();
+  let geminiClassifiedMap = new Map<number, any>();
+
+  if (ai) {
+    try {
+      const simplifiedItems = items.map((it, idx) => ({
+        idx,
+        nombre: String(it.name || ''),
+        precio: Number(it.price) || 0,
+        precioOriginal: it.originalPrice ? Number(it.originalPrice) : null,
+        categoriaPlanilla: it.rawCategory || it.category || null,
+        marcaPlanilla: it.brand || null
+      }));
+
+      // Batch in chunks of 25 products to prevent token truncation and maximize attention
+      const CHUNK_SIZE = 25;
+      for (let c = 0; c < simplifiedItems.length; c += CHUNK_SIZE) {
+        const chunk = simplifiedItems.slice(c, c + CHUNK_SIZE);
+
+        const systemPrompt = `Eres el sommelier y clasificador maestro de catálogo para la botillería y minimarket chileno "Fella's Market".
+Tu misión principal es LEER ATENTAMENTE Y EN PROFUNDIDAD EL NOMBRE COMPLETO DE CADA PRODUCTO para categorizarlo con total precisión en el pasillo correspondiente.
+
+CATEGORÍAS DE LA TIENDA Y REGLAS CRÍTICAS:
+1. "cat-destilados" - "Destilados & Piscos":
+   - Piscos chilenos: Alto del Carmen, Mistral, Capel, Horcón Quemado, Campanario, Tres Erres, Control C, Bauzá, Mal Paso, Waqar, Los Nichos, El Gobernador, etc. Lee graduaciones como 35°, 40°, 46°, Especial, Reservado, Gran Reserva.
+   - Whiskies: Johnnie Walker (Red, Black, Double Black, Gold, Blue), Jack Daniel's, Chivas Regal, Ballantine's, Sandy Mac, Jameson, Grant's, J&B, White Horse, Buchanan's, Glenfiddich, Macallan, Maker's Mark, Jim Beam, Old Parr, Dewars, Black & White, Passport, Vat 69.
+   - Gin: Tanqueray, Bombay Sapphire, Beefeater, Hendrick's, Malfy, Gordon's, Bulldog, Elemental, Tepual, Provincia, Monkey 47, Roku, London Dry.
+   - Vodka: Absolut, Smirnoff, Grey Goose, Stolichnaya, Stoli, Cîroc, Belvedere, Skyy, Eristoff.
+   - Ron: Havana Club, Bacardí, Pampero, Flor de Caña, Barceló, Brugal, Zacapa, Captain Morgan, Matusalem, Malibu.
+   - Tequila / Mezcal: José Cuervo, Don Julio, Herradura, 1800, Patrón, Olmeca, Sauza, Cazadores, Espolón, 400 Conejos.
+
+2. "cat-cervezas" - "Cervezas & Artesanales":
+   - Cervezas masivas e importadas: Corona, Heineken, Stella Artois, Budweiser, Miller, Cristal, Escudo, Royal Guard, Becker, Coors, Sol, Cusqueña, Quilmes, Blue Moon, Guinness.
+   - Cervezas artesanales chilenas: Austral (Calafate, Lager, Patagónica), Kunstmann (Torobayo, Miel, Gran Torobayo), Kross (Kross 5, Golden, IPA, Maibock), Cuello Negro, D'olbek, Tubinger, Bundor, Szot, Granizo, Spaten, Paulaner, Leffe.
+   - Estilos: Lager, Ale, IPA, Stout, Porter, Pilsen, Cero / Sin Alcohol (Corona Cero, Cristal Cero son cervezas).
+
+3. "cat-vinos" - "Vinos & Espumantes":
+   - Cepas tintas y blancas: Cabernet Sauvignon, Carmenère, Merlot, Syrah, Sauvignon Blanc, Chardonnay, Pinot Noir, Malbec, Ensamblajes, Late Harvest.
+   - Viñas: Casillero del Diablo, Gato Negro, Santa Helena, Santa Rita, 120, Montes Alpha, Montes, Tarapacá, Concha y Toro, Misiones de Rengo, Castillo de Molina, Toro de Piedra, Undurraga, Cousiño Macul, Santa Ema, Los Vascos, Leyda, Errázuriz, Veramonte, Morandé, Ventisquero, Cono Sur, Emiliana, Marques de Casa Concha.
+   - Espumantes y Cavas: Valdivieso Brut, Chandon, Riccadonna, Freixenet, Codorníu, Undurraga Brut, Moët & Chandon, Mumm, Viña Mar, Prosecco, Cava.
+
+4. "cat-aperitivos" - "Aperitivos & Licores":
+   - Aperitivos: Aperol, Ramazzotti (Rosato, Violetto), Fernet Branca, Campari, Cynar, Vermouth (Martini, Cinzano, Carpano).
+   - Licores y cremas: Baileys, Jägermeister, Cointreau, Disaronno Amaretto, Kahlúa, Sheridan's, Frangelico, Licor 43, Drambuie, Limoncello.
+   - Cócteles preparados: Campanario Sour, Pisco Sour en botella, Mango Sour, Mojito preparado.
+
+5. "cat-bebidas" - "Bebidas, Aguas & Hielo":
+   - Aguas minerales: Cachantún, Vital, Puyehue, Benedictino, Porvenir, Nestlé, Smartwater, Perrier, San Pellegrino, Más Water (con gas o sin gas).
+   - Bebidas gaseosas / fantasía: Coca-Cola, Sprite, Fanta, Pepsi, 7Up, Canada Dry (Ginger Ale, Tónica), Crush, Bilz, Pap, Kem Piña, Limón Soda, Nordic Mist, Sorbete Letelier.
+   - Energéticas: Red Bull, Monster Energy, Score, Rockstar, Dark Dog.
+   - Hielo: Bolsas de hielo en cubos o frappé (Hielo Iglú, hielo purificado 1kg, 2kg, etc.).
+   - Jugos: Watt's, Kapo, Andina del Valle.
+
+6. "cat-snacks" - "Snacks & Picoteos":
+   - Papas fritas: Lay's, Kryzpo, Pringles, Mom's, Marco Polo, Tika.
+   - Salados: Ramitas Evercrisp, Doritos, Cheetos, Cheezels, Crikas, Nachos, Maní salado/tostado, Frutos secos, Almendras, Pistachos, Aceitunas, Club Social, Selz.
+   - Chocolates y dulces: Sahne Nuss, Super 8, Trencito, Chocman, Negrita, Oreo.
+
+¡REGLA FUNDAMENTAL DE COMBOS Y PACKS CON ALCOHOL!:
+- Si un producto es un Pack o Combo que contiene alcohol con acompañamiento (ej: "Pack Piscola Mistral 35° + Coca-Cola + Hielo", "Combo Jack Daniel's + Coca-Cola", "Pack Gin Tanqueray + 4 Tónicas", "Pack Fernet Branca + 2 Coca-Cola", "Sixpack Austral + Papas Lays"):
+  * CLASIFÍCALO OBLIGATORIAMENTE EN LA CATEGORÍA DEL ALCOHOL PRINCIPAL (cat-destilados, cat-cervezas, cat-aperitivos o cat-vinos).
+  * ¡JAMÁS CLASIFIQUES UN PACK CON ALCOHOL EN BEBIDAS ("cat-bebidas")!
+  * Asigna offerType: "mega_offer" y subcategoría "Combos & Packs" o "Packs Piscoleros".`;
+
+        const userPrompt = `Analiza atentamente cada uno de estos ${chunk.length} productos y devuelve un JSON array exacto:
+${JSON.stringify(chunk)}
+
+Campos para cada producto:
+- "idx": número entero idéntico al 'idx' recibido.
+- "categoryId": uno de ["cat-destilados", "cat-cervezas", "cat-vinos", "cat-aperitivos", "cat-bebidas", "cat-snacks"].
+- "categoryName": nombre exacto de la categoría ("Destilados & Piscos", "Cervezas & Artesanales", "Vinos & Espumantes", "Aperitivos & Licores", "Bebidas, Aguas & Hielo", "Snacks & Picoteos").
+- "subcategory": subcategoría detallada y natural (ej: "Piscos Chilenos", "Combos & Packs Piscoleros", "Whiskies & Bourbons", "Gin Botánico", "Cervezas Heladas", "Cervezas Artesanales", "Vinos Tintos", "Espumantes & Cavas", "Aperitivos Italianos", "Aguas con Gas", "Bebidas Gaseosas", "Bebidas Energéticas", "Hielo & Complementos", "Papas Fritas").
+- "offerType": "mega_offer" (si es pack, combo, sixpack o promo destacada), "regular_offer" (si tiene descuento), o "standard".
+- "suggestedOriginalPrice": número o null.
+- "discount": string con porcentaje si aplica (ej: "-28%") o null.
+- "brand": marca comercial reconocida o deducida del nombre.
+- "imageType": uno de ["pisco", "cerveza", "vino", "espumante", "whisky", "vodka_gin", "agua", "bebida", "energetica", "hielo", "snack", "aperitivo", "pack"].
+- "aiReason": explicación breve de 1 frase justificando por qué se asignó a este pasillo según su nombre.`;
+
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: userPrompt,
+          config: {
+            systemInstruction: systemPrompt,
+            responseMimeType: 'application/json'
+          }
+        });
+
+        const rawText = response.text || '';
+        let parsedChunk: any[] = [];
+        try {
+          parsedChunk = JSON.parse(rawText);
+        } catch {
+          const match = rawText.match(/\[[\s\S]*\]/);
+          if (match) parsedChunk = JSON.parse(match[0]);
+        }
+
+        if (Array.isArray(parsedChunk)) {
+          parsedChunk.forEach((g: any) => {
+            if (typeof g.idx === 'number') {
+              geminiClassifiedMap.set(g.idx, g);
+            }
+          });
+        }
+      }
+    } catch (geminiError) {
+      console.warn('Gemini AI classification batch error:', geminiError);
+    }
+  }
+
+  // Merge results with high-priority safety check
+  const results = items.map((it: any, idx: number) => {
+    const gItem = geminiClassifiedMap.get(idx);
+    const heuristic = runHeuristic(it.name, it.price, it.originalPrice);
+
+    // CRITICAL FIX: Trust Gemini's attentive analysis when it returned a valid category!
+    let categoryId = heuristic.categoryId;
+    if (gItem && gItem.categoryId && availableCategories.some(c => c.id === gItem.categoryId)) {
+      categoryId = gItem.categoryId;
+
+      // Sanity guard: only if product name is pure water and was mistakenly marked destilados
+      const lowerName = (it.name || '').toLowerCase();
+      const isPureWater = (lowerName.includes('agua') || lowerName.includes('mineral') || lowerName.includes('vertiente')) &&
+                          !lowerName.includes('pisco') && !lowerName.includes('whisky') && !lowerName.includes('gin') &&
+                          !lowerName.includes('ron') && !lowerName.includes('vodka') && !lowerName.includes('pack') &&
+                          !lowerName.includes('+') && !lowerName.includes('combo');
+      if (isPureWater && categoryId === 'cat-destilados') {
+        categoryId = 'cat-bebidas';
+      }
+    }
+
+    const matchingCategory = availableCategories.find(c => c.id === categoryId) || 
+                             STANDARD_BOTILLERIA_TEMPLATES[categoryId] as any;
+    
+    const categoryName = matchingCategory?.name || (gItem?.categoryName || heuristic.categoryName);
+    const subcategory = gItem?.subcategory || heuristic.subcategory;
+
+    const offerType: 'mega_offer' | 'regular_offer' | 'standard' = gItem?.offerType || heuristic.offerType;
+    const suggestedOriginalPrice = gItem?.suggestedOriginalPrice || it.originalPrice || heuristic.suggestedOriginalPrice;
+    
+    let discount = gItem?.discount || heuristic.discount;
+    if (!discount && suggestedOriginalPrice && suggestedOriginalPrice > it.price) {
+      const pct = Math.round(((suggestedOriginalPrice - it.price) / suggestedOriginalPrice) * 100);
+      discount = `-${pct}%`;
+    }
+
+    const imageType = gItem?.imageType || (categoryId === 'cat-bebidas' 
+      ? (subcategory.includes('Gas') ? 'agua' : (subcategory.includes('Energética') ? 'energetica' : (subcategory.includes('Hielo') ? 'hielo' : 'bebida')))
+      : (offerType === 'mega_offer' ? 'pack' : (categoryId === 'cat-destilados' ? 'pisco' : (categoryId === 'cat-cervezas' ? 'cerveza' : (categoryId === 'cat-vinos' ? 'vino' : 'snack')))));
+
+    const image = BEVERAGE_IMAGES[imageType] || heuristic.image;
+    const brand = gItem?.brand || heuristic.brand || '';
+    const description = gItem?.description || heuristic.description;
+    const aiReason = gItem?.aiReason || heuristic.aiReason;
+
+    return {
+      id: it.id || `prod-excel-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+      name: it.name,
+      price: Number(it.price) || 9990,
+      originalPrice: suggestedOriginalPrice ? Number(suggestedOriginalPrice) : undefined,
+      categoryId,
+      categoryName,
+      subcategory,
+      offerType,
+      discount: (offerType !== 'standard' && discount) ? discount : undefined,
+      description,
+      image: (it.image && !it.image.includes('placeholder')) ? it.image : image,
+      stock: it.stock ? Number(it.stock) : 24,
+      inStock: true,
+      brand,
+      aiReason,
+      selected: true
+    };
+  });
+
+  return {
+    success: true,
+    classifiedWith: geminiClassifiedMap.size > 0 ? 'gemini-3.8-flash' : 'heuristics-botilleria-engine',
+    total: results.length,
+    counts: {
+      megaOffers: results.filter(r => r.offerType === 'mega_offer').length,
+      regularOffers: results.filter(r => r.offerType === 'regular_offer').length,
+      standard: results.filter(r => r.offerType === 'standard').length
+    },
+    products: results
+  };
+}
+
 app.post('/api/admin/classify-excel-products', async (req, res) => {
   try {
     const { items, existingCategories } = req.body;
@@ -1146,466 +1641,116 @@ app.post('/api/admin/classify-excel-products', async (req, res) => {
       return res.status(400).json({ error: 'La lista de productos del Excel está vacía' });
     }
 
-    // Build complete available categories guaranteeing all standard botillería sections
-    const provided = Array.isArray(existingCategories) ? existingCategories : [];
-    const availableCategories: Array<{ id: string; name: string }> = [...provided];
+    const result = await classifyProductsWithBotilleriaAI(items, existingCategories);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Error classifying excel products:', error);
+    res.status(500).json({ error: 'Error al procesar y clasificar planilla de productos con IA' });
+  }
+});
 
-    // Ensure all standard botillería categories exist in availableCategories
-    Object.entries(STANDARD_BOTILLERIA_TEMPLATES).forEach(([catId, tmpl]) => {
-      if (!availableCategories.some(c => c.id === catId)) {
-        availableCategories.push({ id: catId, name: tmpl.name || catId });
+// Endpoint to reorganize already loaded products in catalog with AI
+app.post('/api/admin/reclassify-catalog', async (req, res) => {
+  try {
+    // 1. Gather all unique products across categories and megaOffers
+    const allProducts: Product[] = [];
+    categories.forEach(cat => {
+      cat.products.forEach(p => {
+        if (!allProducts.some(existing => existing.id === p.id)) {
+          allProducts.push(p);
+        }
+      });
+    });
+    megaOffers.forEach(p => {
+      if (!allProducts.some(existing => existing.id === p.id)) {
+        allProducts.push(p);
       }
     });
 
-    // Rigorous Chilean Botillería & Supermarket Classifier
-    // CCU (Compañía de Cervecerías Unidas) distributes soft drinks (Bilz, Pap, Kem Piña, Limón Soda, Canada Dry, Crush, 7Up, Pepsi, Gatorade, Red Bull),
-    // mineral waters (Cachantún, Porvenir, Más), and juices (Watt's), as well as beers and wines.
-    const runHeuristic = (name: string, price: number, origPrice?: number) => {
-      const n = (name || '').toLowerCase().trim();
-      let categoryId = 'cat-bebidas';
-      let categoryName = 'Bebidas, Aguas & Hielo';
-      let subcategory = 'Bebidas Gaseosas';
-      let image = BEVERAGE_IMAGES.bebida;
-      let brand = '';
-
-      // Check combo pack with alcohol (e.g. Pack Piscola Mistral + Coca-Cola + Hielo)
-      const isSpiritComboPack = (n.includes('pisco') || n.includes('whisky') || n.includes('gin') || n.includes('ron') || n.includes('vodka')) && 
-                                (n.includes('+') || n.includes('pack') || n.includes('promo') || n.includes('combo'));
-
-      // 1. AGUAS, BEBIDAS, JUGOS, ENERGÉTICAS Y HIELO (NEVER DESTILADOS!)
-      const isAgua = n.includes('agua') || n.includes('mineral') || n.includes('cachantun') || n.includes('cachantún') ||
-                     n.includes('vital') || n.includes('benedictino') || n.includes('puyehue') || n.includes('porvenir') ||
-                     n.includes('nestle') || n.includes('nestlé') || n.includes('aquarius') || n.includes('con gas') ||
-                     n.includes('sin gas') || n.includes('gasificada') || n.includes('soda') || n.includes('smartwater') ||
-                     n.includes('perrier') || n.includes('san pellegrino') || n.includes('evian') || n.includes('mas water') ||
-                     n.includes('más water');
-
-      const isEnergetica = n.includes('red bull') || n.includes('redbull') || n.includes('monster') ||
-                           n.includes('score') || n.includes('dark dog') || n.includes('energetica') ||
-                           n.includes('energética') || n.includes('rockstar') || n.includes('mr big') ||
-                           n.includes('mr. big');
-
-      const isHielo = n.includes('hielo') || n.includes('cubo') || n.includes('bolsa de hielo') || n.includes('hielo purificado');
-
-      // Comprehensive Chilean soft drinks, sodas, and CCU / Embonor product detection
-      const isBebida = n.includes('bebida') || n.includes('bebidas') || n.includes('gaseosa') || n.includes('gaseosas') ||
-                       n.includes('fantasia') || n.includes('fantasía') || n.includes('refresco') || n.includes('refrescos') ||
-                       n.includes('coca') || n.includes('coca-cola') || n.includes('coca cola') || n.includes('sprite') ||
-                       n.includes('fanta') || n.includes('pepsi') || n.includes('bilz') || n.includes('pap') ||
-                       n.includes('kem') || n.includes('kem piña') || n.includes('kem zero') || n.includes('limon soda') ||
-                       n.includes('limón soda') || n.includes('7up') || n.includes('seven up') || n.includes('ginger') ||
-                       n.includes('ginger ale') || n.includes('tonica') || n.includes('tónica') || n.includes('canada dry') ||
-                       n.includes('nordic') || n.includes('nordic mist') || n.includes('crush') || n.includes('sorbete letelier') ||
-                       n.includes('jugo') || n.includes('jugos') || n.includes('watts') || n.includes('watt\'s') ||
-                       n.includes('kapo') || n.includes('nectar') || n.includes('néctar') || n.includes('limonada') ||
-                       n.includes('guarana') || n.includes('guaraná') || n.includes('schweppes') || n.includes('gatorade') ||
-                       n.includes('powerade') || n.includes('isotonica') || n.includes('isotónica') ||
-                       // Explicit CCU beverage handling: "Bebidas CCU", "Bebida CCU", "CCU Variedades", "CCU 3 litros", etc.
-                       (n.includes('ccu') && (n.includes('bebida') || n.includes('variedad') || n.includes('variedades') ||
-                        n.includes('litro') || n.includes('litros') || n.includes('lt') || n.includes('lts') ||
-                        n.includes('3l') || n.includes('2l') || n.includes('1.5') || n.includes('2.5') || n.includes('3 l') ||
-                        !n.includes('cerveza') && !n.includes('cristal') && !n.includes('escudo') && !n.includes('royal')));
-
-      if ((isAgua || isEnergetica || isHielo || isBebida) && !isSpiritComboPack) {
-        categoryId = 'cat-bebidas';
-        categoryName = 'Bebidas, Aguas & Hielo';
-
-        if (isAgua) {
-          if (n.includes('con gas') || n.includes('gasificada')) {
-            subcategory = 'Aguas con Gas';
-          } else if (n.includes('sin gas')) {
-            subcategory = 'Aguas sin Gas';
-          } else {
-            subcategory = 'Aguas Minerales';
-          }
-          image = BEVERAGE_IMAGES.agua;
-          if (n.includes('cachantun') || n.includes('cachantún')) brand = 'Cachantún';
-          else if (n.includes('vital')) brand = 'Vital';
-          else if (n.includes('benedictino')) brand = 'Benedictino';
-          else if (n.includes('puyehue')) brand = 'Puyehue';
-          else if (n.includes('porvenir')) brand = 'Porvenir';
-          else brand = 'Agua Mineral';
-        } else if (isEnergetica) {
-          subcategory = 'Bebidas Energéticas';
-          image = BEVERAGE_IMAGES.energetica;
-          if (n.includes('red bull') || n.includes('redbull')) brand = 'Red Bull';
-          else if (n.includes('monster')) brand = 'Monster';
-          else if (n.includes('score')) brand = 'Score';
-          else brand = 'Energética';
-        } else if (isHielo) {
-          subcategory = 'Hielo & Complementos';
-          image = BEVERAGE_IMAGES.hielo;
-          brand = 'Hielo Purificado';
-        } else {
-          // Soft drinks / Bebidas de fantasía / CCU / Embonor
-          if (n.includes('ccu') || n.includes('bilz') || n.includes('pap') || n.includes('kem') || n.includes('limon soda') || n.includes('limón soda')) {
-            subcategory = 'Bebidas Fantasía CCU';
-            if (n.includes('bilz')) brand = 'Bilz';
-            else if (n.includes('pap')) brand = 'Pap';
-            else if (n.includes('kem')) brand = 'Kem Piña';
-            else if (n.includes('limon soda') || n.includes('limón soda')) brand = 'Limón Soda';
-            else brand = 'CCU';
-          } else if (n.includes('jugo') || n.includes('watts') || n.includes('kapo') || n.includes('nectar') || n.includes('néctar')) {
-            subcategory = 'Jugos & Néctar';
-            brand = n.includes('watts') ? "Watt's" : (n.includes('kapo') ? 'Kapo' : 'Jugo Natural');
-          } else {
-            subcategory = 'Bebidas Gaseosas';
-            if (n.includes('coca')) brand = 'Coca-Cola';
-            else if (n.includes('sprite')) brand = 'Sprite';
-            else if (n.includes('fanta')) brand = 'Fanta';
-            else if (n.includes('pepsi')) brand = 'Pepsi';
-            else if (n.includes('canada dry')) brand = 'Canada Dry';
-            else if (n.includes('nordic')) brand = 'Nordic';
-            else if (n.includes('crush')) brand = 'Crush';
-            else brand = 'Bebidas Gaseosas';
-          }
-          image = BEVERAGE_IMAGES.bebida;
-        }
-      }
-      // 2. SNACKS & PICOTEOS
-      else if (n.includes('papas') || n.includes('lays') || n.includes("lay's") || n.includes('dorito') ||
-               n.includes('cheeto') || n.includes('ramitas') || n.includes('evercrisp') || n.includes('mani') ||
-               n.includes('maní') || n.includes('frutos secos') || n.includes('almendra') || n.includes('pistacho') ||
-               n.includes('nacho') || n.includes('snack') || n.includes('galleta') || n.includes('chocolate') ||
-               n.includes('chocman') || n.includes('super 8') || n.includes('tika')) {
-        categoryId = 'cat-snacks';
-        categoryName = 'Snacks & Picoteos';
-        if (n.includes('papas') || n.includes('lays') || n.includes("lay's")) {
-          subcategory = 'Papas Fritas';
-          brand = "Lay's";
-        } else if (n.includes('ramitas') || n.includes('evercrisp') || n.includes('dorito') || n.includes('cheeto')) {
-          subcategory = 'Snacks Salados';
-          brand = 'Evercrisp';
-        } else if (n.includes('mani') || n.includes('maní') || n.includes('almendra') || n.includes('frutos secos')) {
-          subcategory = 'Frutos Secos';
-          brand = 'Selección';
-        } else {
-          subcategory = 'Picoteos & Dulces';
-          brand = 'Snack';
-        }
-        image = BEVERAGE_IMAGES.snack;
-      }
-      // 3. APERITIVOS & LICORES
-      else if (n.includes('aperol') || n.includes('campari') || n.includes('ramazzotti') || n.includes('fernet') ||
-               n.includes('branca') || n.includes('vermouth') || n.includes('vermut') || n.includes('martini') ||
-               n.includes('baileys') || n.includes('jagermeister') || n.includes('jägermeister') ||
-               n.includes('sheridan') || n.includes('kahlua') || n.includes('cointreau') || n.includes('amaretto') ||
-               n.includes('limoncello') || (n.includes('licor') && !n.includes('pisco'))) {
-        categoryId = 'cat-aperitivos';
-        categoryName = 'Aperitivos & Licores';
-        if (n.includes('aperol')) { subcategory = 'Aperitivos Italianos'; brand = 'Aperol'; }
-        else if (n.includes('ramazzotti')) { subcategory = 'Aperitivos'; brand = 'Ramazzotti'; }
-        else if (n.includes('fernet') || n.includes('branca')) { subcategory = 'Digestivos & Bitter'; brand = 'Fernet Branca'; }
-        else if (n.includes('baileys')) { subcategory = 'Licores & Cremas'; brand = 'Baileys'; }
-        else if (n.includes('jagermeister') || n.includes('jägermeister')) { subcategory = 'Licores de Hierbas'; brand = 'Jägermeister'; }
-        else { subcategory = 'Licores & Aperitivos'; brand = 'Aperitivo'; }
-        image = BEVERAGE_IMAGES.aperitivo;
-      }
-      // 4. CERVEZAS & ARTESANALES
-      else if (n.includes('cerveza') || n.includes('beer') || n.includes('lager') || n.includes('ipa') ||
-               n.includes('ale') || n.includes('stout') || n.includes('porter') || n.includes('pilsen') ||
-               n.includes('corona') || n.includes('heineken') || n.includes('stella') || n.includes('austral') ||
-               n.includes('kunstmann') || n.includes('kross') || n.includes('royal guard') || n.includes('cristal') ||
-               n.includes('escudo') || n.includes('becker') || n.includes('budweiser') || n.includes('cusqueña') ||
-               n.includes('sol') || n.includes('miller') || n.includes('coors') || n.includes('blue moon') ||
-               n.includes('guinness') || n.includes('schop') || n.includes('torobayo') || n.includes('calafate') ||
-               n.includes('sixpack') || n.includes('six pack')) {
-        categoryId = 'cat-cervezas';
-        categoryName = 'Cervezas & Artesanales';
-        if (n.includes('artesanal') || n.includes('kross') || n.includes('kunstmann') || n.includes('austral') ||
-            n.includes('torobayo') || n.includes('calafate') || n.includes('ipa') || n.includes('stout')) {
-          subcategory = 'Cervezas Artesanales';
-        } else if (n.includes('corona') || n.includes('heineken') || n.includes('stella') || n.includes('budweiser') || n.includes('miller')) {
-          subcategory = 'Cervezas Importadas';
-        } else {
-          subcategory = 'Cervezas Heladas';
-        }
-        if (n.includes('cristal')) brand = 'Cristal';
-        else if (n.includes('escudo')) brand = 'Escudo';
-        else if (n.includes('corona')) brand = 'Corona';
-        else if (n.includes('heineken')) brand = 'Heineken';
-        else if (n.includes('austral')) brand = 'Austral';
-        else if (n.includes('kunstmann')) brand = 'Kunstmann';
-        else brand = 'Cerveza';
-        image = BEVERAGE_IMAGES.cerveza;
-      }
-      // 5. VINOS & ESPUMANTES
-      else if (n.includes('vino') || n.includes('tinto') || n.includes('blanco') || n.includes('rosé') ||
-               n.includes('rose') || n.includes('cabernet') || n.includes('carmenere') || n.includes('carmenère') ||
-               n.includes('merlot') || n.includes('sauvignon') || n.includes('syrah') || n.includes('malbec') ||
-               n.includes('pinot') || n.includes('reserva') || n.includes('gran reserva') || n.includes('casillero') ||
-               n.includes('montes') || n.includes('tarapaca') || n.includes('gato negro') || n.includes('espumante') ||
-               n.includes('champagne') || n.includes('champaña') || n.includes('brut') || n.includes('extra brut') ||
-               n.includes('demi sec') || n.includes('prosecco') || n.includes('cava') || n.includes('valdivieso') ||
-               n.includes('chandon') || n.includes('undurraga') || n.includes('riccadonna') || n.includes('concha y toro')) {
-        categoryId = 'cat-vinos';
-        categoryName = 'Vinos & Espumantes';
-        if (n.includes('espumante') || n.includes('champagne') || n.includes('champaña') || n.includes('brut') ||
-            n.includes('chandon') || n.includes('valdivieso') || n.includes('cava') || n.includes('prosecco')) {
-          subcategory = 'Espumantes & Cavas';
-          image = BEVERAGE_IMAGES.espumante;
-        } else if (n.includes('sauvignon') || n.includes('blanco') || n.includes('chardonnay')) {
-          subcategory = 'Vinos Blancos';
-          image = BEVERAGE_IMAGES.vino;
-        } else {
-          subcategory = 'Vinos Tintos';
-          image = BEVERAGE_IMAGES.vino;
-        }
-        if (n.includes('casillero')) brand = 'Casillero del Diablo';
-        else if (n.includes('gato negro')) brand = 'Gato Negro';
-        else if (n.includes('valdivieso')) brand = 'Valdivieso';
-        else brand = 'Viña Chilena';
-      }
-      // 6. DESTILADOS (ONLY when explicit spirits keywords are present!)
-      else if (n.includes('pisco') || n.includes('mistral') || n.includes('alto del carmen') || n.includes('capel') ||
-               n.includes('horcon') || n.includes('horcón') || n.includes('control') || n.includes('campanario') ||
-               n.includes('tres erres') || n.includes('mal paso') || n.includes('bauza') || n.includes('bauzá') ||
-               n.includes('whisky') || n.includes('whiskey') || n.includes('bourbon') || n.includes('johnnie') ||
-               n.includes('chivas') || n.includes('jack daniel') || n.includes('ballantine') || n.includes('gin') ||
-               n.includes('vodka') || n.includes('ron') || n.includes('tequila') || n.includes('destilado') ||
-               n.includes('35°') || n.includes('40°') || n.includes('46°') || n.includes('transparente')) {
-        categoryId = 'cat-destilados';
-        categoryName = 'Destilados & Piscos';
-        if (n.includes('whisky') || n.includes('whiskey') || n.includes('bourbon') || n.includes('johnnie') ||
-            n.includes('chivas') || n.includes('jack') || n.includes('ballantine') || n.includes('jameson') ||
-            n.includes('black label') || n.includes('red label')) {
-          subcategory = 'Whiskies & Bourbons';
-          image = BEVERAGE_IMAGES.whisky;
-          brand = n.includes('johnnie') ? 'Johnnie Walker' : (n.includes('jack') ? "Jack Daniel's" : 'Whisky');
-        } else if (n.includes('gin') || n.includes('tanqueray') || n.includes('bombay') || n.includes('beefeater') ||
-                   n.includes('hendrick') || n.includes('malfy')) {
-          subcategory = 'Gin Botánico';
-          image = BEVERAGE_IMAGES.vodka_gin;
-          brand = n.includes('tanqueray') ? 'Tanqueray' : (n.includes('bombay') ? 'Bombay Sapphire' : 'Gin');
-        } else if (n.includes('vodka') || n.includes('absolut') || n.includes('smirnoff') || n.includes('grey goose') ||
-                   n.includes('ciroc') || n.includes('stoli')) {
-          subcategory = 'Vodka Importado';
-          image = BEVERAGE_IMAGES.vodka_gin;
-          brand = n.includes('absolut') ? 'Absolut' : (n.includes('smirnoff') ? 'Smirnoff' : 'Vodka');
-        } else if (n.includes('tequila') || n.includes('cuervo') || n.includes('don julio') || n.includes('ron') ||
-                   n.includes('havana') || n.includes('bacardi') || n.includes('barcelo') || n.includes('zacapa')) {
-          subcategory = 'Ron & Tequila';
-          image = BEVERAGE_IMAGES.pisco;
-          brand = n.includes('havana') ? 'Havana Club' : (n.includes('bacardi') ? 'Bacardí' : 'Destilado');
-        } else {
-          subcategory = 'Piscos Chilenos';
-          image = BEVERAGE_IMAGES.pisco;
-          brand = n.includes('mistral') ? 'Mistral' : (n.includes('alto del carmen') ? 'Alto del Carmen' : (n.includes('capel') ? 'Capel' : 'Pisco Chileno'));
-        }
-      }
-      // 7. SAFE FALLBACK (Defaults to Bebidas & Refrescos if no alcohol is detected)
-      else {
-        categoryId = 'cat-bebidas';
-        categoryName = 'Bebidas, Aguas & Hielo';
-        subcategory = 'Bebidas Gaseosas';
-        image = BEVERAGE_IMAGES.bebida;
-        brand = 'Bebida';
-      }
-
-      // Offer classification
-      let offerType: 'mega_offer' | 'regular_offer' | 'standard' = 'standard';
-      let suggestedOriginalPrice = origPrice && origPrice > price ? origPrice : undefined;
-      let discount: string | undefined = undefined;
-      let aiReason = `Clasificado en pasillo ${categoryName}.`;
-
-      const isComboOrPack = isSpiritComboPack || n.includes('pack 24') || n.includes('pack 12') ||
-                            n.includes('combo') || n.includes('2x1') || n.includes('3x2') ||
-                            n.includes('mega oferta') || n.includes('promocion') || n.includes('promoción');
-
-      if (isComboOrPack) {
-        offerType = 'mega_offer';
-        image = BEVERAGE_IMAGES.pack;
-        if (!suggestedOriginalPrice) {
-          suggestedOriginalPrice = Math.round((price * 1.28) / 100) * 100;
-        }
-        const pct = Math.round(((suggestedOriginalPrice - price) / suggestedOriginalPrice) * 100);
-        discount = `-${pct}%`;
-        aiReason = '🔥 Detectado como Pack/Promo estelar: clasificado como Mega Oferta para portada.';
-      } else if (suggestedOriginalPrice && suggestedOriginalPrice > price) {
-        const pct = Math.round(((suggestedOriginalPrice - price) / suggestedOriginalPrice) * 100);
-        offerType = pct >= 25 ? 'mega_offer' : 'regular_offer';
-        discount = `-${pct}%`;
-        aiReason = `🏷️ Detectado con precio promocional (${discount}): clasificado como Oferta destacada.`;
-      } else if (price > 12000 && (n.includes('whisky') || n.includes('gin') || n.includes('reserva') || n.includes('gran reserva'))) {
-        offerType = 'regular_offer';
-        suggestedOriginalPrice = Math.round((price * 1.20) / 100) * 100;
-        const pct = Math.round(((suggestedOriginalPrice - price) / suggestedOriginalPrice) * 100);
-        discount = `-${pct}%`;
-        aiReason = '✨ Producto premium de alta rotación con precio de referencia de mercado.';
-      }
-
-      return {
-        categoryId,
-        categoryName,
-        subcategory,
-        offerType,
-        discount,
-        suggestedOriginalPrice,
-        description: `Selección Fella's Market. ${name}, disponible con despacho exprés a tu puerta.`,
-        image,
-        brand,
-        aiReason
-      };
-    };
-
-    // Attempt Gemini AI classification
-    const ai = getGeminiAi();
-    let geminiClassified: any[] | null = null;
-
-    if (ai) {
-      try {
-        const simplifiedItems = items.map((it, idx) => ({
-          idx,
-          nombre: it.name,
-          precio: it.price,
-          precioOriginal: it.originalPrice || null
-        }));
-
-        const prompt = `Eres el sommelier y gestor experto de catálogo para la botillería y minimarket chileno "Fella's Market".
-Tengo la siguiente lista de productos leída desde una planilla de Excel:
-${JSON.stringify(simplifiedItems)}
-
-¡CONOCIMIENTO CRÍTICO DEL MERCADO CHILENO Y DISTRIBUIDORES!:
-1. CCU (Compañía de Cervecerías Unidas) NO es sólo alcohol. CCU es el principal fabricante y distribuidor en Chile de:
-   - BEBIDAS DE FANTASÍA Y GASEOSAS: Bilz, Pap, Kem Piña, Kem Zero, Limón Soda, Canada Dry, Crush, 7Up, Pepsi, Sorbete Letelier.
-   - AGUAS: Cachantún, Porvenir, Más Water.
-   - JUGOS: Watt's, Kapo.
-   - ENERGIZANTES / ISOTÓNICAS: Red Bull, Gatorade.
-   - Por ende, si un producto dice "Bebidas CCU Variedades", "Bebida CCU", "Kem", "Limón Soda", "Bilz", "Pap", etc., ¡JAMÁS ES UN PISCO O DESTILADO! Corresponde OBLIGATORIAMENTE a "cat-bebidas" ("Bebidas, Aguas & Hielo") con subcategoría "Bebidas Fantasía CCU" o "Bebidas Gaseosas".
-
-2. EMBONOR / ANDINA (Coca-Cola Company): Coca-Cola, Sprite, Fanta, Nordic Mist, Aquarius, Benedictino, Vital, Monster, Powerade -> "cat-bebidas".
-
-3. LOS DESTILADOS Y PISCOS sólo aplican si el producto es explícitamente alcohol destilado (Pisco Mistral, Alto del Carmen, Capel, Horcón Quemado, Campanario, Whisky, Gin, Vodka, Ron, Tequila, etc.).
-
-CATEGORÍAS OFICIALES DE LA TIENDA:
-- "cat-bebidas" ("Bebidas, Aguas & Hielo"):
-  * AGUAS MINERALES (con gas, sin gas, saborizadas, Vital, Cachantún, Puyehue, Benedictino, Porvenir, etc.)
-  * BEBIDAS GASEOSAS Y FANTASÍA (Bebidas CCU, Coca-Cola, Sprite, Fanta, Pepsi, Bilz, Pap, Kem, Limón Soda, Ginger Ale, Canada Dry, Crush, Tónica Nordic)
-  * ENERGÉTICAS (Red Bull, Monster, Score, etc.)
-  * HIELO EN BOLSA Y JUGOS (Watt's, etc.)
-
-- "cat-cervezas" ("Cervezas & Artesanales"):
-  * Cervezas nacionales e importadas (Corona, Heineken, Stella, Austral, Kunstmann, Kross, Royal Guard, Cristal, Escudo, etc.)
-
-- "cat-vinos" ("Vinos & Espumantes"):
-  * Vinos tintos (Cabernet, Carmenère, Merlot), vinos blancos (Sauvignon Blanc, Chardonnay), Espumantes (Brut, Chandon, Valdivieso)
-
-- "cat-destilados" ("Destilados & Piscos"):
-  * Piscos chilenos (Mistral, Alto del Carmen), Whiskies (Johnnie Walker, Jack Daniel's), Gin, Vodkas, Ron, Tequilas
-
-- "cat-snacks" ("Snacks & Picoteos"):
-  * Papas fritas Lay's, ramitas Evercrisp, maní salado, frutos secos, nachos
-
-- "cat-aperitivos" ("Aperitivos & Licores"):
-  * Aperol, Ramazzotti, Fernet Branca, Baileys, Jägermeister, licores dulces
-
-Para cada producto en orden devuelve un objeto JSON con:
-- 'idx': índice del producto (número entero).
-- 'categoryId': uno de ["cat-bebidas", "cat-cervezas", "cat-vinos", "cat-destilados", "cat-snacks", "cat-aperitivos"].
-- 'categoryName': nombre exacto de la categoría asignada.
-- 'subcategory': subcategoría específica (ejemplos: "Aguas con Gas", "Aguas sin Gas", "Bebidas Fantasía CCU", "Bebidas Gaseosas", "Bebidas Energéticas", "Hielo & Complementos", "Piscos Chilenos", "Cervezas Heladas", "Cervezas Artesanales", "Vinos Tintos", "Espumantes & Cavas", "Papas Fritas", "Aperitivos Italianos").
-- 'offerType': "mega_offer" (si es pack/combo fiesta), "regular_offer" (si tiene descuento), o "standard".
-- 'suggestedOriginalPrice': precio original de mercado o null.
-- 'discount': string con descuento si aplica (ej: "-25%"), o null.
-- 'brand': marca comercial reconocida (ej: "CCU", "Cachantún", "Coca-Cola", "Mistral", "Corona", "Lay's", "Aperol").
-- 'imageType': uno de ["agua", "bebida", "energetica", "hielo", "cerveza", "vino", "espumante", "pisco", "whisky", "vodka_gin", "snack", "aperitivo", "pack"].
-- 'aiReason': breve explicación indicando por qué se asignó a este pasillo.
-
-Responde ÚNICAMENTE el JSON array válido.`;
-
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: prompt,
-          config: {
-            tools: [{ googleSearch: {} }]
-          }
-        });
-
-        const rawText = response.text || '';
-        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          geminiClassified = JSON.parse(jsonMatch[0]);
-        }
-      } catch (geminiError) {
-        console.warn('Gemini AI classification fallback triggered:', geminiError);
-      }
+    if (allProducts.length === 0) {
+      return res.json({ 
+        success: true, 
+        message: 'No hay productos en el catálogo para reorganizar.', 
+        totalReorganized: 0,
+        categories, 
+        megaOffers 
+      });
     }
 
-    // Merge results with high-priority safety check
-    const results = items.map((it: any, idx: number) => {
-      const gItem = geminiClassified && Array.isArray(geminiClassified) 
-        ? geminiClassified.find((g: any) => g.idx === idx || g.index === idx) || geminiClassified[idx] 
-        : null;
-      
-      const heuristic = runHeuristic(it.name, it.price, it.originalPrice);
+    // 2. Classify all products with the enhanced Botillería AI
+    const classificationResult = await classifyProductsWithBotilleriaAI(allProducts, categories);
 
-      // CRITICAL SAFETY CHECK: If heuristic detected an Agua or Bebida, force category to cat-bebidas
-      // This guarantees an Agua con gas can NEVER be classified as destilados under any circumstance!
-      let categoryId = gItem?.categoryId || heuristic.categoryId;
-      if (heuristic.categoryId === 'cat-bebidas') {
-        categoryId = 'cat-bebidas';
-      }
+    // 3. Clear products in current categories & megaOffers
+    categories.forEach(cat => {
+      cat.products = [];
+    });
+    megaOffers = [];
 
-      const matchingCategory = availableCategories.find(c => c.id === categoryId) || 
-                               STANDARD_BOTILLERIA_TEMPLATES[categoryId] as any;
-      
-      const categoryName = matchingCategory?.name || heuristic.categoryName;
-      const subcategory = (categoryId === 'cat-bebidas' && heuristic.categoryId === 'cat-bebidas')
-        ? heuristic.subcategory
-        : (gItem?.subcategory || heuristic.subcategory);
-
-      const offerType: 'mega_offer' | 'regular_offer' | 'standard' = gItem?.offerType || heuristic.offerType;
-      const suggestedOriginalPrice = gItem?.suggestedOriginalPrice || it.originalPrice || heuristic.suggestedOriginalPrice;
-      
-      let discount = gItem?.discount || heuristic.discount;
-      if (!discount && suggestedOriginalPrice && suggestedOriginalPrice > it.price) {
-        const pct = Math.round(((suggestedOriginalPrice - it.price) / suggestedOriginalPrice) * 100);
-        discount = `-${pct}%`;
-      }
-
-      const imageType = (categoryId === 'cat-bebidas') 
-        ? (heuristic.subcategory.includes('Gas') ? 'agua' : (heuristic.subcategory.includes('Energética') ? 'energetica' : (heuristic.subcategory.includes('Hielo') ? 'hielo' : 'bebida')))
-        : (gItem?.imageType || 'pack');
-
-      const image = BEVERAGE_IMAGES[imageType] || heuristic.image;
-      const brand = gItem?.brand || heuristic.brand || '';
-      const description = gItem?.description || heuristic.description;
-      const aiReason = gItem?.aiReason || heuristic.aiReason;
-
-      return {
-        id: `prod-excel-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
-        name: it.name,
-        price: Number(it.price) || 9990,
-        originalPrice: suggestedOriginalPrice ? Number(suggestedOriginalPrice) : undefined,
-        categoryId,
-        categoryName,
-        subcategory,
-        offerType,
-        discount: (offerType !== 'standard' && discount) ? discount : undefined,
-        description,
-        image,
-        stock: it.stock ? Number(it.stock) : 24,
-        inStock: true,
-        brand,
-        aiReason,
-        selected: true
+    // 4. Re-assign products into their newly corrected categories
+    classificationResult.products.forEach((classified: any, idx: number) => {
+      const originalProd: Partial<Product> = allProducts[idx] || {};
+      const updatedProduct: Product = {
+        id: originalProd.id || classified.id,
+        name: originalProd.name || classified.name,
+        price: originalProd.price || classified.price,
+        originalPrice: classified.originalPrice ?? originalProd.originalPrice,
+        category: classified.categoryName,
+        categoryId: classified.categoryId,
+        subcategory: classified.subcategory,
+        isMegaOffer: classified.offerType === 'mega_offer',
+        discount: (classified.offerType !== 'standard' && classified.discount) ? classified.discount : originalProd.discount,
+        brand: classified.brand || originalProd.brand,
+        image: (originalProd.image && !originalProd.image.includes('placeholder')) ? originalProd.image : classified.image,
+        description: originalProd.description || classified.description,
+        inStock: originalProd.inStock !== false,
+        stock: originalProd.stock || classified.stock || 24,
+        publishedSocial: true
       };
+
+      if (updatedProduct.isMegaOffer) {
+        megaOffers.push(updatedProduct);
+      }
+
+      let targetCat = categories.find(c => c.id === updatedProduct.categoryId);
+      if (!targetCat) {
+        targetCat = categories.find(c => c.name.toLowerCase() === updatedProduct.category.toLowerCase());
+      }
+      if (!targetCat) {
+        const tmpl = STANDARD_BOTILLERIA_TEMPLATES[updatedProduct.categoryId] || {
+          name: updatedProduct.category,
+          icon: 'fa-solid fa-tags',
+          badge: 'Sección',
+          title: updatedProduct.category,
+          description: '',
+          bannerImage: ''
+        };
+        targetCat = {
+          id: updatedProduct.categoryId,
+          name: tmpl.name || updatedProduct.category,
+          icon: tmpl.icon || 'fa-solid fa-tags',
+          badge: tmpl.badge || 'Sección',
+          title: tmpl.title || updatedProduct.category,
+          description: tmpl.description || '',
+          bannerImage: tmpl.bannerImage || '',
+          products: []
+        };
+        categories.push(targetCat);
+      }
+
+      targetCat.products.push(updatedProduct);
     });
 
     res.json({
       success: true,
-      classifiedWith: geminiClassified ? 'gemini-3.8-flash' : 'heuristics-botilleria-engine',
-      total: results.length,
-      counts: {
-        megaOffers: results.filter(r => r.offerType === 'mega_offer').length,
-        regularOffers: results.filter(r => r.offerType === 'regular_offer').length,
-        standard: results.filter(r => r.offerType === 'standard').length
-      },
-      products: results
+      message: `¡Catálogo reorganizado exitosamente! Se analizaron y clasificaron ${allProducts.length} productos con IA.`,
+      totalReorganized: allProducts.length,
+      counts: classificationResult.counts,
+      categories,
+      megaOffers
     });
   } catch (error: any) {
-    console.error('Error classifying excel products:', error);
-    res.status(500).json({ error: 'Error al procesar y clasificar planilla de productos con IA' });
+    console.error('Error reclassifying catalog:', error);
+    res.status(500).json({ error: 'Error al reorganizar el catálogo con IA' });
   }
 });
 
