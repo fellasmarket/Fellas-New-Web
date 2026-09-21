@@ -28,6 +28,7 @@ import { FooterEditor } from './admin/FooterEditor';
 import { CategoryBannerModal } from './admin/CategoryBannerModal';
 import { CategoryFeaturedProductsModal } from './admin/CategoryFeaturedProductsModal';
 import { KeepAliveEditor } from './admin/KeepAliveEditor';
+import { ProductImageUploader } from './admin/ProductImageUploader';
 
 interface AdminDashboardProps {
   onExitAdmin: () => void;
@@ -257,6 +258,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [originalFileSize, setOriginalFileSize] = useState<number>(0);
   const [compressedFileSize, setCompressedFileSize] = useState<number>(0);
   const [isCompressing, setIsCompressing] = useState<boolean>(false);
+  const [isUploadingToR2, setIsUploadingToR2] = useState<boolean>(false);
+  const [uploadedR2Url, setUploadedR2Url] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // TAB 12: RESPALDO & NUBE
@@ -437,6 +440,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         ? `"${prod.name}" marcado EN STOCK (disponible)`
         : `"${prod.name}" marcado SIN STOCK (agotado para clientes)`
     );
+  };
+
+  const [quickUploadingProductId, setQuickUploadingProductId] = useState<string | null>(null);
+
+  const handleQuickProductImageUpload = async (prod: Product, file: File) => {
+    if (!file.type.startsWith('image/')) {
+      showToast('Por favor selecciona un archivo de imagen válido (JPG, PNG, WEBP)');
+      return;
+    }
+
+    setQuickUploadingProductId(prod.id);
+    showToast(`Comprimiendo y subiendo foto de "${prod.name}"...`);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('productName', prod.name);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || 'Error al subir la imagen');
+      }
+
+      const updatedProduct: Product = {
+        ...prod,
+        image: data.url
+      };
+
+      await fetch(`/api/products/${prod.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedProduct)
+      });
+
+      const updatedCategories = categories.map(cat => ({
+        ...cat,
+        products: cat.products.map(p => p.id === prod.id ? updatedProduct : p)
+      }));
+      onUpdateCategories(updatedCategories);
+
+      if (megaOffers.some(m => m.id === prod.id) && onUpdateMegaOffers) {
+        onUpdateMegaOffers(megaOffers.map(m => m.id === prod.id ? updatedProduct : m));
+      }
+
+      if (data.storage === 'cloudflare-r2') {
+        showToast(`¡Foto de "${prod.name}" comprimida (${data.savingsPercent || 0}% más ligera) y guardada en Cloudflare R2!`);
+      } else {
+        showToast(`¡Foto de "${prod.name}" comprimida (${data.savingsPercent || 0}% más ligera) y actualizada!`);
+      }
+    } catch (err: any) {
+      console.error('Error al subir foto de producto:', err);
+      showToast(`Error al subir imagen: ${err?.message || 'Fallo de conexión'}`);
+    } finally {
+      setQuickUploadingProductId(null);
+    }
   };
 
   const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1079,6 +1142,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     reader.readAsDataURL(file);
   };
 
+  const handleUploadCompressedToR2 = async () => {
+    if (!compressorFile && !compressedImagePreview) return;
+    setIsUploadingToR2(true);
+    setUploadedR2Url(null);
+    try {
+      let data: any;
+      if (compressorFile) {
+        const formData = new FormData();
+        formData.append('image', compressorFile);
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        data = await res.json();
+      } else if (compressedImagePreview) {
+        const res = await fetch('/api/upload-base64', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dataUrl: compressedImagePreview, filename: 'foto-comprimida' })
+        });
+        data = await res.json();
+      }
+
+      if (data?.url) {
+        setUploadedR2Url(data.url);
+        if (navigator.clipboard) {
+          try {
+            await navigator.clipboard.writeText(data.url);
+            showToast(`¡Foto guardada en ${data.storage === 'cloudflare-r2' ? 'Cloudflare R2' : 'almacenamiento'} y URL copiada!`);
+          } catch {
+            showToast(`¡Foto guardada exitosamente!`);
+          }
+        } else {
+          showToast(`¡Foto guardada exitosamente!`);
+        }
+      } else {
+        showToast(data?.error || 'Error al subir a la nube');
+      }
+    } catch (err) {
+      showToast('Error de conexión al subir imagen');
+    } finally {
+      setIsUploadingToR2(false);
+    }
+  };
+
   // DATABASE EXPORT & RESTORE (JSON like fellasmarket.cl)
   const handleDownloadBackup = async () => {
     setIsExporting(true);
@@ -1491,6 +1599,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div>
                         <div className="h-44 bg-[#141414] relative overflow-hidden flex items-center justify-center p-2">
                           <img src={prod.image} alt={prod.name} className="max-h-full max-w-full object-contain group-hover:scale-105 transition" />
+                          
+                          {/* Botón Rápido para Cargar Foto desde PC y Guardar en Cloudflare R2 */}
+                          <label
+                            title="Cargar foto desde tu PC para este producto (se comprime con Sharp y se guarda en Cloudflare R2)"
+                            className="absolute bottom-2 left-2 bg-black/85 hover:bg-[#ffd025] hover:text-black text-white text-[10px] font-bold px-2.5 py-1 rounded-lg border border-gray-700 hover:border-[#ffd025] transition cursor-pointer flex items-center gap-1.5 shadow-md backdrop-blur-xs z-10 opacity-90 group-hover:opacity-100"
+                          >
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={quickUploadingProductId === prod.id}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleQuickProductImageUpload(prod, file);
+                                e.target.value = '';
+                              }}
+                            />
+                            <i className={`fa-solid ${quickUploadingProductId === prod.id ? 'fa-spinner fa-spin text-[#ffd025]' : 'fa-camera text-[#ffd025] hover:text-black'}`}></i>
+                            <span>{quickUploadingProductId === prod.id ? 'Comprimiendo...' : 'Subir foto PC'}</span>
+                          </label>
+
                           {autoDiscount && (
                             <span className="absolute top-2 left-2 bg-red-600 text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-md animate-pulse">
                               {autoDiscount}
@@ -3844,7 +3973,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <img src={compressedImagePreview} alt="Comprimida" className="object-contain max-h-60 rounded-xl" />
                   </div>
 
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleUploadCompressedToR2}
+                      disabled={isUploadingToR2}
+                      className="bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-500/50 font-black text-xs px-4 py-2.5 rounded-xl transition shadow inline-flex items-center gap-2 cursor-pointer"
+                      title="Sube la foto optimizada a Cloudflare R2 y copia el enlace web al portapapeles"
+                    >
+                      <i className={`fa-solid ${isUploadingToR2 ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up text-amber-400'}`}></i>
+                      <span>{isUploadingToR2 ? 'Subiendo a Cloudflare R2...' : 'Guardar en Cloudflare R2 y Copiar URL'}</span>
+                    </button>
+
                     <a
                       href={compressedImagePreview}
                       download={`fellas-optimizada-${Date.now()}.jpg`}
@@ -3853,6 +3993,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <i className="fa-solid fa-download"></i> Descargar Foto Comprimida
                     </a>
                   </div>
+
+                  {uploadedR2Url && (
+                    <div className="bg-[#141414] border border-amber-500/40 p-3 rounded-2xl flex items-center justify-between gap-2 animate-fade-in">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <i className="fa-solid fa-circle-check text-emerald-400 shrink-0"></i>
+                        <div className="min-w-0">
+                          <span className="text-[10px] text-gray-400 block">URL permanente en la nube:</span>
+                          <span className="text-xs text-amber-300 font-mono truncate block">{uploadedR2Url}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(uploadedR2Url);
+                          showToast('¡Enlace copiado al portapapeles!');
+                        }}
+                        className="bg-[#ffd025] hover:bg-yellow-400 text-black font-bold text-xs px-3 py-1.5 rounded-xl shrink-0 cursor-pointer shadow"
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -4132,16 +4294,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">URL Imagen</label>
-                <input
-                  type="text"
-                  required
-                  value={prodForm.image}
-                  onChange={(e) => setProdForm({ ...prodForm, image: e.target.value })}
-                  className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
-                />
-              </div>
+              {/* Componente para Cargar Imágenes desde PC con Compresión Sharp y Almacenamiento Cloudflare R2 */}
+              <ProductImageUploader
+                value={prodForm.image}
+                onChange={(newUrl) => setProdForm(prev => ({ ...prev, image: newUrl }))}
+                productName={prodForm.name}
+                label="Foto del Producto (Cargar desde PC o Enlace)"
+                showToast={showToast}
+              />
 
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Descripción</label>
@@ -4149,17 +4309,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   rows={2}
                   value={prodForm.description}
                   onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
-                  className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Variedades (separadas por coma)</label>
-                <input
-                  type="text"
-                  value={prodForm.varieties}
-                  onChange={(e) => setProdForm({ ...prodForm, varieties: e.target.value })}
-                  placeholder="Ej: Rojo, Azul, Verde"
                   className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
                 />
               </div>

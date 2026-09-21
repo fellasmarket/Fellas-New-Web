@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import multer from 'multer';
 import sharp from 'sharp';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -11,51 +12,257 @@ import type { CategoryData, Product, Order, StoreSettings, EmailMarketingSubscri
 const app = express();
 const PORT = 3000;
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-// R2 Storage
-const upload = multer({ storage: multer.memoryStorage() });
+// Ensure local uploads directory exists for fallback and static serving
+const uploadsBaseDir = path.join(process.cwd(), 'uploads');
+const uploadsProductsDir = path.join(uploadsBaseDir, 'products');
+if (!fs.existsSync(uploadsProductsDir)) {
+  fs.mkdirSync(uploadsProductsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsBaseDir));
+
+// Cloudflare R2 Storage Client
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 } // Up to 20MB files from PC
+});
+
 let s3Client: S3Client | null = null;
 function getS3Client() {
-  if (!s3Client && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_ENDPOINT && process.env.R2_BUCKET_NAME) {
-    s3Client = new S3Client({
-      region: 'auto',
-      endpoint: process.env.R2_ENDPOINT,
-      credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-      },
-    });
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim();
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim();
+  const endpoint = process.env.R2_ENDPOINT?.trim();
+  const bucketName = process.env.R2_BUCKET_NAME?.trim();
+
+  if (!s3Client && accessKeyId && secretAccessKey && endpoint && bucketName) {
+    try {
+      s3Client = new S3Client({
+        region: 'auto',
+        endpoint: endpoint,
+        credentials: {
+          accessKeyId,
+          secretAccessKey,
+        },
+      });
+    } catch (s3InitErr) {
+      console.error('Error initializing Cloudflare R2 S3 Client:', s3InitErr);
+      s3Client = null;
+    }
   }
   return s3Client;
 }
 
+// Generate public URL for Cloudflare R2 or local fallback
+function getR2PublicUrl(key: string): string {
+  const publicUrl = process.env.R2_PUBLIC_URL?.trim();
+  const bucketName = process.env.R2_BUCKET_NAME?.trim();
+  const endpoint = process.env.R2_ENDPOINT?.trim();
+
+  if (publicUrl) {
+    return `${publicUrl.replace(/\/$/, '')}/${key}`;
+  }
+  if (endpoint && bucketName) {
+    const cleanEndpoint = endpoint.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    return `https://${bucketName}.${cleanEndpoint}/${key}`;
+  }
+  return `/uploads/${key}`;
+}
+
+// Helper: Compress raw image with Sharp into optimized WebP and high-compatibility JPEG
+async function compressImageBuffer(inputBuffer: Buffer, preferredFormat: 'webp' | 'jpeg' = 'webp') {
+  const pipeline = sharp(inputBuffer)
+    .rotate() // Auto-orient based on EXIF from phone/PC cameras
+    .resize(1200, 1200, {
+      fit: 'inside',
+      withoutEnlargement: true
+    });
+
+  if (preferredFormat === 'webp') {
+    const compressed = await pipeline.webp({ quality: 82, effort: 4 }).toBuffer();
+    return {
+      buffer: compressed,
+      contentType: 'image/webp',
+      ext: 'webp'
+    };
+  } else {
+    const compressed = await pipeline.jpeg({ quality: 82, progressive: true }).toBuffer();
+    return {
+      buffer: compressed,
+      contentType: 'image/jpeg',
+      ext: 'jpg'
+    };
+  }
+}
+
+// Endpoint: Storage Status (Checks Cloudflare R2 readiness)
+app.get('/api/admin/storage-status', (req, res) => {
+  const isR2Ready = !!(
+    process.env.R2_ACCESS_KEY_ID?.trim() &&
+    process.env.R2_SECRET_ACCESS_KEY?.trim() &&
+    process.env.R2_ENDPOINT?.trim() &&
+    process.env.R2_BUCKET_NAME?.trim()
+  );
+
+  res.json({
+    r2Configured: isR2Ready,
+    bucket: process.env.R2_BUCKET_NAME || null,
+    endpoint: process.env.R2_ENDPOINT ? process.env.R2_ENDPOINT.replace(/\/$/, '') : null,
+    hasPublicUrl: !!process.env.R2_PUBLIC_URL?.trim(),
+    publicUrl: process.env.R2_PUBLIC_URL || null,
+    storageType: isR2Ready ? 'Cloudflare R2' : 'Local (Comprimido con Sharp)'
+  });
+});
+
+// Endpoint: Upload image from PC with Sharp compression and Cloudflare R2 storage
 app.post('/api/upload', upload.single('image'), async (req, res) => {
   const request = req as any;
-  if (!request.file) return res.status(400).json({ error: 'No se subió archivo' });
-  const client = getS3Client();
-  if (!client) return res.status(500).json({ error: 'Almacenamiento no configurado' });
-  
-  try {
-    // Compress image
-    const compressedBuffer = await sharp(request.file.buffer)
-      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 20, progressive: true })
-      .toBuffer();
+  if (!request.file) {
+    return res.status(400).json({ error: 'No se recibió ningún archivo de imagen' });
+  }
 
-    const key = `products/${Date.now()}-${request.file.originalname.split('.')[0]}.jpg`;
-    
-    await client.send(new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: key,
-      Body: compressedBuffer,
-      ContentType: 'image/jpeg',
-    }));
-    
-    res.json({ url: `https://${process.env.R2_BUCKET_NAME}.${process.env.R2_ENDPOINT?.split('//')[1]}/${key}` });
-  } catch (err) {
+  try {
+    const originalSize = request.file.size;
+    const rawOriginalName = request.file.originalname || 'producto';
+    const cleanName = rawOriginalName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 35) || 'producto';
+
+    // 1. Compress image with Sharp
+    const { buffer: compressedBuffer, contentType, ext } = await compressImageBuffer(request.file.buffer, 'webp');
+    const compressedSize = compressedBuffer.length;
+    const savingsPercent = Math.max(0, Math.round(((originalSize - compressedSize) / originalSize) * 100));
+
+    const key = `products/${Date.now()}-${cleanName}.${ext}`;
+    const client = getS3Client();
+
+    // 2. If Cloudflare R2 is configured, upload to R2 Bucket
+    if (client && process.env.R2_BUCKET_NAME) {
+      try {
+        await client.send(new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: key,
+          Body: compressedBuffer,
+          ContentType: contentType,
+        }));
+
+        const publicUrl = getR2PublicUrl(key);
+        return res.json({
+          success: true,
+          url: publicUrl,
+          storage: 'cloudflare-r2',
+          key,
+          originalSize,
+          compressedSize,
+          savingsPercent,
+          message: `¡Imagen comprimida (${savingsPercent}% más ligera) y guardada en Cloudflare R2!`
+        });
+      } catch (r2UploadErr: any) {
+        console.error('Error subiendo a Cloudflare R2, usando respaldo local:', r2UploadErr);
+        // Fallback to local storage if R2 rejected credentials/network
+      }
+    }
+
+    // 3. Fallback to Local Storage (keeps app running 100% smoothly even without R2 env)
+    const localFilePath = path.join(uploadsBaseDir, key);
+    const localDir = path.dirname(localFilePath);
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir, { recursive: true });
+    }
+    fs.writeFileSync(localFilePath, compressedBuffer);
+
+    const localUrl = `/uploads/${key}`;
+    return res.json({
+      success: true,
+      url: localUrl,
+      storage: 'local',
+      key,
+      originalSize,
+      compressedSize,
+      savingsPercent,
+      notice: 'Imagen comprimida con Sharp y guardada. (Para sincronizar directo a Cloudflare R2 configura las variables R2 en tu panel).'
+    });
+  } catch (err: any) {
     console.error('Error procesando/subiendo imagen:', err);
-    res.status(500).json({ error: 'Error procesando o subiendo imagen' });
+    res.status(500).json({ error: `Error procesando la imagen: ${err?.message || 'Fallo desconocido'}` });
+  }
+});
+
+// Endpoint: Upload Base64 image with Sharp compression and Cloudflare R2
+app.post('/api/upload-base64', async (req, res) => {
+  try {
+    const { dataUrl, filename } = req.body;
+    if (!dataUrl || typeof dataUrl !== 'string') {
+      return res.status(400).json({ error: 'Falta dataUrl de imagen' });
+    }
+
+    const matches = dataUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      return res.status(400).json({ error: 'Formato base64 no válido' });
+    }
+
+    const rawBuffer = Buffer.from(matches[2], 'base64');
+    const originalSize = rawBuffer.length;
+    const cleanName = (filename || 'producto')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 35) || 'producto';
+
+    // Compress with Sharp
+    const { buffer: compressedBuffer, contentType, ext } = await compressImageBuffer(rawBuffer, 'webp');
+    const compressedSize = compressedBuffer.length;
+    const savingsPercent = Math.max(0, Math.round(((originalSize - compressedSize) / originalSize) * 100));
+
+    const key = `products/${Date.now()}-${cleanName}.${ext}`;
+    const client = getS3Client();
+
+    if (client && process.env.R2_BUCKET_NAME) {
+      try {
+        await client.send(new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: key,
+          Body: compressedBuffer,
+          ContentType: contentType,
+        }));
+
+        return res.json({
+          success: true,
+          url: getR2PublicUrl(key),
+          storage: 'cloudflare-r2',
+          originalSize,
+          compressedSize,
+          savingsPercent
+        });
+      } catch (r2Err) {
+        console.error('Error subiendo base64 a Cloudflare R2:', r2Err);
+      }
+    }
+
+    // Local fallback
+    const localFilePath = path.join(uploadsBaseDir, key);
+    const localDir = path.dirname(localFilePath);
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir, { recursive: true });
+    }
+    fs.writeFileSync(localFilePath, compressedBuffer);
+
+    res.json({
+      success: true,
+      url: `/uploads/${key}`,
+      storage: 'local',
+      originalSize,
+      compressedSize,
+      savingsPercent
+    });
+  } catch (err: any) {
+    console.error('Error al subir imagen base64:', err);
+    res.status(500).json({ error: 'Error procesando imagen base64' });
   }
 });
 

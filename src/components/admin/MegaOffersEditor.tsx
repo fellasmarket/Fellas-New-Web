@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Product, StoreSettings, CategoryData, MegaOffersConfig } from '../../types';
 import { formatPrice, getDiscountPercentage } from '../../data/products';
 import fireworksSolidBg from '../../assets/images/fireworks_blue_solid_1789491291395.jpg';
+import { ProductImageUploader } from './ProductImageUploader';
 
 interface MegaOffersEditorProps {
   megaOffers: Product[];
@@ -621,49 +622,14 @@ export const MegaOffersEditor: React.FC<MegaOffersEditorProps> = ({
                 </div>
               </div>
 
-              {/* Imagen del Producto */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-gray-300 uppercase">
-                    Imagen del Producto *
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => promoImageInputRef.current?.click()}
-                    className="text-xs text-[#ffd025] hover:underline flex items-center gap-1 cursor-pointer font-bold"
-                  >
-                    <i className="fa-solid fa-upload"></i>
-                    <span>Subir archivo desde PC</span>
-                  </button>
-                </div>
-
-                <input
-                  type="file"
-                  ref={promoImageInputRef}
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleUploadImage}
-                />
-
-                <input
-                  type="text"
-                  required
-                  value={productForm.image}
-                  onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
-                  placeholder="https://images.unsplash.com/... o data:image/..."
-                  className="w-full bg-[#141414] border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:border-[#ffd025]"
-                />
-
-                {productForm.image && (
-                  <div className="h-24 p-2 bg-[#141414] rounded-xl border border-gray-800 flex items-center justify-center">
-                    <img
-                      src={productForm.image}
-                      alt="Preview"
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  </div>
-                )}
-              </div>
+              {/* Imagen del Producto con subida desde PC, Sharp y Cloudflare R2 */}
+              <ProductImageUploader
+                value={productForm.image}
+                onChange={(newUrl) => setProductForm(prev => ({ ...prev, image: newUrl }))}
+                productName={productForm.name}
+                label="Imagen del Producto Promo (Cargar desde PC o Enlace)"
+                showToast={showToast}
+              />
 
               {/* Botón y Stock */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
