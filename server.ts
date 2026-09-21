@@ -1,5 +1,8 @@
 import express from 'express';
 import path from 'path';
+import multer from 'multer';
+import sharp from 'sharp';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { CATEGORIES as INITIAL_CATEGORIES, MEGA_OFFERS as INITIAL_MEGA_OFFERS, HERO_SLIDES as INITIAL_HERO_SLIDES, DEFAULT_STORE_SCHEDULE } from './src/data/products';
@@ -9,6 +12,52 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
+
+// R2 Storage
+const upload = multer({ storage: multer.memoryStorage() });
+let s3Client: S3Client | null = null;
+function getS3Client() {
+  if (!s3Client && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_ENDPOINT && process.env.R2_BUCKET_NAME) {
+    s3Client = new S3Client({
+      region: 'auto',
+      endpoint: process.env.R2_ENDPOINT,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+      },
+    });
+  }
+  return s3Client;
+}
+
+app.post('/api/upload', upload.single('image'), async (req, res) => {
+  const request = req as any;
+  if (!request.file) return res.status(400).json({ error: 'No se subió archivo' });
+  const client = getS3Client();
+  if (!client) return res.status(500).json({ error: 'Almacenamiento no configurado' });
+  
+  try {
+    // Compress image
+    const compressedBuffer = await sharp(request.file.buffer)
+      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 20, progressive: true })
+      .toBuffer();
+
+    const key = `products/${Date.now()}-${request.file.originalname.split('.')[0]}.jpg`;
+    
+    await client.send(new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+      Body: compressedBuffer,
+      ContentType: 'image/jpeg',
+    }));
+    
+    res.json({ url: `https://${process.env.R2_BUCKET_NAME}.${process.env.R2_ENDPOINT?.split('//')[1]}/${key}` });
+  } catch (err) {
+    console.error('Error procesando/subiendo imagen:', err);
+    res.status(500).json({ error: 'Error procesando o subiendo imagen' });
+  }
+});
 
 // Lazy Gemini API Client
 let geminiAi: GoogleGenAI | null = null;

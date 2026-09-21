@@ -104,19 +104,31 @@ export const VisualQuickEditorModal: React.FC<VisualQuickEditorModalProps> = ({
   if (!isOpen || !target) return null;
 
   // File Upload Helper
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fieldSetter: (url: string) => void) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldSetter: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        fieldSetter(dataUrl);
-        showToast('Imagen cargada con éxito');
-      }
-    };
-    reader.readAsDataURL(file);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      setIsSaving(true);
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Error al subir imagen');
+      
+      const { url } = await response.json();
+      fieldSetter(url);
+      showToast('Imagen subida con éxito');
+    } catch (err) {
+      console.error(err);
+      showToast('Error al subir imagen');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Submit Handler
