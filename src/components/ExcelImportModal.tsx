@@ -264,6 +264,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
       // Map rows looking for name/title, price, category, and brand with robust matching
       const parsedItems = rawJson.map((row) => {
         let name = '';
+        let description = '';
         let price = 0;
         let originalPrice: number | undefined = undefined;
         let stock = 24;
@@ -278,11 +279,13 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
           const vStr = String(val).trim();
           if (!vStr) continue;
 
-          // Product title / name column: accepts titulo, title, nombre, producto, articulo, descripcion, glosa, detalle, etc.
-          if (/^(titulo|titulos|title|titles|nombre|nombres|name|names|producto|productos|product|products|articulo|articulos|item|items|descripcion|desc|detalle|glosa|concepto|denominacion|mercaderia|etiqueta)$/i.test(k) && !name) {
+          // Product title / name column
+          if (/^(titulo|titulos|title|titles|nombre|nombres|name|names|producto|productos|product|products|articulo|articulos|item|items)$/i.test(k) && !name) {
             name = vStr;
-          } else if (/(titulo|title|nombre|producto|articulo|descripcion)/i.test(k) && !name && !/(categoria|rubro|tipo|familia)/i.test(k)) {
-            name = vStr;
+          }
+          // Description column
+          else if (/^(descripcion|desc|detalle|glosa|concepto|denominacion|mercaderia|etiqueta)$/i.test(k) && !description) {
+            description = vStr;
           }
           // Category / Department / Family column
           else if (/^(categoria|category|rubro|familia|subfamilia|seccion|departamento|depto|linea|grupo|pasillo)$/i.test(k) && !rawCategory) {
@@ -340,6 +343,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
         return {
           name,
+          description,
           price,
           originalPrice,
           stock,
