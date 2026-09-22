@@ -1971,9 +1971,14 @@ async function classifyProductsWithBotilleriaAI(items: any[], existingCategories
     return { categoryId: 'cat-bebidas', categoryName: 'Bebidas, Aguas & Hielo', subcategory: 'Bebidas Gaseosas', image: 'bebida', brand: 'General', offerType: 'standard' };
   };
 
-  const results = items.map((it, idx) => {
+  const results = await Promise.all(items.map(async (it) => {
+      // 1. Try Gemini AI (with search grounding)
+      const aiResult = await classifyProductWithGemini(it.name, existingCategories || []);
+      if (aiResult && aiResult.categoryName) return aiResult;
+
+      // 2. Fallback to heuristic
       return runHeuristic(it.name, it.price, it.originalPrice);
-  });
+  }));
 
   return { success: true, total: results.length, products: results };
 }
