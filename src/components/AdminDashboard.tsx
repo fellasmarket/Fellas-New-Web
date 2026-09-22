@@ -1879,12 +1879,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {allProducts
                 .filter(p => {
+                  const cat = categories.find(c => c.id === p.categoryId) || categories.find(c => c.name === p.category);
+                  const aisleName = cat?.name || p.category || '';
                   const matchSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-                    p.subcategory.toLowerCase().includes(productSearch.toLowerCase());
+                    p.subcategory.toLowerCase().includes(productSearch.toLowerCase()) ||
+                    aisleName.toLowerCase().includes(productSearch.toLowerCase());
                   const matchCat = selectedCategoryFilter === 'ALL' || p.categoryId === selectedCategoryFilter;
                   return matchSearch && matchCat;
                 })
                 .map(prod => {
+                  const cat = categories.find(c => c.id === prod.categoryId) || categories.find(c => c.name === prod.category);
+                  const aisleName = cat?.name || prod.category || 'General';
                   const autoDiscount = prod.discount || getDiscountPercentage(prod.price, prod.originalPrice);
                   const hasDiscount = prod.originalPrice && prod.originalPrice > prod.price;
 
@@ -1938,8 +1943,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </button>
                         </div>
 
-                        <div className="p-3.5 space-y-1.5 min-w-0">
-                          <div className="text-[10px] font-bold text-[#ffd025] uppercase tracking-wider truncate">{prod.subcategory || prod.category}</div>
+                        <div className="p-3.5 space-y-2 min-w-0">
+                          {/* Pasillo Badge y Subcategoría */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1 bg-[#ffd025]/15 text-[#ffd025] border border-[#ffd025]/40 text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs">
+                              <i className={`${cat?.icon || 'fa-solid fa-boxes-stacked'} text-[9px]`}></i>
+                              <span className="truncate">Pasillo: {aisleName}</span>
+                            </span>
+                            {prod.subcategory && prod.subcategory !== aisleName && (
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate">
+                                {prod.subcategory}
+                              </span>
+                            )}
+                          </div>
+
                           <h4 className="text-xs font-bold text-white line-clamp-2 min-h-[2rem] leading-snug break-words">{prod.name}</h4>
                           <div className="flex items-baseline gap-2 pt-1 flex-wrap">
                             <span className="text-sm font-black text-white">{formatPrice(prod.price)}</span>
@@ -4370,6 +4387,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <div className="flex gap-3">
                       <img src={prod.image} alt={prod.name} className="w-14 h-14 rounded-xl object-contain bg-[#141414] shrink-0 p-1" />
                       <div className="min-w-0 flex-1">
+                        <div className="text-[9px] font-black text-[#ffd025] uppercase tracking-wider truncate mb-0.5">
+                          Pasillo: {categories.find(c => c.id === prod.categoryId)?.name || prod.category || 'General'}
+                        </div>
                         <h4 className="text-xs font-bold text-white truncate">{prod.name}</h4>
                         <div className="text-[11px] text-[#ffd025] font-black">{formatPrice(prod.price)}</div>
                         <div className="text-[10px] text-gray-400">{prod.subcategory}</div>

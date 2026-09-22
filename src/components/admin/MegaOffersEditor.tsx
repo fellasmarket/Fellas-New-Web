@@ -427,11 +427,23 @@ export const MegaOffersEditor: React.FC<MegaOffersEditorProps> = ({
                     </div>
 
                     {/* Información del producto */}
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-[#ffd025] uppercase tracking-wider truncate">
-                          {prod.subcategory || 'Pack Promo'}
-                        </span>
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                          {(() => {
+                            const cat = categories.find(c => c.id === prod.categoryId) || categories.find(c => c.name === prod.category);
+                            const aisleName = cat?.name || prod.category || 'General';
+                            return (
+                              <span className="inline-flex items-center gap-1 bg-[#ffd025]/15 text-[#ffd025] border border-[#ffd025]/40 text-[9px] font-black px-1.5 py-0.5 rounded shadow-xs">
+                                <i className={`${cat?.icon || 'fa-solid fa-boxes-stacked'} text-[8px]`}></i>
+                                <span className="truncate">Pasillo: {aisleName}</span>
+                              </span>
+                            );
+                          })()}
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate">
+                            {prod.subcategory || 'Pack Promo'}
+                          </span>
+                        </div>
 
                         {/* Toggle Stock rápido */}
                         <button
