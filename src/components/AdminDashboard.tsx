@@ -4857,160 +4857,295 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* 5. MODAL: PRODUCT FORM */}
-      {isProductModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs">
-          <div className="bg-[#1a1a1a] border border-[#ffd025]/30 rounded-3xl w-full max-w-xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setIsProductModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
-            >
-              <i className="fa-solid fa-xmark text-lg"></i>
-            </button>
+      {/* 5. MODAL: PRODUCT FORM CON VISTA PREVIA DE TARJETA Y PASILLOS */}
+      {isProductModalOpen && (() => {
+        const currentCategory = categories.find(c => c.id === prodForm.categoryId) || categories[0];
+        const computedDiscount = prodForm.originalPrice && prodForm.originalPrice > prodForm.price
+          ? `-${Math.round(((prodForm.originalPrice - prodForm.price) / prodForm.originalPrice) * 100)}%`
+          : prodForm.discount;
 
-            <h3 className="text-base font-black uppercase text-white mb-4 flex items-center gap-2">
-              <i className="fa-solid fa-box-open text-[#ffd025]"></i>
-              <span>{editingProduct ? 'Editar Producto' : 'Ingresar Nuevo Producto'}</span>
-            </h3>
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-xs overflow-y-auto">
+            <div className="bg-[#1a1a1a] border border-[#ffd025]/30 rounded-3xl w-full max-w-4xl shadow-2xl p-5 sm:p-7 relative max-h-[92vh] overflow-y-auto my-auto">
+              <button
+                type="button"
+                onClick={() => setIsProductModalOpen(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white z-10 w-8 h-8 rounded-full bg-stone-800/80 flex items-center justify-center transition cursor-pointer"
+                title="Cerrar ventana"
+              >
+                <i className="fa-solid fa-xmark text-base"></i>
+              </button>
 
-            <form onSubmit={handleSaveProduct} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Nombre</label>
-                <input
-                  type="text"
-                  required
-                  value={prodForm.name}
-                  onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })}
-                  placeholder="Ej: Pisco Alto del Carmen 35° 750ml"
-                  className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Pasillo</label>
-                  <select
-                    value={prodForm.categoryId}
-                    onChange={(e) => setProdForm({ ...prodForm, categoryId: e.target.value })}
-                    className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
-                  >
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+              <div className="flex items-center gap-3 mb-5 border-b border-gray-800 pb-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#ffd025]/20 text-[#ffd025] border border-[#ffd025]/40 flex items-center justify-center text-lg shrink-0">
+                  <i className="fa-solid fa-box-open"></i>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Subcategoría</label>
-                  <input
-                    type="text"
-                    value={prodForm.subcategory}
-                    onChange={(e) => setProdForm({ ...prodForm, subcategory: e.target.value })}
-                    placeholder="Ej: Pisco Especial"
-                    className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Precio Venta ($)</label>
-                  <input
-                    type="number"
-                    required
-                    min={100}
-                    value={prodForm.price}
-                    onChange={(e) => setProdForm({ ...prodForm, price: Number(e.target.value) })}
-                    className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025] font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Precio Normal ($)</label>
-                  <input
-                    type="number"
-                    value={prodForm.originalPrice}
-                    onChange={(e) => setProdForm({ ...prodForm, originalPrice: Number(e.target.value) })}
-                    className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
-                  />
-                </div>
-              </div>
-
-              {/* Botón Encendible / Apagable para Marcar Sin Stock a Clientes */}
-              <div className="bg-[#141414] p-3 rounded-2xl border border-gray-800 flex items-center justify-between">
-                <div>
-                  <label className="block text-xs font-bold text-white uppercase">
-                    Disponibilidad para Clientes
-                  </label>
-                  <p className="text-[11px] text-gray-400">
-                    {prodForm.inStock 
-                      ? '🟢 En stock: Habilitado para compra en el catálogo' 
-                      : '🔴 Sin stock: Deshabilitado y marcado agotado para clientes'}
+                  <h3 className="text-base font-black uppercase text-white flex items-center gap-2">
+                    <span>{editingProduct ? 'Editar Producto' : 'Ingresar Nuevo Producto'}</span>
+                  </h3>
+                  <p className="text-xs text-stone-400">
+                    Configura los datos del producto y visualiza en tiempo real su tarjeta y el pasillo donde se exhibirá.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setProdForm({ ...prodForm, inStock: !prodForm.inStock })}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer border ${
-                    prodForm.inStock
-                      ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60'
-                      : 'bg-red-950/80 text-red-300 border-red-600/60'
-                  }`}
-                >
-                  <span>{prodForm.inStock ? 'En stock' : 'Sin stock'}</span>
-                  <span className={`w-8 h-4 rounded-full relative flex items-center p-0.5 transition-colors ${prodForm.inStock ? 'bg-emerald-500' : 'bg-stone-700'}`}>
-                    <span className={`w-3 h-3 bg-white rounded-full transition-transform ${prodForm.inStock ? 'translate-x-4' : 'translate-x-0'}`}></span>
-                  </span>
-                </button>
               </div>
 
-              {/* Componente para Cargar Imágenes desde PC con Compresión Sharp y Almacenamiento Cloudflare R2 */}
-              <ProductImageUploader
-                value={prodForm.image}
-                onChange={(newUrl) => setProdForm(prev => ({ ...prev, image: newUrl }))}
-                productName={prodForm.name}
-                label="Foto del Producto (Cargar desde PC o Enlace)"
-                showToast={showToast}
-              />
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Formulario a la izquierda */}
+                <form onSubmit={handleSaveProduct} className="lg:col-span-7 space-y-3.5 order-2 lg:order-1">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-300 uppercase mb-1">Nombre del Producto *</label>
+                    <input
+                      type="text"
+                      required
+                      value={prodForm.name}
+                      onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })}
+                      placeholder="Ej: Pisco Alto del Carmen 35° 750ml"
+                      className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Descripción</label>
-                <textarea
-                  rows={2}
-                  value={prodForm.description}
-                  onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
-                  className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
-                />
-              </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-[#ffd025] uppercase mb-1 flex items-center gap-1.5">
+                        <i className="fa-solid fa-tag"></i>
+                        <span>Pasillo / Sección *</span>
+                      </label>
+                      <select
+                        value={prodForm.categoryId}
+                        onChange={(e) => setProdForm({ ...prodForm, categoryId: e.target.value })}
+                        className="w-full bg-[#141414] text-[#ffd025] font-bold text-xs rounded-xl p-2.5 border border-[#ffd025]/40 outline-none focus:border-[#ffd025]"
+                      >
+                        {categories.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 uppercase mb-1">Subcategoría</label>
+                      <input
+                        type="text"
+                        value={prodForm.subcategory}
+                        onChange={(e) => setProdForm({ ...prodForm, subcategory: e.target.value })}
+                        placeholder="Ej: Pisco Especial"
+                        className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Variedades (separadas por coma)</label>
-                <input
-                  type="text"
-                  value={prodForm.varieties}
-                  onChange={(e) => setProdForm({ ...prodForm, varieties: e.target.value })}
-                  placeholder="Ej: Rojo, Azul, Verde"
-                  className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
-                />
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 uppercase mb-1">Precio Venta ($) *</label>
+                      <input
+                        type="number"
+                        required
+                        min={100}
+                        value={prodForm.price}
+                        onChange={(e) => setProdForm({ ...prodForm, price: Number(e.target.value) })}
+                        className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025] font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 uppercase mb-1">Precio Normal ($ Tachado)</label>
+                      <input
+                        type="number"
+                        value={prodForm.originalPrice}
+                        onChange={(e) => setProdForm({ ...prodForm, originalPrice: Number(e.target.value) })}
+                        className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
+                      />
+                    </div>
+                  </div>
 
-              <div className="pt-3 border-t border-gray-800 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsProductModalOpen(false)}
-                  className="bg-gray-800 text-gray-300 font-bold text-xs px-4 py-2 rounded-xl hover:bg-gray-700 transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="bg-[#ffd025] text-[#141414] font-black text-xs px-5 py-2 rounded-xl hover:bg-yellow-400 transition shadow uppercase"
-                >
-                  Guardar Ficha
-                </button>
+                  {/* Botón Encendible / Apagable para Marcar Sin Stock a Clientes */}
+                  <div className="bg-[#141414] p-3 rounded-2xl border border-gray-800 flex items-center justify-between">
+                    <div>
+                      <label className="block text-xs font-bold text-white uppercase">
+                        Disponibilidad para Clientes
+                      </label>
+                      <p className="text-[11px] text-gray-400">
+                        {prodForm.inStock 
+                          ? '🟢 En stock: Habilitado para compra en el catálogo' 
+                          : '🔴 Sin stock: Deshabilitado y marcado agotado para clientes'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setProdForm({ ...prodForm, inStock: !prodForm.inStock })}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer border ${
+                        prodForm.inStock
+                          ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60'
+                          : 'bg-red-950/80 text-red-300 border-red-600/60'
+                      }`}
+                    >
+                      <span>{prodForm.inStock ? 'En stock' : 'Sin stock'}</span>
+                      <span className={`w-8 h-4 rounded-full relative flex items-center p-0.5 transition-colors ${prodForm.inStock ? 'bg-emerald-500' : 'bg-stone-700'}`}>
+                        <span className={`w-3 h-3 bg-white rounded-full transition-transform ${prodForm.inStock ? 'translate-x-4' : 'translate-x-0'}`}></span>
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Componente para Cargar Imágenes desde PC con Compresión Sharp y Almacenamiento Cloudflare R2 */}
+                  <ProductImageUploader
+                    value={prodForm.image}
+                    onChange={(newUrl) => setProdForm(prev => ({ ...prev, image: newUrl }))}
+                    productName={prodForm.name}
+                    label="Foto del Producto (Cargar desde PC o Enlace)"
+                    showToast={showToast}
+                  />
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-300 uppercase mb-1">Descripción</label>
+                    <textarea
+                      rows={2}
+                      value={prodForm.description}
+                      onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
+                      className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-300 uppercase mb-1">Variedades (separadas por coma)</label>
+                    <input
+                      type="text"
+                      value={prodForm.varieties}
+                      onChange={(e) => setProdForm({ ...prodForm, varieties: e.target.value })}
+                      placeholder="Ej: Rojo, Azul, Verde"
+                      className="w-full bg-[#141414] text-white text-xs rounded-xl p-2.5 border border-gray-800 outline-none focus:border-[#ffd025]"
+                    />
+                  </div>
+
+                  <div className="pt-3 border-t border-gray-800 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsProductModalOpen(false)}
+                      className="bg-gray-800 text-gray-300 font-bold text-xs px-4 py-2 rounded-xl hover:bg-gray-700 transition cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="bg-[#ffd025] text-[#141414] font-black text-xs px-5 py-2 rounded-xl hover:bg-yellow-400 transition shadow uppercase cursor-pointer"
+                    >
+                      Guardar Ficha
+                    </button>
+                  </div>
+                </form>
+
+                {/* VISTA PREVIA: TARJETA DE PRODUCTO CON PASILLO A LA DERECHA */}
+                <div className="lg:col-span-5 order-1 lg:order-2 flex flex-col items-center">
+                  <div className="w-full bg-[#141416] p-4 rounded-2xl border border-stone-800 space-y-3 lg:sticky lg:top-4 shadow-inner">
+                    <div className="flex items-center justify-between border-b border-stone-800 pb-2.5">
+                      <span className="text-[11px] font-black uppercase text-[#ffd025] flex items-center gap-1.5">
+                        <i className="fa-solid fa-eye"></i>
+                        <span>Vista Previa: Tarjeta</span>
+                      </span>
+                      <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full font-bold border border-emerald-500/20 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        En vivo
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-stone-400 leading-tight">
+                      Así verán tus clientes esta tarjeta en la tienda:
+                    </p>
+
+                    {/* TARJETA DE PRODUCTO COMPLETA */}
+                    <div className="w-full max-w-[230px] mx-auto bg-white border border-stone-200 rounded-2xl p-3.5 shadow-md flex flex-col justify-between text-stone-900 transition-all">
+                      <div>
+                        {/* Pasillo Badge destacado */}
+                        <div className="mb-2">
+                          <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-950 border border-amber-400/50 text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs">
+                            <i className={`${currentCategory?.icon || 'fa-solid fa-box'} text-amber-700 text-[10px]`}></i>
+                            <span className="truncate">Pasillo: {currentCategory?.name || 'General'}</span>
+                          </span>
+                        </div>
+
+                        {/* Imagen con Badges */}
+                        <div className="aspect-square w-full bg-stone-100 rounded-xl mb-2.5 overflow-hidden relative border border-stone-100">
+                          <img
+                            src={prodForm.image || 'https://images.unsplash.com/photo-1527061011665-3652c757a4d4?q=80&w=400&auto=format&fit=crop'}
+                            alt={prodForm.name || 'Vista previa'}
+                            className={`w-full h-full object-cover transition duration-300 ${!prodForm.inStock ? 'opacity-50 grayscale-40' : ''}`}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1527061011665-3652c757a4d4?q=80&w=400&auto=format&fit=crop';
+                            }}
+                          />
+                          {computedDiscount && prodForm.inStock && (
+                            <span className="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-md animate-pulse">
+                              {computedDiscount}
+                            </span>
+                          )}
+                          {!prodForm.inStock && (
+                            <span className="absolute top-2 left-2 bg-stone-900/90 text-red-400 border border-red-500/40 text-[9px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider flex items-center gap-1">
+                              <i className="fa-solid fa-ban text-[8px]"></i>
+                              <span>Sin stock</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Subcategoría */}
+                        <span className="text-[9px] font-bold text-amber-700 uppercase tracking-wider block truncate">
+                          {prodForm.subcategory || currentCategory?.name || 'General'}
+                        </span>
+
+                        {/* Nombre del Producto */}
+                        <h5 className="text-xs font-semibold text-stone-900 mt-0.5 line-clamp-2 min-h-8 leading-snug break-words">
+                          {prodForm.name || 'Nombre del producto...'}
+                        </h5>
+
+                        {/* Descripción */}
+                        <p className="text-[10px] text-stone-500 mt-1 line-clamp-2 font-light">
+                          {prodForm.description || 'Descripción del producto...'}
+                        </p>
+                      </div>
+
+                      {/* Precios y Botón de compra */}
+                      <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between gap-1.5">
+                        <div className="min-w-0">
+                          {prodForm.originalPrice && prodForm.originalPrice > prodForm.price ? (
+                            <span className="text-[10px] font-bold text-red-600 line-through decoration-red-600 decoration-2 block leading-tight">
+                              {formatPrice(prodForm.originalPrice)}
+                            </span>
+                          ) : null}
+                          <span className="text-xs font-black text-[#141414] block truncate">
+                            {formatPrice(prodForm.price || 0)}
+                          </span>
+                        </div>
+
+                        {prodForm.inStock ? (
+                          <div className="bg-[#ffd025] text-stone-950 font-black text-[10px] px-2.5 py-1.5 rounded-lg uppercase tracking-wide flex items-center gap-1 shadow-xs shrink-0">
+                            <i className="fa-solid fa-cart-shopping text-[9px]"></i>
+                            <span>Comprar</span>
+                          </div>
+                        ) : (
+                          <div className="bg-stone-200 text-stone-500 text-[9px] font-bold px-2 py-1.5 rounded-lg flex items-center gap-1 opacity-70 shrink-0">
+                            <i className="fa-solid fa-ban text-[8px]"></i>
+                            <span>Sin stock</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Fila de detalles del Pasillo asignado */}
+                    <div className="p-2.5 rounded-xl bg-[#1c1c20] border border-stone-800 text-[11px] text-stone-300 space-y-1">
+                      <div className="flex items-center gap-1.5 text-[#ffd025] font-bold">
+                        <i className="fa-solid fa-location-arrow text-[10px]"></i>
+                        <span>Pasillo Asignado:</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs font-black text-white bg-stone-900/80 px-2.5 py-1.5 rounded-lg border border-stone-700/60">
+                        <i className={`${currentCategory?.icon || 'fa-solid fa-box'} text-amber-400`}></i>
+                        <span>{currentCategory?.name || 'Sin Asignar'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 6. MODAL: CLASIFICACIONES */}
       {isCategoryModalOpen && (

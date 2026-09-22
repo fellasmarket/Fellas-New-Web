@@ -199,9 +199,17 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                       </span>
                     )}
                   </div>
-                  <span className="text-[9px] font-bold text-amber-700 uppercase tracking-wider block truncate">
-                    {product.subcategory}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                    <span className="text-[9px] font-black bg-amber-50 text-amber-900 border border-amber-300/60 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-xs">
+                      <i className={`${category.icon || 'fa-solid fa-box'} text-[8px] text-amber-700`}></i>
+                      <span className="truncate">Pasillo: {category.name}</span>
+                    </span>
+                    {product.subcategory && product.subcategory !== category.name && (
+                      <span className="text-[9px] font-bold text-stone-500 uppercase tracking-wider truncate">
+                        {product.subcategory}
+                      </span>
+                    )}
+                  </div>
                   <h5 className="text-xs font-semibold text-stone-900 mt-0.5 group-hover:text-amber-700 transition line-clamp-2 h-8 leading-snug break-words">
                     {product.name}
                   </h5>
