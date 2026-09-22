@@ -768,21 +768,50 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         publishedSocial: prodForm.publishedSocial
       };
 
+      let updatedCategories: CategoryData[] = [];
+      let updatedOffers: Product[] = megaOffers;
+
       try {
-        await fetch(`/api/products/${editingProduct.id}`, {
+        const res = await fetch(`/api/products/${editingProduct.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedProduct)
         });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.categories)) {
+            updatedCategories = data.categories;
+          }
+          if (Array.isArray(data.megaOffers)) {
+            updatedOffers = data.megaOffers;
+          }
+        }
       } catch (err) {
         console.error(err);
       }
 
-      const updatedCategories = categories.map(cat => ({
-        ...cat,
-        products: cat.products.map(p => p.id === editingProduct.id ? updatedProduct : p)
-      }));
+      if (updatedCategories.length === 0) {
+        updatedCategories = categories.map(cat => {
+          const filtered = (cat.products || []).filter(p => p.id !== editingProduct.id);
+          if (cat.id === updatedProduct.categoryId) {
+            return {
+              ...cat,
+              products: [updatedProduct, ...filtered],
+              featuredProductIds: cat.featuredProductIds
+            };
+          }
+          return {
+            ...cat,
+            products: filtered,
+            featuredProductIds: cat.featuredProductIds?.filter(id => id !== editingProduct.id)
+          };
+        });
+      }
+
       onUpdateCategories(updatedCategories);
+      if (onUpdateMegaOffers) {
+        onUpdateMegaOffers(updatedOffers);
+      }
       showToast('Producto actualizado exitosamente');
     } else {
       const newProduct: Product = {
@@ -804,23 +833,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         publishedSocial: prodForm.publishedSocial
       };
 
+      let updatedCategories: CategoryData[] = [];
+      let updatedOffers: Product[] = megaOffers;
+
       try {
-        await fetch('/api/products', {
+        const res = await fetch('/api/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newProduct)
         });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.categories)) {
+            updatedCategories = data.categories;
+          }
+          if (Array.isArray(data.megaOffers)) {
+            updatedOffers = data.megaOffers;
+          }
+        }
       } catch (err) {
         console.error(err);
       }
 
-      const updatedCategories = categories.map(cat => {
-        if (cat.id === prodForm.categoryId) {
-          return { ...cat, products: [newProduct, ...cat.products] };
-        }
-        return cat;
-      });
+      if (updatedCategories.length === 0) {
+        updatedCategories = categories.map(cat => {
+          if (cat.id === prodForm.categoryId) {
+            return { ...cat, products: [newProduct, ...(cat.products || [])] };
+          }
+          return cat;
+        });
+      }
+
       onUpdateCategories(updatedCategories);
+      if (onUpdateMegaOffers) {
+        onUpdateMegaOffers(updatedOffers);
+      }
       showToast('Nuevo producto ingresado al catálogo');
     }
 
@@ -2971,16 +3018,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <span>Productos Visibles en Tienda Alterna (6 por sección)</span>
                   </div>
                   <h3 className="text-base font-black text-white mt-1">
-                    Selecciona los 6 Productos Visibles por Cada Pasillo
+                    Selecciona los 6 Productos Visibles por Cada Pasillo ({categories.length} Pasillos)
                   </h3>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Cuando la Tienda Alterna está activa, los clientes <strong>no tendrán acceso a toda la página</strong> ni verán botones de "Ver más" ni el área de "Explorar Colecciones & Áreas". Solo podrán ver y comprar estos 6 productos elegidos en cada pasillo.
+                    Cuando la Tienda Alterna está activa, los clientes solo podrán ver y comprar estos 6 productos elegidos en cada pasillo. Las categorías y productos se mantienen sincronizados con tu catálogo general.
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/admin/normalize-catalog', { method: 'POST' });
+                      if (res.ok) {
+                        const data = await res.json();
+                        if (data.categories) onUpdateCategories(data.categories);
+                        if (data.megaOffers && onUpdateMegaOffers) onUpdateMegaOffers(data.megaOffers);
+                        showToast('¡Pasillos y productos sincronizados correctamente!');
+                      }
+                    } catch (e) {
+                      console.error(e);
+                    }
+                  }}
+                  className="bg-[#202024] hover:bg-stone-700 text-amber-300 border border-amber-400/30 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-2 transition cursor-pointer self-start sm:self-center shrink-0 shadow-sm"
+                  title="Sincronizar y verificar que todos los productos estén en su pasillo correcto"
+                >
+                  <i className="fa-solid fa-arrows-rotate text-amber-400"></i>
+                  <span>Sincronizar Pasillos</span>
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-                {categories.slice(0, 3).map((cat) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
+                {categories.map((cat) => (
                   <div
                     key={`alt-cat-${cat.id}`}
                     className="bg-[#141414] border border-stone-800 rounded-2xl p-4 flex flex-col justify-between shadow-md"
@@ -2997,7 +3065,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </span>
                       </div>
                       <p className="text-[11px] text-stone-400 mb-3">
-                        Total en inventario: {cat.products.length} productos.
+                        Total en inventario: {cat.products?.length || 0} productos.
                       </p>
                     </div>
 
@@ -5091,7 +5159,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* MODAL: SELECCIÓN DE LOS 6 PRODUCTOS DESTACADOS POR SECCIÓN */}
       <CategoryFeaturedProductsModal
         isOpen={isFeaturedModalOpen}
-        category={selectedFeaturedCategory}
+        category={categories.find(c => c.id === selectedFeaturedCategory?.id) || selectedFeaturedCategory}
+        allProducts={allProducts}
         onClose={() => {
           setIsFeaturedModalOpen(false);
           setSelectedFeaturedCategory(null);

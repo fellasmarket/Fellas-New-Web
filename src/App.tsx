@@ -350,13 +350,22 @@ export default function App() {
       prevOffers.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
     );
 
-    // Save to backend
+    // Save to backend & sync categories
     try {
-      await fetch(`/api/products/${updatedProduct.id}`, {
+      const res = await fetch(`/api/products/${updatedProduct.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedProduct)
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.categories)) {
+          setCategories(data.categories);
+        }
+        if (Array.isArray(data.megaOffers)) {
+          setMegaOffers(data.megaOffers);
+        }
+      }
     } catch (err) {
       console.warn('Backend product update error:', err);
     }
@@ -427,7 +436,7 @@ export default function App() {
     if (isEmergencyMode) {
       // In emergency mode, only products visible on the express homepage can be searched/accessed
       const expressProds: Product[] = [...megaOffers];
-      categories.slice(0, 3).forEach((cat) => {
+      categories.forEach((cat) => {
         let prods: Product[] = [];
         if (cat.featuredProductIds && cat.featuredProductIds.length > 0) {
           const featured = cat.featuredProductIds
@@ -700,8 +709,8 @@ export default function App() {
                   <CategoryGrid isEmergencyMode={isEmergencyMode} />
                 )}
 
-                {/* 5. Secciones de Categorías (Exactamente 3 subdivisiones con selección de 6 productos y sin Ver Más en Tienda Alterna) */}
-                {categories.slice(0, 3).map((category) => (
+                {/* 5. Secciones de Categorías (con selección de 6 productos por pasillo en Tienda Alterna) */}
+                {(isEmergencyMode ? categories.filter(c => (c.products && c.products.length > 0)) : categories).map((category) => (
                   <CategorySection
                     key={category.id}
                     category={category}

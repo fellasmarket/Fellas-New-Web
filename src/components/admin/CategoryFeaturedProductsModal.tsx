@@ -4,6 +4,7 @@ import { CategoryData, Product } from '../../types';
 interface CategoryFeaturedProductsModalProps {
   isOpen: boolean;
   category: CategoryData | null;
+  allProducts?: Product[];
   onClose: () => void;
   onSaveFeaturedProducts: (categoryId: string, featuredProductIds: string[]) => void;
   showToast: (msg: string) => void;
@@ -12,57 +13,75 @@ interface CategoryFeaturedProductsModalProps {
 export const CategoryFeaturedProductsModal: React.FC<CategoryFeaturedProductsModalProps> = ({
   isOpen,
   category,
+  allProducts,
   onClose,
   onSaveFeaturedProducts,
   showToast
 }) => {
   if (!isOpen || !category) return null;
 
+  // Gather all products that belong to this category (checking category.products and any from allProducts)
+  const availableCategoryProducts = useMemo(() => {
+    if (!category) return [];
+    const directProds = category.products || [];
+    if (allProducts && allProducts.length > 0) {
+      const matching = allProducts.filter(p =>
+        p.categoryId === category.id ||
+        (p.category && p.category.toLowerCase().trim() === category.name.toLowerCase().trim())
+      );
+      const map = new Map<string, Product>();
+      directProds.forEach(p => map.set(p.id, p));
+      matching.forEach(p => map.set(p.id, p));
+      return Array.from(map.values());
+    }
+    return directProds;
+  }, [category, allProducts]);
+
   // Initialize with existing featuredProductIds or first 6 of the category
   const [selectedIds, setSelectedIds] = useState<string[]>(() => {
     if (category.featuredProductIds && category.featuredProductIds.length > 0) {
-      // Filter out any IDs that might no longer exist in category.products
+      // Filter out any IDs that might no longer exist in availableCategoryProducts
       const valid = category.featuredProductIds.filter(id => 
-        category.products.some(p => p.id === id)
+        availableCategoryProducts.some(p => p.id === id)
       );
       return valid.slice(0, 6);
     }
-    return category.products.slice(0, 6).map(p => p.id);
+    return availableCategoryProducts.slice(0, 6).map(p => p.id);
   });
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Synchronize when category changes
+  // Synchronize when category or available products change
   useEffect(() => {
     if (category) {
       if (category.featuredProductIds && category.featuredProductIds.length > 0) {
         const valid = category.featuredProductIds.filter(id => 
-          category.products.some(p => p.id === id)
+          availableCategoryProducts.some(p => p.id === id)
         );
         setSelectedIds(valid.slice(0, 6));
       } else {
-        setSelectedIds(category.products.slice(0, 6).map(p => p.id));
+        setSelectedIds(availableCategoryProducts.slice(0, 6).map(p => p.id));
       }
     }
-  }, [category]);
+  }, [category, availableCategoryProducts]);
 
   // Map selected IDs to product objects
   const selectedProducts = useMemo(() => {
     return selectedIds
-      .map(id => category.products.find(p => p.id === id))
+      .map(id => availableCategoryProducts.find(p => p.id === id))
       .filter((p): p is Product => !!p);
-  }, [selectedIds, category.products]);
+  }, [selectedIds, availableCategoryProducts]);
 
   // Filtered available products
   const filteredProducts = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return category.products;
-    return category.products.filter(p => 
+    if (!q) return availableCategoryProducts;
+    return availableCategoryProducts.filter(p => 
       p.name.toLowerCase().includes(q) ||
       (p.brand && p.brand.toLowerCase().includes(q)) ||
       (p.subcategory && p.subcategory.toLowerCase().includes(q))
     );
-  }, [category.products, searchQuery]);
+  }, [availableCategoryProducts, searchQuery]);
 
   // Handlers for slot re-ordering and management
   const handleMove = (index: number, direction: 'left' | 'right') => {
@@ -93,8 +112,8 @@ export const CategoryFeaturedProductsModal: React.FC<CategoryFeaturedProductsMod
   };
 
   const handleResetToDefault = () => {
-    setSelectedIds(category.products.slice(0, 6).map(p => p.id));
-    showToast('Restablecido a los primeros 6 productos del catálogo');
+    setSelectedIds(availableCategoryProducts.slice(0, 6).map(p => p.id));
+    showToast('Restablecido a los primeros 6 productos del pasillo');
   };
 
   const handleClear = () => {
@@ -259,7 +278,7 @@ export const CategoryFeaturedProductsModal: React.FC<CategoryFeaturedProductsMod
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
             <h4 className="text-xs font-black uppercase text-stone-300 flex items-center gap-1.5">
               <i className="fa-solid fa-list-check text-amber-400"></i>
-              <span>Todos los productos de {category.name} ({category.products.length})</span>
+              <span>Todos los productos de {category.name} ({availableCategoryProducts.length})</span>
             </h4>
 
             {/* Search Input */}

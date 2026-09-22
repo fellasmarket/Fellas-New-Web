@@ -636,7 +636,8 @@ async function persistDatabaseToR2(): Promise<{ success: boolean; error?: string
       orders,
       subscribers,
       feedbacks: feedbacks || [],
-      discountCodes: discountCodes || []
+      discountCodes: discountCodes || [],
+      backupStoreConfig: backupStoreConfig || null
     };
 
     const jsonStr = JSON.stringify(payload, null, 2);
@@ -769,6 +770,11 @@ async function loadDatabaseFromR2(): Promise<boolean> {
     if (Array.isArray(data.discountCodes)) {
       discountCodes = data.discountCodes;
     }
+    if (data.backupStoreConfig && typeof data.backupStoreConfig === 'object') {
+      backupStoreConfig = { ...backupStoreConfig, ...data.backupStoreConfig };
+    }
+
+    normalizeCatalogConsistency();
 
     const totalProds = categories.reduce((sum, c) => sum + (c.products?.length || 0), 0);
     lastR2SyncTime = data.savedAt || new Date().toISOString();
@@ -942,34 +948,140 @@ app.post('/api/products', (req, res) => {
   res.json({ success: true, product, categories, megaOffers });
 });
 
+// Helper: Ensure products belong strictly to their target category and clean orphan IDs
+function normalizeCatalogConsistency() {
+  const allProds: Product[] = [];
+  
+  // Extract all unique products
+  categories.forEach(cat => {
+    (cat.products || []).forEach(p => {
+      if (!allProds.some(e => e.id === p.id)) {
+        allProds.push(p);
+      }
+    });
+  });
+  megaOffers.forEach(p => {
+    if (!allProds.some(e => e.id === p.id)) {
+      allProds.push(p);
+    }
+  });
+
+  // Clear products from all categories
+  categories.forEach(cat => {
+    cat.products = [];
+  });
+  const newMegaOffers: Product[] = [];
+
+  // Place each product into its designated category / megaOffers
+  allProds.forEach(prod => {
+    if (prod.isMegaOffer) {
+      if (!newMegaOffers.some(m => m.id === prod.id)) {
+        newMegaOffers.push(prod);
+      }
+      return;
+    }
+
+    let targetCat = categories.find(c => c.id === prod.categoryId);
+    if (!targetCat) {
+      targetCat = categories.find(c => c.name.toLowerCase() === prod.category?.toLowerCase());
+    }
+    if (!targetCat && categories.length > 0) {
+      targetCat = categories[0];
+    }
+
+    if (targetCat) {
+      prod.categoryId = targetCat.id;
+      prod.category = targetCat.name;
+      if (!targetCat.products.some(p => p.id === prod.id)) {
+        targetCat.products.push(prod);
+      }
+    }
+  });
+
+  megaOffers = newMegaOffers;
+
+  // Clean featuredProductIds for each category (only keep products that actually belong to this category)
+  categories.forEach(cat => {
+    if (Array.isArray(cat.featuredProductIds)) {
+      cat.featuredProductIds = cat.featuredProductIds.filter(id =>
+        cat.products.some(p => p.id === id)
+      );
+    }
+  });
+}
+
+// Endpoint to trigger normalization from admin
+app.post('/api/admin/normalize-catalog', (req, res) => {
+  normalizeCatalogConsistency();
+  scheduleR2Sync();
+  res.json({
+    success: true,
+    message: 'Catálogo sincronizado y pasillos normalizados correctamente',
+    categories,
+    megaOffers
+  });
+});
+
 app.put('/api/products/:id', (req, res) => {
   const { id } = req.params;
   const updated: Partial<Product> = req.body;
 
-  let found = false;
-
-  // Check in megaOffers
+  // 1. Locate existing product
+  let existingProduct: Product | null = null;
   const megaIdx = megaOffers.findIndex((p) => p.id === id);
   if (megaIdx !== -1) {
-    megaOffers[megaIdx] = { ...megaOffers[megaIdx], ...updated };
-    found = true;
+    existingProduct = megaOffers[megaIdx];
+  } else {
+    for (const cat of categories) {
+      const found = cat.products.find((p) => p.id === id);
+      if (found) {
+        existingProduct = found;
+        break;
+      }
+    }
   }
 
-  // Check in categories
-  categories.forEach((cat) => {
-    const pIdx = cat.products.findIndex((p) => p.id === id);
-    if (pIdx !== -1) {
-      cat.products[pIdx] = { ...cat.products[pIdx], ...updated };
-      found = true;
-    }
-  });
-
-  if (!found) {
+  if (!existingProduct) {
     return res.status(404).json({ error: 'Producto no encontrado' });
   }
 
+  const mergedProduct: Product = { ...existingProduct, ...updated };
+
+  // 2. Remove product from all old locations
+  megaOffers = megaOffers.filter((p) => p.id !== id);
+  categories.forEach((cat) => {
+    cat.products = cat.products.filter((p) => p.id !== id);
+    if (Array.isArray(cat.featuredProductIds)) {
+      // Remove from featured if it was moved to another category
+      if (mergedProduct.categoryId !== cat.id) {
+        cat.featuredProductIds = cat.featuredProductIds.filter(fId => fId !== id);
+      }
+    }
+  });
+
+  // 3. Place into new target location
+  if (mergedProduct.isMegaOffer) {
+    megaOffers.push(mergedProduct);
+  } else {
+    let targetCat = categories.find((c) => c.id === mergedProduct.categoryId);
+    if (!targetCat) {
+      targetCat = categories.find((c) => c.name.toLowerCase() === mergedProduct.category?.toLowerCase());
+    }
+    if (!targetCat && categories.length > 0) {
+      targetCat = categories[0];
+      mergedProduct.categoryId = targetCat.id;
+      mergedProduct.category = targetCat.name;
+    }
+    if (targetCat) {
+      mergedProduct.categoryId = targetCat.id;
+      mergedProduct.category = targetCat.name;
+      targetCat.products.push(mergedProduct);
+    }
+  }
+
+  normalizeCatalogConsistency();
   scheduleR2Sync();
-  res.json({ success: true, categories, megaOffers });
+  res.json({ success: true, product: mergedProduct, categories, megaOffers });
 });
 
 app.delete('/api/products/:id', (req, res) => {
@@ -1703,6 +1815,7 @@ app.get('/api/admin/backup-store', (req, res) => {
 
 app.post('/api/admin/backup-store', (req, res) => {
   backupStoreConfig = { ...backupStoreConfig, ...req.body };
+  scheduleR2Sync();
   res.json({ success: true, backupStore: backupStoreConfig });
 });
 
@@ -2392,6 +2505,15 @@ app.post('/api/admin/reclassify-catalog', async (req, res) => {
       }
 
       targetCat.products.push(updatedProduct);
+    });
+
+    // Clean featuredProductIds for every category to ensure no invalid IDs remain
+    categories.forEach(cat => {
+      if (Array.isArray(cat.featuredProductIds)) {
+        cat.featuredProductIds = cat.featuredProductIds.filter(id =>
+          cat.products.some(p => p.id === id)
+        );
+      }
     });
 
     scheduleR2Sync(100);
