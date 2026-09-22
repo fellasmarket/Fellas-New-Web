@@ -2145,12 +2145,17 @@ app.post('/api/admin/bulk-import', (req, res) => {
     let megaOffersAdded = 0;
 
     products.forEach((item: any) => {
+      // Dynamic ID generation from category name if ID not provided
+      const categoryName = item.categoryName || 'General';
+      const categoryId = item.categoryId || categoryName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
+      const subcategory = item.subcategory || 'General';
+
       const prod: Product = {
         id: item.id || `prod-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         name: item.name,
-        category: item.categoryName || 'Bebidas, Aguas & Hielo',
-        categoryId: item.categoryId || 'cat-bebidas',
-        subcategory: item.subcategory || item.categoryName || 'General',
+        category: categoryName,
+        categoryId: categoryId,
+        subcategory: subcategory,
         price: Number(item.price),
         originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
         image: item.image || BEVERAGE_IMAGES.pisco,
