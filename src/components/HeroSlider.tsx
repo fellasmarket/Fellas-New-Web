@@ -105,12 +105,13 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({
               <img
                 src={slide.image}
                 alt={slide.title}
-                className="absolute inset-0 w-full h-full object-cover opacity-80 sm:opacity-75"
+                className="absolute inset-0 w-full h-full object-cover opacity-90 sm:opacity-85"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#141414]/95 via-[#141414]/70 sm:via-[#141414]/80 to-transparent"></div>
+              {/* Degradado de izquierda a derecha cubriendo exactamente 2/4 (50%) del banner ni más ni menos para no tapar la imagen */}
+              <div className="absolute inset-y-0 left-0 w-2/4 bg-gradient-to-r from-[#141414]/95 via-[#141414]/65 to-transparent pointer-events-none"></div>
 
               {/* Contenedor de texto y botón: reducido en celular a 2/3 de tamaño para no tapar la imagen del banner */}
-              <div className="relative z-10 w-[50%] xs:w-[52%] sm:w-2/3 md:w-1/2 lg:w-5/12 flex flex-col justify-center px-2.5 sm:px-8 md:px-14 text-white py-1.5 sm:py-4">
+              <div className="relative z-10 w-[48%] xs:w-[50%] sm:w-2/4 md:w-5/12 flex flex-col justify-center px-2.5 sm:px-8 md:px-12 text-white py-1.5 sm:py-4">
                 <div>
                   <span className="inline-flex items-center gap-1 text-[#ffd129] font-bold text-[7px] sm:text-xs uppercase tracking-wider mb-0.5 sm:mb-1.5">
                     <Emoji3D name="sparkles" className="w-3 h-3 sm:w-3.5 sm:h-3.5" alt="Destacado" />

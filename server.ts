@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
 import sharp from 'sharp';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { CATEGORIES as INITIAL_CATEGORIES, MEGA_OFFERS as INITIAL_MEGA_OFFERS, HERO_SLIDES as INITIAL_HERO_SLIDES, DEFAULT_STORE_SCHEDULE } from './src/data/products';
@@ -21,8 +21,6 @@ const uploadsProductsDir = path.join(uploadsBaseDir, 'products');
 if (!fs.existsSync(uploadsProductsDir)) {
   fs.mkdirSync(uploadsProductsDir, { recursive: true });
 }
-app.use('/uploads', express.static(uploadsBaseDir));
-
 // Cloudflare R2 Storage Client
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -53,6 +51,47 @@ function getS3Client() {
   }
   return s3Client;
 }
+
+// Serve /uploads with local caching and automatic Cloudflare R2 fallback
+app.use('/uploads', async (req, res, next) => {
+  const relPath = req.path.replace(/^\//, ''); // e.g. "products/12345.webp"
+  const localFilePath = path.join(uploadsBaseDir, relPath);
+  if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).isFile()) {
+    return res.sendFile(localFilePath);
+  }
+
+  // Fallback: If not on local disk (e.g. fresh container restart), fetch directly from Cloudflare R2
+  const client = getS3Client();
+  const bucketName = process.env.R2_BUCKET_NAME;
+  if (client && bucketName && relPath) {
+    try {
+      const response = await client.send(new GetObjectCommand({
+        Bucket: bucketName,
+        Key: relPath
+      }));
+      if (response.Body) {
+        const stream = response.Body as any;
+        const chunks: Buffer[] = [];
+        for await (const chunk of stream) {
+          chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+        }
+        const buffer = Buffer.concat(chunks);
+        const dir = path.dirname(localFilePath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(localFilePath, buffer);
+        if (response.ContentType) {
+          res.setHeader('Content-Type', response.ContentType);
+        }
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        return res.send(buffer);
+      }
+    } catch (r2Err) {
+      // Continue to next handler if not found in R2
+    }
+  }
+  next();
+});
+app.use('/uploads', express.static(uploadsBaseDir));
 
 // Generate public URL for Cloudflare R2 or local fallback
 function getR2PublicUrl(key: string): string {
@@ -266,20 +305,33 @@ app.post('/api/upload-base64', async (req, res) => {
   }
 });
 
-// Lazy Gemini API Client
-let geminiAi: GoogleGenAI | null = null;
-function getGeminiAi(): GoogleGenAI | null {
-  if (!geminiAi && process.env.GEMINI_API_KEY) {
-    geminiAi = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
+// Gemini API Client with support for settings and environment variables
+function getEffectiveGeminiApiKey(): string | null {
+  if (settings && settings.geminiApiKey && settings.geminiApiKey.trim().length > 10) {
+    return settings.geminiApiKey.trim();
+  }
+  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 10) {
+    return process.env.GEMINI_API_KEY.trim();
+  }
+  return null;
+}
+
+function getGeminiAi(customKey?: string): GoogleGenAI | null {
+  const key = customKey?.trim() || getEffectiveGeminiApiKey();
+  if (!key) return null;
+  try {
+    return new GoogleGenAI({
+      apiKey: key,
       httpOptions: {
         headers: {
           'User-Agent': 'aistudio-build'
         }
       }
     });
+  } catch (e) {
+    console.error('Error instantiating GoogleGenAI:', e);
+    return null;
   }
-  return geminiAi;
 }
 
 // Curated high-resolution studio beverage photos for botillería products
@@ -501,6 +553,234 @@ let subscribers: EmailMarketingSubscriber[] = [
   }
 ];
 
+// Feedback & Reclamos In-Memory Store
+let feedbacks: any[] = [
+  {
+    id: 'fb-1',
+    type: 'felicitacion',
+    name: 'Carlos Ruiz',
+    email: 'carlos.alerce@gmail.com',
+    phone: '+56 9 8833 4422',
+    orderNumber: 'PED-4921',
+    message: 'Excelente servicio, el pisco y las cervezas llegaron heladas en menos de 25 minutos acá en Alerce Norte!',
+    status: 'resuelto',
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
+  },
+  {
+    id: 'fb-2',
+    type: 'sugerencia',
+    name: 'Valentina Soto',
+    email: 'vale.soto@hotmail.com',
+    phone: '+56 9 7711 2299',
+    orderNumber: '',
+    message: 'Podrían incorporar más marcas de gin artesanal o tónicas importadas para el fin de semana.',
+    status: 'pendiente',
+    createdAt: new Date(Date.now() - 3600000 * 5).toISOString()
+  }
+];
+
+// Customer Discount Codes
+let discountCodes: any[] = [
+  {
+    id: 'disc-1',
+    code: 'FELLASVIP',
+    type: 'percentage',
+    amount: 15,
+    minOrder: 15000,
+    usesLeft: 50,
+    active: true,
+    expiresAt: '2026-12-31'
+  },
+  {
+    id: 'disc-2',
+    code: 'ALERCENIGHT',
+    type: 'fixed',
+    amount: 3000,
+    minOrder: 20000,
+    usesLeft: 20,
+    active: true,
+    expiresAt: '2026-10-31'
+  }
+];
+
+// ================= CLOUDFLARE R2 PERSISTENCE ENGINE =================
+// Automatically synchronizes all store data (categories, products, mega offers,
+// hero slides, settings, orders, feedbacks, discounts) to Cloudflare R2 on every edit,
+// and automatically recovers the full product catalog and settings on redeploy/reboot.
+const R2_DATABASE_KEY = 'database/fellas-market-db.json';
+const LOCAL_DATABASE_BACKUP_PATH = path.join(uploadsBaseDir, 'fellas-market-db-local.json');
+
+let lastR2SyncTime: string | null = null;
+let r2SyncStatusMessage: string = 'Persistencia Cloudflare R2 lista';
+let isR2Syncing = false;
+
+// Persist complete database snapshot to Cloudflare R2 & local disk
+async function persistDatabaseToR2(): Promise<{ success: boolean; error?: string }> {
+  if (isR2Syncing) return { success: true };
+  isR2Syncing = true;
+  try {
+    const totalProducts = categories.reduce((sum, c) => sum + (c.products?.length || 0), 0);
+    const payload = {
+      version: 2,
+      savedAt: new Date().toISOString(),
+      metadata: {
+        totalCategories: categories.length,
+        totalProducts,
+        totalMegaOffers: megaOffers.length,
+        totalOrders: orders.length
+      },
+      categories,
+      megaOffers,
+      heroSlides,
+      settings,
+      orders,
+      subscribers,
+      feedbacks: feedbacks || [],
+      discountCodes: discountCodes || []
+    };
+
+    const jsonStr = JSON.stringify(payload, null, 2);
+    const jsonBuffer = Buffer.from(jsonStr, 'utf-8');
+
+    // 1. Write local disk backup for zero-latency fallbacks
+    try {
+      if (!fs.existsSync(uploadsBaseDir)) {
+        fs.mkdirSync(uploadsBaseDir, { recursive: true });
+      }
+      fs.writeFileSync(LOCAL_DATABASE_BACKUP_PATH, jsonBuffer);
+    } catch (localWriteErr) {
+      console.warn('Advertencia escribiendo respaldo local:', localWriteErr);
+    }
+
+    // 2. Upload to Cloudflare R2 bucket
+    const client = getS3Client();
+    const bucketName = process.env.R2_BUCKET_NAME?.trim();
+
+    if (client && bucketName) {
+      await client.send(new PutObjectCommand({
+        Bucket: bucketName,
+        Key: R2_DATABASE_KEY,
+        Body: jsonBuffer,
+        ContentType: 'application/json',
+        CacheControl: 'no-cache'
+      }));
+      lastR2SyncTime = new Date().toISOString();
+      r2SyncStatusMessage = `Sincronizado con Cloudflare R2 (${totalProducts} productos protegidos)`;
+      console.log(`[Cloudflare R2] ✅ Base de datos asegurada en R2 (${totalProducts} productos, ${categories.length} pasillos).`);
+    } else {
+      lastR2SyncTime = new Date().toISOString();
+      r2SyncStatusMessage = `Guardado local (${totalProducts} productos). R2 no configurado.`;
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Cloudflare R2] Error al respaldar base de datos:', err);
+    r2SyncStatusMessage = `Error al sincronizar con R2: ${err?.message || 'Fallo de conexión'}`;
+    return { success: false, error: err?.message };
+  } finally {
+    isR2Syncing = false;
+  }
+}
+
+// Debounced synchronization
+let r2SyncTimer: NodeJS.Timeout | null = null;
+function scheduleR2Sync(delayMs: number = 800) {
+  if (r2SyncTimer) clearTimeout(r2SyncTimer);
+  r2SyncTimer = setTimeout(() => {
+    persistDatabaseToR2().catch(e => console.error('Error en sincronización diferida a R2:', e));
+  }, delayMs);
+}
+
+// Load database from Cloudflare R2 on boot
+async function loadDatabaseFromR2(): Promise<boolean> {
+  const client = getS3Client();
+  const bucketName = process.env.R2_BUCKET_NAME?.trim();
+
+  let jsonStr: string | null = null;
+  let source = 'ninguno';
+
+  // 1. Try downloading from Cloudflare R2
+  if (client && bucketName) {
+    try {
+      console.log(`[Cloudflare R2] 🔄 Buscando base de datos en bucket "${bucketName}" (${R2_DATABASE_KEY})...`);
+      const getRes = await client.send(new GetObjectCommand({
+        Bucket: bucketName,
+        Key: R2_DATABASE_KEY
+      }));
+      if (getRes.Body) {
+        jsonStr = await getRes.Body.transformToString();
+        source = 'Cloudflare R2';
+        console.log(`[Cloudflare R2] ✅ Base de datos descargada exitosamente desde Cloudflare R2!`);
+      }
+    } catch (r2Err: any) {
+      if (r2Err?.name === 'NoSuchKey' || r2Err?.$metadata?.httpStatusCode === 404) {
+        console.log('[Cloudflare R2] No existe archivo previo en R2 (primera ejecución)');
+      } else {
+        console.warn('[Cloudflare R2] Advertencia al leer desde R2:', r2Err?.message);
+      }
+    }
+  }
+
+  // 2. Fallback to local snapshot file if R2 was empty
+  if (!jsonStr && fs.existsSync(LOCAL_DATABASE_BACKUP_PATH)) {
+    try {
+      jsonStr = fs.readFileSync(LOCAL_DATABASE_BACKUP_PATH, 'utf-8');
+      source = 'Respaldo Local';
+      console.log('[Cloudflare R2] Cargando datos desde respaldo local existente');
+    } catch (localReadErr) {
+      console.warn('Error leyendo respaldo local:', localReadErr);
+    }
+  }
+
+  if (!jsonStr) {
+    console.log('[Cloudflare R2] Sin datos previos en R2. Se preserva el catálogo base inicial y se respalda.');
+    if (client && bucketName) {
+      setTimeout(() => {
+        persistDatabaseToR2().catch(e => console.error('Error guardando catálogo base en R2:', e));
+      }, 2500);
+    }
+    return false;
+  }
+
+  try {
+    const data = JSON.parse(jsonStr);
+
+    if (Array.isArray(data.categories) && data.categories.length > 0) {
+      categories = data.categories;
+    }
+    if (Array.isArray(data.megaOffers)) {
+      megaOffers = data.megaOffers;
+    }
+    if (Array.isArray(data.heroSlides) && data.heroSlides.length > 0) {
+      heroSlides = data.heroSlides;
+    }
+    if (data.settings && typeof data.settings === 'object') {
+      settings = { ...settings, ...data.settings };
+    }
+    if (Array.isArray(data.orders) && data.orders.length > 0) {
+      orders = data.orders;
+    }
+    if (Array.isArray(data.subscribers) && data.subscribers.length > 0) {
+      subscribers = data.subscribers;
+    }
+    if (Array.isArray(data.feedbacks)) {
+      feedbacks = data.feedbacks;
+    }
+    if (Array.isArray(data.discountCodes)) {
+      discountCodes = data.discountCodes;
+    }
+
+    const totalProds = categories.reduce((sum, c) => sum + (c.products?.length || 0), 0);
+    lastR2SyncTime = data.savedAt || new Date().toISOString();
+    r2SyncStatusMessage = `Base de datos restaurada desde ${source} (${totalProds} productos, ${categories.length} categorías)`;
+    console.log(`[Cloudflare R2] ✅ ${r2SyncStatusMessage}`);
+    return true;
+  } catch (parseErr) {
+    console.error('[Cloudflare R2] Error parseando base de datos JSON:', parseErr);
+    return false;
+  }
+}
+
 // ================= API ROUTES =================
 
 // 1. Check Auth / Login Admin
@@ -600,6 +880,7 @@ app.post('/api/categories', (req, res) => {
   }
   if (!newCat.products) newCat.products = [];
   categories.push(newCat);
+  scheduleR2Sync();
   res.json({ success: true, category: newCat, categories });
 });
 
@@ -611,12 +892,23 @@ app.put('/api/categories/:id', (req, res) => {
     return res.status(404).json({ error: 'Categoría no encontrada' });
   }
   categories[idx] = { ...categories[idx], ...updatedData };
+  scheduleR2Sync();
   res.json({ success: true, category: categories[idx], categories });
+});
+
+app.put('/api/categories', (req, res) => {
+  const { categories: newCats } = req.body;
+  if (Array.isArray(newCats)) {
+    categories = newCats;
+    scheduleR2Sync();
+  }
+  res.json({ success: true, categories });
 });
 
 app.delete('/api/categories/:id', (req, res) => {
   const { id } = req.params;
   categories = categories.filter((c) => c.id !== id);
+  scheduleR2Sync();
   res.json({ success: true, categories });
 });
 
@@ -646,6 +938,7 @@ app.post('/api/products', (req, res) => {
     }
   }
 
+  scheduleR2Sync();
   res.json({ success: true, product, categories, megaOffers });
 });
 
@@ -675,6 +968,7 @@ app.put('/api/products/:id', (req, res) => {
     return res.status(404).json({ error: 'Producto no encontrado' });
   }
 
+  scheduleR2Sync();
   res.json({ success: true, categories, megaOffers });
 });
 
@@ -684,6 +978,7 @@ app.delete('/api/products/:id', (req, res) => {
   categories.forEach((cat) => {
     cat.products = cat.products.filter((p) => p.id !== id);
   });
+  scheduleR2Sync();
   res.json({ success: true, categories, megaOffers });
 });
 
@@ -695,6 +990,7 @@ app.post('/api/products/clear-all', (req, res) => {
     categories.forEach((cat) => {
       cat.products = [];
     });
+    scheduleR2Sync(100);
     res.json({
       success: true,
       message: `Se han eliminado todos los productos anteriores (${totalDeleted} en total).`,
@@ -714,6 +1010,7 @@ app.post('/api/products/restore-defaults', (req, res) => {
     categories = JSON.parse(JSON.stringify(INITIAL_CATEGORIES));
     megaOffers = JSON.parse(JSON.stringify(INITIAL_MEGA_OFFERS));
     const totalCount = megaOffers.length + categories.reduce((sum, c) => sum + c.products.length, 0);
+    scheduleR2Sync(100);
     res.json({
       success: true,
       message: `Catálogo restablecido con ${totalCount} productos de muestra.`,
@@ -736,6 +1033,7 @@ app.put(['/api/hero-slides', '/api/banners'], (req, res) => {
   const newSlides = Array.isArray(slides) ? slides : (Array.isArray(banners) ? banners : null);
   if (newSlides) {
     heroSlides = newSlides;
+    scheduleR2Sync();
   }
   res.json({ success: true, heroSlides, banners: heroSlides });
 });
@@ -750,6 +1048,7 @@ app.put('/api/mega-offers', (req, res) => {
   const list = Array.isArray(offers) ? offers : (Array.isArray(sentOffers) ? sentOffers : null);
   if (list) {
     megaOffers = list;
+    scheduleR2Sync();
   }
   res.json({ success: true, megaOffers });
 });
@@ -771,6 +1070,7 @@ app.post('/api/orders', (req, res) => {
   newOrder.status = 'nuevo';
 
   orders.unshift(newOrder); // Prepend to show immediately in real time
+  scheduleR2Sync();
   res.json({ success: true, order: newOrder });
 });
 
@@ -782,6 +1082,7 @@ app.put('/api/orders/:id/status', (req, res) => {
     return res.status(404).json({ error: 'Pedido no encontrado' });
   }
   order.status = status;
+  scheduleR2Sync();
   res.json({ success: true, order, orders });
 });
 
@@ -793,6 +1094,7 @@ app.patch('/api/orders/:id/status', (req, res) => {
     return res.status(404).json({ error: 'Pedido no encontrado' });
   }
   order.status = status;
+  scheduleR2Sync();
   res.json({ success: true, order, orders });
 });
 
@@ -805,6 +1107,7 @@ app.put('/api/settings', (req, res) => {
   const updatedSettings: Partial<StoreSettings> = req.body;
   settings = { ...settings, ...updatedSettings };
   startKeepAliveEngine();
+  scheduleR2Sync();
   res.json({ success: true, settings });
 });
 
@@ -1107,31 +1410,6 @@ app.get(['/api/admin/sales/stats', '/admin/sales/stats'], (req, res) => {
 });
 
 // 9. Feedback & Reclamos In-Memory Store
-let feedbacks: any[] = [
-  {
-    id: 'fb-1',
-    type: 'felicitacion',
-    name: 'Carlos Ruiz',
-    email: 'carlos.alerce@gmail.com',
-    phone: '+56 9 8833 4422',
-    orderNumber: 'PED-4921',
-    message: 'Excelente servicio, el pisco y las cervezas llegaron heladas en menos de 25 minutos acá en Alerce Norte!',
-    status: 'resuelto',
-    createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
-  },
-  {
-    id: 'fb-2',
-    type: 'sugerencia',
-    name: 'Valentina Soto',
-    email: 'vale.soto@hotmail.com',
-    phone: '+56 9 7711 2299',
-    orderNumber: '',
-    message: 'Podrían incorporar más marcas de gin artesanal o tónicas importadas para el fin de semana.',
-    status: 'pendiente',
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString()
-  }
-];
-
 app.get(['/api/admin/feedback/responses', '/api/feedback/responses'], (req, res) => {
   res.json(feedbacks);
 });
@@ -1144,6 +1422,7 @@ app.post(['/api/admin/feedback/responses', '/api/feedback/responses'], (req, res
     ...req.body
   };
   feedbacks.unshift(newFeedback);
+  scheduleR2Sync();
   res.json({ success: true, feedback: newFeedback });
 });
 
@@ -1151,33 +1430,11 @@ app.patch(['/api/admin/feedback/responses/:id', '/api/feedback/responses/:id'], 
   const { id } = req.params;
   const { status } = req.body;
   feedbacks = feedbacks.map(f => f.id === id ? { ...f, status } : f);
+  scheduleR2Sync();
   res.json({ success: true, feedbacks });
 });
 
 // 10. Customer Discount Codes
-let discountCodes: any[] = [
-  {
-    id: 'disc-1',
-    code: 'FELLASVIP',
-    type: 'percentage',
-    amount: 15,
-    minOrder: 15000,
-    usesLeft: 50,
-    active: true,
-    expiresAt: '2026-12-31'
-  },
-  {
-    id: 'disc-2',
-    code: 'ALERCENIGHT',
-    type: 'fixed',
-    amount: 3000,
-    minOrder: 20000,
-    usesLeft: 20,
-    active: true,
-    expiresAt: '2026-10-31'
-  }
-];
-
 app.get('/api/admin/discounts', (req, res) => {
   res.json(discountCodes);
 });
@@ -1222,21 +1479,211 @@ app.post('/api/admin/database/restore', (req, res) => {
   }
 
   if (Array.isArray(backupData.categories)) categories = backupData.categories;
+  if (Array.isArray(backupData.megaOffers)) megaOffers = backupData.megaOffers;
+  if (Array.isArray(backupData.heroSlides)) heroSlides = backupData.heroSlides;
   if (Array.isArray(backupData.orders)) orders = backupData.orders;
   if (Array.isArray(backupData.subscribers)) subscribers = backupData.subscribers;
   if (backupData.settings) settings = { ...settings, ...backupData.settings };
   if (Array.isArray(backupData.discountCodes)) discountCodes = backupData.discountCodes;
   if (Array.isArray(backupData.feedbacks)) feedbacks = backupData.feedbacks;
 
+  scheduleR2Sync(100);
+
   res.json({
     ok: true,
-    message: 'Base de datos restaurada con éxito desde el archivo de respaldo',
+    message: 'Base de datos restaurada con éxito y sincronizada con Cloudflare R2',
     stats: {
       categoriesCount: categories.length,
+      productsCount: categories.reduce((sum, c) => sum + (c.products?.length || 0), 0),
       ordersCount: orders.length,
       subscribersCount: subscribers.length
     }
   });
+});
+
+// 11.1 Cloudflare R2 Database Persistence & Recovery Endpoints
+app.get('/api/admin/r2-database-status', (req, res) => {
+  const isR2Ready = !!(
+    process.env.R2_ACCESS_KEY_ID?.trim() &&
+    process.env.R2_SECRET_ACCESS_KEY?.trim() &&
+    process.env.R2_ENDPOINT?.trim() &&
+    process.env.R2_BUCKET_NAME?.trim()
+  );
+  const totalProducts = categories.reduce((sum, c) => sum + (c.products?.length || 0), 0);
+
+  res.json({
+    r2Configured: isR2Ready,
+    bucket: process.env.R2_BUCKET_NAME || null,
+    key: R2_DATABASE_KEY,
+    lastSyncTime: lastR2SyncTime,
+    statusMessage: r2SyncStatusMessage,
+    totalProducts,
+    totalCategories: categories.length,
+    totalMegaOffers: megaOffers.length,
+    totalOrders: orders.length,
+    localBackupExists: fs.existsSync(LOCAL_DATABASE_BACKUP_PATH)
+  });
+});
+
+app.post('/api/admin/r2-sync-now', async (req, res) => {
+  try {
+    const result = await persistDatabaseToR2();
+    if (result.success) {
+      const totalProducts = categories.reduce((sum, c) => sum + (c.products?.length || 0), 0);
+      return res.json({
+        success: true,
+        message: `¡Todos los datos (${totalProducts} productos en ${categories.length} pasillos) han sido guardados permanentemente en Cloudflare R2!`,
+        lastSyncTime: lastR2SyncTime
+      });
+    } else {
+      return res.status(500).json({ success: false, error: result.error });
+    }
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Error sincronizando con R2' });
+  }
+});
+
+app.post('/api/admin/r2-restore-now', async (req, res) => {
+  try {
+    const loaded = await loadDatabaseFromR2();
+    if (loaded) {
+      const totalProducts = categories.reduce((sum, c) => sum + (c.products?.length || 0), 0);
+      return res.json({
+        success: true,
+        message: `¡Base de datos restaurada exitosamente desde Cloudflare R2! Se recuperaron ${totalProducts} productos y todas las configuraciones.`,
+        categories,
+        megaOffers,
+        heroSlides,
+        settings,
+        totalProducts
+      });
+    } else {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontró un archivo previo en Cloudflare R2 para restaurar.'
+      });
+    }
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Error restaurando desde R2' });
+  }
+});
+
+// 11.2 Google Gemini Account & Sommelier Endpoints
+app.get('/api/admin/gemini-status', async (req, res) => {
+  const currentKey = getEffectiveGeminiApiKey();
+  const isCustomKey = !!(settings?.geminiApiKey && settings.geminiApiKey.trim().length > 10);
+  const source = isCustomKey ? 'custom_setting' : (process.env.GEMINI_API_KEY ? 'environment' : 'none');
+
+  if (!currentKey) {
+    return res.json({
+      configured: false,
+      status: 'missing',
+      message: 'No hay clave API de Gemini configurada. Ingresa tu clave para conectar tu cuenta.',
+      model: 'gemini-3.8-flash',
+      source
+    });
+  }
+
+  try {
+    const ai = getGeminiAi();
+    if (!ai) throw new Error('No se pudo inicializar el cliente de Gemini');
+    const testRes = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: 'Ping',
+    });
+    if (testRes.text) {
+      return res.json({
+        configured: true,
+        status: 'ready',
+        message: '¡Conexión activa con Google Gemini (gemini-3.8-flash)! Listo para analizar y clasificar productos.',
+        model: 'gemini-3.8-flash',
+        source,
+        maskedKey: currentKey.slice(0, 6) + '...' + currentKey.slice(-4)
+      });
+    }
+  } catch (err: any) {
+    const errMsg = err?.message || String(err);
+    const isLeaked = errMsg.includes('leaked') || errMsg.includes('403');
+    return res.json({
+      configured: true,
+      status: isLeaked ? 'leaked' : 'error',
+      message: isLeaked
+        ? 'Tu clave API anterior fue reportada como filtrada en Google. Por favor ingresa una nueva clave de Gemini.'
+        : `Error al conectar con Gemini: ${errMsg}`,
+      model: 'gemini-3.8-flash',
+      source,
+      maskedKey: currentKey.slice(0, 6) + '...' + currentKey.slice(-4)
+    });
+  }
+});
+
+app.post('/api/admin/test-gemini', async (req, res) => {
+  const apiKey = (req.body.apiKey || getEffectiveGeminiApiKey())?.trim();
+  if (!apiKey) {
+    return res.status(400).json({ success: false, error: 'Ingresa una clave API de Gemini para probar' });
+  }
+
+  try {
+    const testAi = new GoogleGenAI({
+      apiKey,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    });
+    const testRes = await testAi.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: 'Clasifica: "Pisco Mistral 35 750ml". Responde exactamente con la palabra "OK".',
+    });
+    return res.json({
+      success: true,
+      message: '¡Conexión con Google Gemini exitosa (gemini-3.8-flash)!',
+      response: testRes.text
+    });
+  } catch (err: any) {
+    const errMsg = err?.message || String(err);
+    const isLeaked = errMsg.includes('leaked') || errMsg.includes('403');
+    return res.status(400).json({
+      success: false,
+      isLeaked,
+      error: isLeaked
+        ? 'Google reportó que esta clave fue filtrada o revocada. Genera una nueva clave en Google AI Studio (aistudio.google.com).'
+        : `Error de conexión con Gemini: ${errMsg}`
+    });
+  }
+});
+
+app.post('/api/admin/save-gemini-key', async (req, res) => {
+  const { apiKey } = req.body;
+  if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length < 8) {
+    return res.status(400).json({ success: false, error: 'Clave API de Gemini inválida o vacía' });
+  }
+
+  try {
+    const testAi = new GoogleGenAI({
+      apiKey: apiKey.trim(),
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    });
+    await testAi.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: 'Ping',
+    });
+
+    settings.geminiApiKey = apiKey.trim();
+    scheduleR2Sync(100);
+
+    return res.json({
+      success: true,
+      message: '¡Clave de Gemini verificada, guardada y respaldada en Cloudflare R2 con éxito!',
+      status: 'ready'
+    });
+  } catch (err: any) {
+    const errMsg = err?.message || String(err);
+    const isLeaked = errMsg.includes('leaked') || errMsg.includes('403');
+    return res.status(400).json({
+      success: false,
+      error: isLeaked
+        ? 'Google no permite usar esta clave porque fue reportada como filtrada. Por favor crea una nueva en https://aistudio.google.com.'
+        : `Error verificando la clave con Google Gemini: ${errMsg}`
+    });
+  }
 });
 
 // 12. Backup Store (Tienda Alterna / Contingencia) Config
@@ -1947,6 +2394,8 @@ app.post('/api/admin/reclassify-catalog', async (req, res) => {
       targetCat.products.push(updatedProduct);
     });
 
+    scheduleR2Sync(100);
+
     res.json({
       success: true,
       message: `¡Catálogo reorganizado exitosamente! Se analizaron y clasificaron ${allProducts.length} productos con IA.`,
@@ -2044,6 +2493,8 @@ app.post('/api/admin/bulk-import', (req, res) => {
       }
     });
 
+    scheduleR2Sync(100);
+
     res.json({
       success: true,
       message: `Se importaron ${importedCount} productos exitosamente (${megaOffersAdded} en Mega Ofertas).`,
@@ -2077,6 +2528,11 @@ async function startServer() {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Botillería server running on http://0.0.0.0:${PORT}`);
     startKeepAliveEngine();
+
+    // Load persistent database snapshot from Cloudflare R2 on startup
+    loadDatabaseFromR2().catch((r2BootErr) => {
+      console.error('[Cloudflare R2] Error cargando persistencia en arranque:', r2BootErr);
+    });
   });
 }
 

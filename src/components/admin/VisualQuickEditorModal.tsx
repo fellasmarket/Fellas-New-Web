@@ -503,7 +503,7 @@ export const VisualQuickEditorModal: React.FC<VisualQuickEditorModalProps> = ({
                   alt={slideForm.title}
                   className="w-full h-full object-cover opacity-60"
                 />
-                <div className="absolute inset-0 bg-gradient-to-r from-stone-950 via-stone-950/80 to-transparent p-4 flex flex-col justify-center">
+                <div className="absolute inset-y-0 left-0 w-2/4 bg-gradient-to-r from-stone-950 via-stone-950/70 to-transparent p-4 flex flex-col justify-center">
                   <span className="text-[#ffd129] text-[10px] font-bold uppercase tracking-wider">
                     <i className={slideForm.icon || 'fa-solid fa-bolt'}></i> {slideForm.badge}
                   </span>

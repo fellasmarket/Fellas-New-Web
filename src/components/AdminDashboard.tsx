@@ -273,6 +273,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isRestoring, setIsRestoring] = useState(false);
   const restoreInputRef = useRef<HTMLInputElement>(null);
 
+  // GEMINI AI & CLOUDFLARE R2 STATE
+  const [geminiStatus, setGeminiStatus] = useState<{
+    configured: boolean;
+    valid: boolean;
+    model: string;
+    source: string;
+    message: string;
+    keySnippet: string;
+  }>({
+    configured: false,
+    valid: false,
+    model: 'gemini-3.8-flash',
+    source: 'none',
+    message: 'Consultando estado de conexión con Gemini...',
+    keySnippet: ''
+  });
+  const [geminiApiKeyInput, setGeminiApiKeyInput] = useState('');
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [isSavingGeminiKey, setIsSavingGeminiKey] = useState(false);
+  const [isTestingGemini, setIsTestingGemini] = useState(false);
+  const [geminiTestFeedback, setGeminiTestFeedback] = useState<{ success: boolean; message: string } | null>(null);
+  const [isReclassifyingCatalog, setIsReclassifyingCatalog] = useState(false);
+
+  // CLOUDFLARE R2 DATABASE AUTO-PERSISTENCE STATE
+  const [r2DbStatus, setR2DbStatus] = useState<{
+    configured: boolean;
+    bucketName?: string;
+    accountConfigured: boolean;
+    lastSyncTime?: string | null;
+    statusMessage?: string;
+    totalProductsInCatalog?: number;
+    totalCategories?: number;
+  }>({
+    configured: false,
+    accountConfigured: false,
+    statusMessage: 'Consultando estado de sincronización Cloudflare R2...'
+  });
+  const [isSyncingR2, setIsSyncingR2] = useState(false);
+  const [isRestoringR2, setIsRestoringR2] = useState(false);
+
   // Load initial backend data
   useEffect(() => {
     loadAllData();
@@ -290,6 +330,162 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     loadBackupStore();
     loadSubscribers();
     loadSystemStatus();
+    loadGeminiStatus();
+    loadR2DbStatus();
+  };
+
+  const loadGeminiStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/gemini-status');
+      if (res.ok) {
+        const data = await res.json();
+        setGeminiStatus(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const loadR2DbStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/r2-database-status');
+      if (res.ok) {
+        const data = await res.json();
+        setR2DbStatus(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSaveGeminiKey = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!geminiApiKeyInput.trim()) {
+      showToast('Por favor escribe tu API Key de Gemini');
+      return;
+    }
+    setIsSavingGeminiKey(true);
+    setGeminiTestFeedback(null);
+    try {
+      const res = await fetch('/api/admin/save-gemini-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: geminiApiKeyInput.trim() })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFormSettings(prev => ({ ...prev, geminiApiKey: geminiApiKeyInput.trim() }));
+        showToast('¡Clave de Gemini guardada exitosamente!');
+        await loadGeminiStatus();
+      } else {
+        showToast(data.error || 'Error al guardar la clave de Gemini');
+      }
+    } catch (err: any) {
+      showToast('Error de conexión al guardar la clave');
+    } finally {
+      setIsSavingGeminiKey(false);
+    }
+  };
+
+  const handleTestGemini = async () => {
+    setIsTestingGemini(true);
+    setGeminiTestFeedback(null);
+    try {
+      const res = await fetch('/api/admin/test-gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: geminiApiKeyInput.trim() || undefined })
+      });
+      const data = await res.json();
+      setGeminiTestFeedback({
+        success: !!data.valid,
+        message: data.message || (data.valid ? 'Conexión exitosa' : 'Error en la conexión')
+      });
+      if (data.valid) {
+        showToast('¡Conexión con Gemini verificada correctamente!');
+      } else {
+        showToast('Gemini rechazó la clave: ' + (data.message || 'Error'));
+      }
+      await loadGeminiStatus();
+    } catch (err: any) {
+      setGeminiTestFeedback({
+        success: false,
+        message: 'Fallo al contactar el servidor: ' + err.message
+      });
+      showToast('Fallo al probar conexión');
+    } finally {
+      setIsTestingGemini(false);
+    }
+  };
+
+  const handleReorganizeCatalogWithAi = async () => {
+    if (!window.confirm('¿Deseas que la IA de Gemini analice los nombres de TODOS tus productos actuales y los reorganice en sus pasillos, categorías y subcategorías correctas?')) {
+      return;
+    }
+    setIsReclassifyingCatalog(true);
+    try {
+      const res = await fetch('/api/admin/reclassify-catalog', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (Array.isArray(data.categories)) {
+          onUpdateCategories(data.categories);
+        }
+        if (Array.isArray(data.megaOffers)) {
+          onUpdateMegaOffers(data.megaOffers);
+        }
+        showToast(data.message || '¡Catálogo reorganizado exitosamente por la IA!');
+        await loadR2DbStatus();
+      } else {
+        showToast(data.error || 'Error al reorganizar el catálogo');
+      }
+    } catch (err: any) {
+      showToast('Error de conexión al reorganizar catálogo');
+    } finally {
+      setIsReclassifyingCatalog(false);
+    }
+  };
+
+  const handleSyncR2Now = async () => {
+    setIsSyncingR2(true);
+    try {
+      const res = await fetch('/api/admin/r2-sync-now', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(data.message || '¡Base de datos asegurada en Cloudflare R2!');
+        await loadR2DbStatus();
+      } else {
+        showToast(data.error || 'Error al respaldar en R2');
+      }
+    } catch (err: any) {
+      showToast('Error de conexión al sincronizar con R2');
+    } finally {
+      setIsSyncingR2(false);
+    }
+  };
+
+  const handleRestoreR2Now = async () => {
+    if (!window.confirm('¿Deseas restaurar la base de datos completa (productos, categorías, fotos, pedidos y ajustes) desde la última copia guardada en Cloudflare R2?')) {
+      return;
+    }
+    setIsRestoringR2(true);
+    try {
+      const res = await fetch('/api/admin/r2-restore-now', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (Array.isArray(data.categories)) onUpdateCategories(data.categories);
+        if (Array.isArray(data.megaOffers)) onUpdateMegaOffers(data.megaOffers);
+        if (Array.isArray(data.heroSlides)) onUpdateHeroSlides(data.heroSlides);
+        if (data.settings) onUpdateSettings(data.settings);
+        showToast(data.message || '¡Base de datos restaurada exitosamente desde Cloudflare R2!');
+        await loadR2DbStatus();
+      } else {
+        showToast(data.error || 'No se pudo restaurar desde R2');
+      }
+    } catch (err: any) {
+      showToast('Error de conexión al restaurar desde R2');
+    } finally {
+      setIsRestoringR2(false);
+    }
   };
 
   const loadOrders = async () => {
@@ -1544,7 +1740,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <i className="fa-solid fa-file-excel text-base"></i>
                 </button>
 
-                {/* 3. Agregar Producto (solo icono) */}
+                {/* 3. Reorganizar con IA (solo icono) */}
+                <button
+                  onClick={handleReorganizeCatalogWithAi}
+                  disabled={isReclassifyingCatalog || (allProducts.length === 0 && megaOffers.length === 0)}
+                  className="w-10 h-10 rounded-xl bg-purple-900/60 hover:bg-purple-800 disabled:opacity-40 disabled:cursor-not-allowed text-purple-200 hover:text-white border border-purple-700/70 transition flex items-center justify-center shadow cursor-pointer active:scale-95"
+                  title="Reorganizar todo el catálogo con IA (Pasillos, Categorías y Subcategorías)"
+                  aria-label="Reorganizar con IA"
+                >
+                  <i className={`fa-solid fa-wand-magic-sparkles text-sm ${isReclassifyingCatalog ? 'animate-spin text-[#ffd025]' : ''}`}></i>
+                </button>
+
+                {/* 4. Agregar Producto (solo icono) */}
                 <button
                   onClick={handleOpenNewProduct}
                   className="w-10 h-10 rounded-xl bg-[#ffd025] hover:bg-yellow-400 text-[#141414] font-black transition flex items-center justify-center shadow cursor-pointer active:scale-95"
@@ -2938,6 +3145,222 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
+            {/* GOOGLE GEMINI AI - CLASIFICACIÓN INTELIGENTE DE PRODUCTOS */}
+            <div className="bg-gradient-to-br from-purple-950/30 via-[#17171a] to-[#121214] p-5 sm:p-6 rounded-3xl border border-purple-500/30 space-y-4 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center justify-center text-lg shadow-inner shrink-0">
+                    <i className="fa-solid fa-wand-magic-sparkles"></i>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase text-white tracking-wide flex items-center gap-2">
+                      Conexión Google Gemini AI
+                    </h3>
+                    <p className="text-[11px] text-gray-400">
+                      Clasificación semántica de nombres, pasillos, categorías y subcategorías de botillería.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Gemini Status Badge */}
+                <div>
+                  {geminiStatus.valid ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-xs font-black uppercase">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Gemini Conectado & Listo
+                    </span>
+                  ) : geminiStatus.configured ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/40 text-rose-400 text-xs font-black uppercase">
+                      <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+                      Clave Requiere Actualización
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-400 text-xs font-black uppercase">
+                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                      Motor Heurístico Activo
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Message Info */}
+              <div className={`p-3 rounded-2xl text-xs flex items-start gap-2.5 ${
+                geminiStatus.valid 
+                  ? 'bg-emerald-950/30 border border-emerald-800/50 text-emerald-200' 
+                  : geminiStatus.configured 
+                  ? 'bg-rose-950/30 border border-rose-800/50 text-rose-200' 
+                  : 'bg-amber-950/30 border border-amber-800/50 text-amber-200'
+              }`}>
+                <i className={`mt-0.5 text-sm ${
+                  geminiStatus.valid ? 'fa-solid fa-circle-check text-emerald-400' :
+                  geminiStatus.configured ? 'fa-solid fa-triangle-exclamation text-rose-400' :
+                  'fa-solid fa-circle-info text-amber-400'
+                }`}></i>
+                <div className="flex-1 text-[11px] leading-relaxed">
+                  <strong>Estado:</strong> {geminiStatus.message}
+                  {geminiStatus.keySnippet && (
+                    <span className="ml-2 font-mono text-[10px] bg-black/40 px-2 py-0.5 rounded border border-gray-800 text-gray-300">
+                      Clave actual: {geminiStatus.keySnippet}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* API Key Input and Action Buttons */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-gray-300 uppercase">
+                  API Key de Google Gemini (Google AI Studio)
+                </label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={showGeminiKey ? 'text' : 'password'}
+                      value={geminiApiKeyInput}
+                      onChange={(e) => setGeminiApiKeyInput(e.target.value)}
+                      placeholder={geminiStatus.configured ? "Pega aquí una nueva API Key de Gemini..." : "AIzaSy..."}
+                      className="w-full bg-[#141414] border border-gray-800 rounded-xl px-3 py-2.5 pr-10 text-xs text-white placeholder-gray-600 focus:border-purple-400 outline-none font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowGeminiKey(!showGeminiKey)}
+                      className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-300 text-xs"
+                      title={showGeminiKey ? "Ocultar" : "Mostrar"}
+                    >
+                      <i className={`fa-solid ${showGeminiKey ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleTestGemini}
+                    disabled={isTestingGemini}
+                    className="bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-gray-200 border border-gray-700 hover:border-gray-600 text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer uppercase shrink-0"
+                  >
+                    <i className={`fa-solid ${isTestingGemini ? 'fa-spinner fa-spin' : 'fa-flask'} text-purple-400`}></i>
+                    <span>{isTestingGemini ? 'Probando...' : 'Probar Conexión'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveGeminiKey}
+                    disabled={isSavingGeminiKey || !geminiApiKeyInput.trim()}
+                    className="bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold px-5 py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer uppercase shrink-0 shadow"
+                  >
+                    <i className={`fa-solid ${isSavingGeminiKey ? 'fa-spinner fa-spin' : 'fa-floppy-disk'}`}></i>
+                    <span>{isSavingGeminiKey ? 'Guardando...' : 'Guardar Clave'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Test Result Message Box */}
+              {geminiTestFeedback && (
+                <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                  geminiTestFeedback.success 
+                    ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300' 
+                    : 'bg-rose-500/15 border border-rose-500/40 text-rose-300'
+                }`}>
+                  <i className={`fa-solid ${geminiTestFeedback.success ? 'fa-check' : 'fa-xmark'}`}></i>
+                  <span>{geminiTestFeedback.message}</span>
+                </div>
+              )}
+
+              {/* Big Action: Reorganize entire catalog with AI */}
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-black/40 p-3.5 rounded-2xl border border-purple-500/20">
+                <div className="text-xs">
+                  <div className="font-bold text-white flex items-center gap-1.5">
+                    <i className="fa-solid fa-wand-magic-sparkles text-[#ffd025]"></i>
+                    <span>Reorganizar Catálogo Actual con IA</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    Analiza todos los nombres de productos existentes en la tienda y los mueve automáticamente a sus pasillos correctos.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleReorganizeCatalogWithAi}
+                  disabled={isReclassifyingCatalog || (allProducts.length === 0 && megaOffers.length === 0)}
+                  className="bg-[#ffd025] hover:bg-yellow-400 disabled:opacity-40 disabled:cursor-not-allowed text-black font-black text-xs px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer uppercase shrink-0 shadow-lg"
+                >
+                  <i className={`fa-solid ${isReclassifyingCatalog ? 'fa-spinner fa-spin' : 'fa-robot'}`}></i>
+                  <span>{isReclassifyingCatalog ? 'Reorganizando con IA...' : 'Reorganizar Catálogo Ahora'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* CLOUDFLARE R2 PERSISTENCE ENGINE - PROTECCIÓN CONTRA REINICIOS */}
+            <div className="bg-gradient-to-br from-cyan-950/30 via-[#17171a] to-[#121214] p-5 sm:p-6 rounded-3xl border border-cyan-500/30 space-y-4 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center justify-center text-lg shadow-inner shrink-0">
+                    <i className="fa-solid fa-cloud-arrow-up"></i>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase text-white tracking-wide flex items-center gap-2">
+                      Persistencia Cloudflare R2
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono">
+                        Respaldo Automático
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-gray-400">
+                      Evita que se borren tus productos o imágenes cuando Google AI Studio se reinicia por edición o publicación.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-xs font-black uppercase">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    R2 Always-Protected
+                  </span>
+                </div>
+              </div>
+
+              {/* R2 Status info */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 bg-[#141414] rounded-xl border border-gray-800">
+                  <span className="text-gray-400 block text-[10px] uppercase font-bold">Bucket R2:</span>
+                  <span className="text-white font-mono font-bold">{r2DbStatus.bucketName || 'fellas-market'}</span>
+                </div>
+                <div className="p-3 bg-[#141414] rounded-xl border border-gray-800">
+                  <span className="text-gray-400 block text-[10px] uppercase font-bold">Productos Asegurados:</span>
+                  <span className="text-[#ffd025] font-bold">{allProducts.length + megaOffers.length} en catálogo</span>
+                </div>
+                <div className="p-3 bg-[#141414] rounded-xl border border-gray-800">
+                  <span className="text-gray-400 block text-[10px] uppercase font-bold">Último Respaldo R2:</span>
+                  <span className="text-cyan-300 font-mono text-[11px] truncate block">
+                    {r2DbStatus.lastSyncTime ? new Date(r2DbStatus.lastSyncTime).toLocaleString('es-CL') : 'Automático'}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                Cada vez que agregas productos, importas desde Excel, actualizas precios o cambias fotos, el sistema guarda de inmediato una copia en Cloudflare R2. Al reiniciar la app en Google AI Studios, el servidor descarga y restituye automáticamente todos tus datos.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleSyncR2Now}
+                  disabled={isSyncingR2}
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 cursor-pointer uppercase shadow"
+                >
+                  <i className={`fa-solid ${isSyncingR2 ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`}></i>
+                  <span>{isSyncingR2 ? 'Sincronizando...' : 'Asegurar en R2 Ahora'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleRestoreR2Now}
+                  disabled={isRestoringR2}
+                  className="bg-gray-800 hover:bg-gray-700 text-cyan-200 border border-cyan-800/60 font-black text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 cursor-pointer uppercase shadow"
+                >
+                  <i className={`fa-solid ${isRestoringR2 ? 'fa-spinner fa-spin' : 'fa-rotate-left'}`}></i>
+                  <span>{isRestoringR2 ? 'Restaurando...' : 'Restaurar desde Cloudflare R2'}</span>
+                </button>
+              </div>
+            </div>
+
             {/* Browser Tab Info */}
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-gray-300 uppercase border-b border-gray-800 pb-2">
@@ -4092,6 +4515,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   >
                     <i className="fa-solid fa-upload"></i>
                     <span>{isRestoring ? 'Restaurando...' : 'Subir Archivo JSON'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* CLOUDFLARE R2 PERSISTENCE SYNC IN BACKUP TAB */}
+              <div className="p-5 bg-gradient-to-r from-cyan-950/40 via-[#141414] to-[#121214] rounded-2xl border border-cyan-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <i className="fa-solid fa-cloud-arrow-up text-cyan-400 text-lg"></i>
+                    <h4 className="text-xs font-black uppercase text-white">Sincronización Cloudflare R2 (Automática)</h4>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                    {r2DbStatus.bucketName || 'fellas-market'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  Tus productos e imágenes se guardan automáticamente en Cloudflare R2. Al reiniciar la app en Google AI Studio, los datos se recargan automáticamente sin que pierdas tus modificaciones.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleSyncR2Now}
+                    disabled={isSyncingR2}
+                    className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer uppercase shadow"
+                  >
+                    <i className={`fa-solid ${isSyncingR2 ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`}></i>
+                    <span>Asegurar en R2 Ahora</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRestoreR2Now}
+                    disabled={isRestoringR2}
+                    className="bg-gray-800 hover:bg-gray-700 text-cyan-200 border border-cyan-700/60 font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer uppercase shadow"
+                  >
+                    <i className={`fa-solid ${isRestoringR2 ? 'fa-spinner fa-spin' : 'fa-rotate-left'}`}></i>
+                    <span>Restaurar Catálogo desde R2</span>
                   </button>
                 </div>
               </div>

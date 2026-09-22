@@ -224,6 +224,7 @@ export interface StoreSettings {
   agencyLogoImage?: string;
   agencyName?: string;
   agencyLink?: string;
+  geminiApiKey?: string;
   bankTransferConfig?: {
     bankName: string;
     accountType: string;
