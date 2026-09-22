@@ -2176,9 +2176,11 @@ app.post('/api/admin/bulk-import', (req, res) => {
       }
 
       // Add to corresponding category, creating category automatically if it doesn't exist yet!
-      let targetCat = categories.find(c => c.id === prod.categoryId);
+      // Force lookup by name first to ensure consolidation
+      let targetCat = categories.find(c => c.name.toLowerCase() === prod.category.toLowerCase());
+      
       if (!targetCat) {
-        targetCat = categories.find(c => c.name.toLowerCase() === prod.category.toLowerCase());
+        targetCat = categories.find(c => c.id === prod.categoryId);
       }
 
       // If category still doesn't exist, create it dynamically from template!
