@@ -125,7 +125,7 @@ export function sendOrderDesktopNotification(order: Order, onClick?: () => void)
   
   const itemsPreview = (order.items || [])
     .slice(0, 3)
-    .map(i => `${i.quantity}x ${i.name}`)
+    .map(i => `${i.quantity}x ${i.productName || (i as any).name}`)
     .join(', ') + ((order.items || []).length > 3 ? ` (+${order.items.length - 3} más)` : '');
 
   const destination = order.address || order.location || 'Retiro en Local';
