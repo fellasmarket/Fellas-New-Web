@@ -98,6 +98,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [localCategories, setLocalCategories] = useState<CategoryData[]>(categories);
+  const [pendingChanges, setPendingChanges] = useState<Record<string, Product>>({});
+  
+  useEffect(() => {
+    // Only update localCategories if there are no pending changes, to avoid overwriting them
+    if (Object.keys(pendingChanges).length === 0) {
+      setLocalCategories(categories);
+    }
+  }, [categories]);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDraggingLogo, setIsDraggingLogo] = useState(false);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
@@ -144,6 +154,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [photoshootProduct, setPhotoshootProduct] = useState<Product | null>(null);
   const [isGeneratingPhoto, setIsGeneratingPhoto] = useState(false);
   const [generatedPhotoUrl, setGeneratedPhotoUrl] = useState<string | null>(null);
+
+  const handleSaveAllChanges = async () => {
+    try {
+      const changes: Product[] = Object.values(pendingChanges);
+      for (const prod of changes) {
+        await fetch(`/api/products/${prod.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(prod)
+        });
+      }
+      onUpdateCategories(localCategories);
+      setPendingChanges({});
+      showToast('Todos los cambios guardados correctamente');
+    } catch (err) {
+      console.error(err);
+      showToast('Error al guardar cambios');
+    }
+  };
 
   // TAB 2: CLASIFICACIONES & PASILLOS
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -581,7 +610,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   // Products flat list
-  const allProducts = categories.flatMap(c => c.products);
+  const allProducts = localCategories.flatMap(c => c.products);
 
   // PRODUCT CRUD
   const handleOpenNewProduct = () => {
@@ -761,135 +790,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     e.preventDefault();
     if (!prodForm.name.trim() || !prodForm.categoryId) return;
 
-    const targetCategory = categories.find(c => c.id === prodForm.categoryId);
+    const targetCategory = localCategories.find(c => c.id === prodForm.categoryId);
     const categoryName = targetCategory ? targetCategory.name : 'Destilados';
 
     const finalPrice = Number(prodForm.price);
     const finalOriginalPrice = prodForm.originalPrice > 0 ? Number(prodForm.originalPrice) : undefined;
     const computedDiscount = prodForm.discount || getDiscountPercentage(finalPrice, finalOriginalPrice) || undefined;
 
-    if (editingProduct) {
-      const updatedProduct: Product = {
-        ...editingProduct,
-        name: prodForm.name,
-        categoryId: prodForm.categoryId,
-        category: categoryName,
-        subcategory: prodForm.subcategory || categoryName,
-        price: finalPrice,
-        originalPrice: finalOriginalPrice,
-        image: prodForm.image,
-        description: prodForm.description,
-        varieties: prodForm.varieties ? prodForm.varieties.split(',').map(v => v.trim()).filter(v => v !== '') : undefined,
-        discount: computedDiscount,
-        stock: Number(prodForm.stock),
-        inStock: prodForm.inStock,
-        brand: prodForm.brand || undefined,
-        publishedSocial: prodForm.publishedSocial
+    const updatedProduct: Product = {
+      ...(editingProduct || { id: 'prod-' + Date.now() }),
+      name: prodForm.name,
+      categoryId: prodForm.categoryId,
+      category: categoryName,
+      subcategory: prodForm.subcategory || categoryName,
+      price: finalPrice,
+      originalPrice: finalOriginalPrice,
+      image: prodForm.image,
+      description: prodForm.description,
+      varieties: prodForm.varieties ? prodForm.varieties.split(',').map(v => v.trim()).filter(v => v !== '') : undefined,
+      discount: computedDiscount,
+      stock: Number(prodForm.stock),
+      inStock: prodForm.inStock,
+      brand: prodForm.brand || undefined,
+      publishedSocial: prodForm.publishedSocial,
+      buttonText: editingProduct ? editingProduct.buttonText : 'Comprar'
+    };
+
+    // Update local categories for immediate UI feedback without re-sorting
+    const newLocalCategories = localCategories.map(cat => {
+      // Remove from old location if editing
+      const filtered = (cat.products || []).filter(p => p.id !== updatedProduct.id);
+      
+      if (cat.id === updatedProduct.categoryId) {
+        return {
+          ...cat,
+          products: [updatedProduct, ...filtered],
+        };
+      }
+      return {
+        ...cat,
+        products: filtered,
       };
+    });
 
-      let updatedCategories: CategoryData[] = [];
-      let updatedOffers: Product[] = megaOffers;
-
-      try {
-        const res = await fetch(`/api/products/${editingProduct.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedProduct)
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.categories)) {
-            updatedCategories = data.categories;
-          }
-          if (Array.isArray(data.megaOffers)) {
-            updatedOffers = data.megaOffers;
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      }
-
-      if (updatedCategories.length === 0) {
-        updatedCategories = categories.map(cat => {
-          const filtered = (cat.products || []).filter(p => p.id !== editingProduct.id);
-          if (cat.id === updatedProduct.categoryId) {
-            return {
-              ...cat,
-              products: [updatedProduct, ...filtered],
-              featuredProductIds: cat.featuredProductIds
-            };
-          }
-          return {
-            ...cat,
-            products: filtered,
-            featuredProductIds: cat.featuredProductIds?.filter(id => id !== editingProduct.id)
-          };
-        });
-      }
-
-      onUpdateCategories(updatedCategories);
-      if (onUpdateMegaOffers) {
-        onUpdateMegaOffers(updatedOffers);
-      }
-      showToast('Producto actualizado exitosamente');
-    } else {
-      const newProduct: Product = {
-        id: 'prod-' + Date.now(),
-        name: prodForm.name,
-        categoryId: prodForm.categoryId,
-        category: categoryName,
-        subcategory: prodForm.subcategory || categoryName,
-        price: finalPrice,
-        originalPrice: finalOriginalPrice,
-        image: prodForm.image,
-        description: prodForm.description,
-        varieties: prodForm.varieties ? prodForm.varieties.split(',').map(v => v.trim()).filter(v => v !== '') : undefined,
-        discount: computedDiscount,
-        buttonText: 'Comprar',
-        stock: Number(prodForm.stock),
-        inStock: prodForm.inStock,
-        brand: prodForm.brand || undefined,
-        publishedSocial: prodForm.publishedSocial
-      };
-
-      let updatedCategories: CategoryData[] = [];
-      let updatedOffers: Product[] = megaOffers;
-
-      try {
-        const res = await fetch('/api/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newProduct)
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.categories)) {
-            updatedCategories = data.categories;
-          }
-          if (Array.isArray(data.megaOffers)) {
-            updatedOffers = data.megaOffers;
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      }
-
-      if (updatedCategories.length === 0) {
-        updatedCategories = categories.map(cat => {
-          if (cat.id === prodForm.categoryId) {
-            return { ...cat, products: [newProduct, ...(cat.products || [])] };
-          }
-          return cat;
-        });
-      }
-
-      onUpdateCategories(updatedCategories);
-      if (onUpdateMegaOffers) {
-        onUpdateMegaOffers(updatedOffers);
-      }
-      showToast('Nuevo producto ingresado al catálogo');
-    }
-
+    setLocalCategories(newLocalCategories);
+    setPendingChanges(prev => ({ ...prev, [updatedProduct.id]: updatedProduct }));
+    
+    showToast(`Producto ${editingProduct ? 'actualizado' : 'creado'} localmente (pendiente de guardar)`);
     setIsProductModalOpen(false);
   };
 
@@ -1849,6 +1796,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Pending Changes Banner */}
+            {Object.keys(pendingChanges).length > 0 && (
+              <div className="bg-[#ffd025] text-[#141414] p-4 rounded-2xl flex items-center justify-between mb-4 shadow-xl sticky top-0 z-50">
+                 <span className="font-black text-sm">Tienes {Object.keys(pendingChanges).length} cambios pendientes.</span>
+                 <button onClick={handleSaveAllChanges} className="bg-black text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-gray-800">
+                   Guardar Cambios
+                 </button>
+              </div>
+            )}
 
             {/* Filter bar */}
             <div className="flex flex-col sm:flex-row gap-3 bg-[#1a1a1a] p-3 rounded-2xl border border-gray-800">
