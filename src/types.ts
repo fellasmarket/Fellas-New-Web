@@ -76,6 +76,7 @@ export interface ClassifiedExcelProduct {
   categoryId: string;
   categoryName: string;
   subcategory: string;
+  extraCategory?: string;
   offerType: 'mega_offer' | 'regular_offer' | 'standard';
   discount?: string;
   description: string;

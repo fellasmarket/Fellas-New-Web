@@ -268,6 +268,8 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
         let originalPrice: number | undefined = undefined;
         let stock = 24;
         let rawCategory = '';
+        let subCategory = '';
+        let extraCategory = '';
         let brand = '';
 
         // Pass 1: Match by explicit headers
@@ -285,6 +287,14 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
           // Category / Department / Family column
           else if (/^(categoria|category|rubro|familia|subfamilia|seccion|departamento|depto|linea|grupo|pasillo)$/i.test(k) && !rawCategory) {
             rawCategory = vStr;
+          }
+          // Subcategory column
+          else if (/^(subcategoria|subcategory|subrubro|subfamilia|subseccion)$/i.test(k) && !subCategory) {
+            subCategory = vStr;
+          }
+          // Extra Category / Offer type / Pack column
+          else if (/^(tipo|oferta|pack|promo|promocion|extra)$/i.test(k) && !extraCategory) {
+            extraCategory = vStr;
           }
           // Brand column
           else if (/^(marca|brand|fabricante|proveedor)$/i.test(k) && !brand) {
@@ -333,7 +343,9 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
           price,
           originalPrice,
           stock,
-          rawCategory,
+          categoryName: rawCategory,
+          subcategory: subCategory,
+          extraCategory: extraCategory,
           brand
         };
       }).filter(item => item.name && item.price > 0);
@@ -677,7 +689,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                   >
                     <option value="ALL">Todos los Pasillos</option>
                     {availableModalCategories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                      <option key={`cat-${c.id}`} value={c.id}>{c.name}</option>
                     ))}
                   </select>
 

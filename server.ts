@@ -1996,16 +1996,16 @@ async function classifyProductsWithBotilleriaAI(items: any[], existingCategories
 }
 app.post('/api/admin/classify-excel-products', async (req, res) => {
   try {
-    const { items, existingCategories } = req.body;
+    const { items } = req.body;
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'La lista de productos del Excel está vacía' });
     }
 
-    const result = await classifyProductsWithBotilleriaAI(items, existingCategories);
-    res.json(result);
+    // AI classification disabled per user request. Returning original list.
+    res.json({ success: true, total: items.length, products: items });
   } catch (error: any) {
-    console.error('Error classifying excel products:', error);
-    res.status(500).json({ error: 'Error al procesar y clasificar planilla de productos con IA' });
+    console.error('Error processing excel products:', error);
+    res.status(500).json({ error: 'Error al procesar la lista de productos' });
   }
 });
 
