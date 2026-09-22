@@ -29,6 +29,7 @@ import { CategoryBannerModal } from './admin/CategoryBannerModal';
 import { CategoryFeaturedProductsModal } from './admin/CategoryFeaturedProductsModal';
 import { KeepAliveEditor } from './admin/KeepAliveEditor';
 import { ProductImageUploader } from './admin/ProductImageUploader';
+import { useOrderNotifications } from '../hooks/useOrderNotifications';
 
 interface AdminDashboardProps {
   onExitAdmin: () => void;
@@ -100,6 +101,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDraggingLogo, setIsDraggingLogo] = useState(false);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Desktop Notifications & Audio Chime System
+  const {
+    isSupported: isNotifSupported,
+    permission: notifPermission,
+    isSoundEnabled,
+    toggleSound,
+    requestPermission: requestNotifPermission,
+    testNotification,
+    latestOrderAlert,
+    dismissAlert: dismissOrderAlert
+  } = useOrderNotifications(useCallback((newOrder: Order) => {
+    setOrders(prev => {
+      if (prev.some(o => o.id === newOrder.id)) return prev;
+      return [newOrder, ...prev];
+    });
+    showToast(`🔔 ¡Nuevo pedido #${newOrder.code || newOrder.id} de ${newOrder.customerName}!`);
+  }, [showToast]));
   const [prodForm, setProdForm] = useState({
     name: '',
     categoryId: categories[0]?.id || '',
@@ -1737,6 +1756,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
             )}
 
+            {/* Desktop Notification quick status indicator */}
+            <button
+              type="button"
+              onClick={notifPermission === 'granted' ? testNotification : requestNotifPermission}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition border cursor-pointer ${
+                notifPermission === 'granted'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                  : 'bg-amber-500/15 text-[#ffd025] border-amber-500/30 hover:bg-amber-500/25 animate-pulse'
+              }`}
+              title={
+                notifPermission === 'granted'
+                  ? 'Notificaciones de pedidos autorizadas en este PC. Haz clic para probar alerta.'
+                  : 'Haz clic para autorizar notificaciones de pedidos en este PC'
+              }
+            >
+              <i className={`fa-solid ${notifPermission === 'granted' ? 'fa-bell text-emerald-400' : 'fa-bell-slash text-amber-400'}`}></i>
+              <span className="hidden md:inline">
+                {notifPermission === 'granted' ? 'Alertas PC Activas' : 'Activar Alertas PC'}
+              </span>
+            </button>
+
             {/* Quick Link to Store */}
             <button
               onClick={onExitAdmin}
@@ -2370,6 +2410,107 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <i className="fa-solid fa-rotate"></i>
                     <span>Actualizar</span>
                   </button>
+                </div>
+              </div>
+
+              {/* NOTIFICACIONES DE ESCRITORIO EN VIVO PARA ESTE COMPUTADOR */}
+              <div className={`p-4 rounded-2xl border transition-all ${
+                notifPermission === 'granted'
+                  ? 'bg-gradient-to-r from-[#141418] to-[#121c16] border-emerald-500/30'
+                  : notifPermission === 'denied'
+                  ? 'bg-[#181313] border-rose-500/30'
+                  : 'bg-gradient-to-r from-[#1a1710] to-[#141418] border-amber-400/40'
+              }`}>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-start sm:items-center gap-3.5">
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-lg shrink-0 shadow-sm ${
+                      notifPermission === 'granted'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : notifPermission === 'denied'
+                        ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        : 'bg-amber-400/20 text-[#ffd025] border border-amber-400/40 animate-pulse'
+                    }`}>
+                      <i className={`fa-solid ${notifPermission === 'granted' ? 'fa-bell text-emerald-400' : notifPermission === 'denied' ? 'fa-bell-slash text-rose-400' : 'fa-bell text-amber-400'}`}></i>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm font-black text-white">
+                          Alertas y Notificaciones de Pedidos en tu Computador
+                        </h4>
+                        <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                          notifPermission === 'granted'
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                            : notifPermission === 'denied'
+                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                            : 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+                        }`}>
+                          {notifPermission === 'granted'
+                            ? '✅ Computador Autorizado'
+                            : notifPermission === 'denied'
+                            ? '🚫 Permiso Denegado'
+                            : '⚠️ Requiere Autorización'}
+                        </span>
+                        <span className="text-[10px] text-stone-400 bg-stone-900 border border-stone-800 px-2 py-0.5 rounded-md flex items-center gap-1 font-mono">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                          SSE en tiempo real
+                        </span>
+                      </div>
+                      <p className="text-xs text-stone-300 mt-1 max-w-2xl">
+                        {notifPermission === 'granted'
+                          ? '¡Este computador recibirá una alerta emergente y sonido de campana en vivo cada vez que un cliente realice un pedido, incluso con la ventana minimizada!'
+                          : notifPermission === 'denied'
+                          ? 'Las notificaciones están bloqueadas en este navegador. Haz clic en el ícono del candado 🔒 en la barra de direcciones de tu navegador y cambia Notificaciones a "Permitir".'
+                          : 'Haz clic en el botón para autorizar que este computador te avise de inmediato cuando llegue un pedido con sonido y ventana emergente.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    {/* Toggle Sound */}
+                    <button
+                      type="button"
+                      onClick={toggleSound}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-2 cursor-pointer ${
+                        isSoundEnabled
+                          ? 'bg-stone-800 hover:bg-stone-700 text-stone-200 border-stone-700'
+                          : 'bg-stone-900 text-stone-500 border-stone-800 hover:text-stone-400'
+                      }`}
+                      title={isSoundEnabled ? 'Sonido activado (clic para silenciar)' : 'Sonido silenciado (clic para activar)'}
+                    >
+                      <i className={`fa-solid ${isSoundEnabled ? 'fa-volume-high text-emerald-400' : 'fa-volume-xmark text-stone-500'}`}></i>
+                      <span>{isSoundEnabled ? 'Timbre Activo' : 'Timbre Silenciado'}</span>
+                    </button>
+
+                    {/* Test Notification Button */}
+                    <button
+                      type="button"
+                      onClick={testNotification}
+                      className="px-3.5 py-2 rounded-xl text-xs font-black bg-stone-800 hover:bg-stone-700 text-[#ffd025] border border-amber-400/30 transition flex items-center gap-2 cursor-pointer active:scale-95 shadow-xs"
+                      title="Genera un pedido de prueba para comprobar el sonido y la notificación emergente en tu pantalla"
+                    >
+                      <i className="fa-solid fa-play text-[10px]"></i>
+                      <span>Probar Alerta en este PC</span>
+                    </button>
+
+                    {/* Authorize / Request Permission Button */}
+                    {notifPermission !== 'granted' && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const res = await requestNotifPermission();
+                          if (res === 'granted') {
+                            showToast('¡Computador autorizado! Recibirás notificaciones en pantalla de cada pedido.');
+                          } else if (res === 'denied') {
+                            showToast('Permiso no concedido. Habilita las notificaciones en la configuración del navegador.');
+                          }
+                        }}
+                        className="px-4 py-2 rounded-xl text-xs font-black bg-[#ffd025] hover:bg-yellow-400 text-stone-950 transition flex items-center gap-2 cursor-pointer shadow-md active:scale-95 uppercase tracking-wide animate-pulse"
+                      >
+                        <i className="fa-solid fa-bell"></i>
+                        <span>Autorizar Notificaciones</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -5140,6 +5281,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING REAL-TIME ORDER ALERT BANNER */}
+      {latestOrderAlert && (
+        <div className="fixed top-5 right-5 z-50 max-w-sm sm:max-w-md w-full bg-[#18181b] border-2 border-[#ffd025] rounded-3xl shadow-2xl p-4 sm:p-5 text-white animate-in slide-in-from-top-4 duration-300">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-[#ffd025] text-stone-950 flex items-center justify-center text-lg font-black shrink-0 shadow-lg animate-bounce">
+                <i className="fa-solid fa-bell"></i>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-[#ffd025] bg-[#ffd025]/10 px-2 py-0.5 rounded-md">
+                    ¡Nuevo Pedido Recibido!
+                  </span>
+                  <span className="text-[10px] text-stone-400 font-mono">
+                    #{latestOrderAlert.code || latestOrderAlert.id.slice(-6)}
+                  </span>
+                </div>
+                <h4 className="text-sm font-black text-white mt-1 truncate">
+                  {latestOrderAlert.customerName}
+                </h4>
+                <div className="text-xs font-black text-amber-400 mt-0.5">
+                  ${(latestOrderAlert.total || 0).toLocaleString('es-CL')} CLP
+                </div>
+                <p className="text-[11px] text-stone-300 mt-1 line-clamp-2">
+                  {latestOrderAlert.items?.map(i => `${i.quantity}x ${i.productName || (i as any).name}`).join(', ')}
+                </p>
+                <div className="text-[10px] text-stone-400 mt-1 flex items-center gap-1 truncate">
+                  <i className="fa-solid fa-location-dot text-amber-400"></i>
+                  <span className="truncate">{latestOrderAlert.address || latestOrderAlert.location || 'Local'}</span>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={dismissOrderAlert}
+              className="text-stone-400 hover:text-white p-1 text-xs cursor-pointer shrink-0"
+              title="Cerrar aviso"
+            >
+              <i className="fa-solid fa-xmark text-sm"></i>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-stone-800">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('orders');
+                setSelectedOrder(latestOrderAlert);
+                dismissOrderAlert();
+              }}
+              className="flex-1 bg-[#ffd025] hover:bg-yellow-400 text-stone-950 font-black text-xs py-2 px-3 rounded-xl transition text-center cursor-pointer shadow active:scale-95 uppercase tracking-wide flex items-center justify-center gap-2"
+            >
+              <i className="fa-solid fa-receipt"></i>
+              <span>Ver Comanda Ahora</span>
+            </button>
+            <button
+              type="button"
+              onClick={dismissOrderAlert}
+              className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs py-2 px-3 rounded-xl transition cursor-pointer"
+            >
+              Cerrar
+            </button>
           </div>
         </div>
       )}

@@ -1165,7 +1165,45 @@ app.put('/api/mega-offers', (req, res) => {
   res.json({ success: true, megaOffers });
 });
 
-// 5. Orders API (Real-time tracking, Status updates)
+// 5. Orders API (Real-time tracking, Status updates, Live Notifications)
+const orderNotificationClients = new Set<express.Response>();
+
+app.get('/api/orders/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+
+  res.write(`data: ${JSON.stringify({ type: 'connected', time: Date.now() })}\n\n`);
+  orderNotificationClients.add(res);
+
+  const pingInterval = setInterval(() => {
+    try {
+      res.write(`: ping\n\n`);
+    } catch {
+      clearInterval(pingInterval);
+      orderNotificationClients.delete(res);
+    }
+  }, 25000);
+
+  req.on('close', () => {
+    clearInterval(pingInterval);
+    orderNotificationClients.delete(res);
+  });
+});
+
+function broadcastNewOrder(order: Order) {
+  const payload = `data: ${JSON.stringify({ type: 'new_order', order })}\n\n`;
+  orderNotificationClients.forEach((clientRes) => {
+    try {
+      clientRes.write(payload);
+    } catch {
+      orderNotificationClients.delete(clientRes);
+    }
+  });
+}
+
 app.get('/api/orders', (req, res) => {
   res.json({ orders });
 });
@@ -1183,6 +1221,7 @@ app.post('/api/orders', (req, res) => {
 
   orders.unshift(newOrder); // Prepend to show immediately in real time
   scheduleR2Sync();
+  broadcastNewOrder(newOrder);
   res.json({ success: true, order: newOrder });
 });
 

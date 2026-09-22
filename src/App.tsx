@@ -17,6 +17,7 @@ import { Toast } from './components/Toast';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DeliveryDashboard } from './components/DeliveryDashboard';
 import { VisualQuickEditorModal, QuickEditTarget } from './components/admin/VisualQuickEditorModal';
+import { useOrderNotifications } from './hooks/useOrderNotifications';
 
 const DEFAULT_SETTINGS: StoreSettings = {
   isEmergencyMode: false,
@@ -132,6 +133,22 @@ export default function App() {
   // Visual In-Context Editor State
   const [isVisualEditMode, setIsVisualEditMode] = useState<boolean>(true);
   const [quickEditTarget, setQuickEditTarget] = useState<QuickEditTarget | null>(null);
+
+  // Desktop Notifications & Audio Chime on store view if authorized or admin
+  const isAuthorizedPC = typeof window !== 'undefined' && localStorage.getItem('fellas_order_notifications_authorized') === 'true';
+  const shouldListenInStore = currentView !== 'admin' && (user?.role === 'admin' || isAuthorizedPC);
+
+  const {
+    latestOrderAlert: storeLatestOrderAlert,
+    dismissAlert: dismissStoreOrderAlert
+  } = useOrderNotifications(
+    shouldListenInStore
+      ? (newOrder) => {
+          showToast(`🔔 ¡Nuevo pedido #${newOrder.code || newOrder.id} recibido!`);
+        }
+      : undefined,
+    shouldListenInStore
+  );
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -840,6 +857,71 @@ export default function App() {
             />
           )}
         </>
+      )}
+
+      {/* BANNER FLOTANTE DE NUEVO PEDIDO EN VISTA TIENDA */}
+      {storeLatestOrderAlert && currentView !== 'admin' && (
+        <div className="fixed top-5 right-5 z-50 max-w-sm sm:max-w-md w-full bg-[#18181b] border-2 border-[#ffd025] rounded-3xl shadow-2xl p-4 sm:p-5 text-white animate-in slide-in-from-top-4 duration-300">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-[#ffd025] text-stone-950 flex items-center justify-center text-lg font-black shrink-0 shadow-lg animate-bounce">
+                <i className="fa-solid fa-bell"></i>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-[#ffd025] bg-[#ffd025]/10 px-2 py-0.5 rounded-md">
+                    ¡Nuevo Pedido en Fella's Market!
+                  </span>
+                  <span className="text-[10px] text-stone-400 font-mono">
+                    #{storeLatestOrderAlert.code || storeLatestOrderAlert.id.slice(-6)}
+                  </span>
+                </div>
+                <h4 className="text-sm font-black text-white mt-1 truncate">
+                  {storeLatestOrderAlert.customerName}
+                </h4>
+                <div className="text-xs font-black text-amber-400 mt-0.5">
+                  ${(storeLatestOrderAlert.total || 0).toLocaleString('es-CL')} CLP
+                </div>
+                <p className="text-[11px] text-stone-300 mt-1 line-clamp-2">
+                  {storeLatestOrderAlert.items?.map(i => `${i.quantity}x ${i.productName || (i as any).name}`).join(', ')}
+                </p>
+                <div className="text-[10px] text-stone-400 mt-1 flex items-center gap-1 truncate">
+                  <i className="fa-solid fa-location-dot text-amber-400"></i>
+                  <span className="truncate">{storeLatestOrderAlert.address || storeLatestOrderAlert.location || 'Local'}</span>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={dismissStoreOrderAlert}
+              className="text-stone-400 hover:text-white p-1 text-xs cursor-pointer shrink-0"
+              title="Cerrar aviso"
+            >
+              <i className="fa-solid fa-xmark text-sm"></i>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-stone-800">
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentView('admin');
+                dismissStoreOrderAlert();
+              }}
+              className="flex-1 bg-[#ffd025] hover:bg-yellow-400 text-stone-950 font-black text-xs py-2 px-3 rounded-xl transition text-center cursor-pointer shadow active:scale-95 uppercase tracking-wide flex items-center justify-center gap-2"
+            >
+              <i className="fa-solid fa-gauge-high"></i>
+              <span>Abrir Comanda en Panel Admin</span>
+            </button>
+            <button
+              type="button"
+              onClick={dismissStoreOrderAlert}
+              className="bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs py-2 px-3 rounded-xl transition cursor-pointer"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Toast Notificación Global */}
