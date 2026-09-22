@@ -790,9 +790,9 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                                 : 'bg-[#141414] text-gray-300 border-gray-700'
                             }`}
                           >
-                            <option value="mega_offer">🔥 Mega Oferta</option>
-                            <option value="regular_offer">🏷️ Oferta</option>
-                            <option value="standard">📦 Estándar</option>
+                            <option key="mega" value="mega_offer">🔥 Mega Oferta</option>
+                            <option key="regular" value="regular_offer">🏷️ Oferta</option>
+                            <option key="std" value="standard">📦 Estándar</option>
                           </select>
                         </div>
 
