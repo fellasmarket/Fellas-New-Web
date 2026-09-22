@@ -1013,6 +1013,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onUpdateCategories(updatedCategories);
   };
 
+  const handleDeleteCategory = async (id: string, name: string) => {
+    if (!window.confirm(`¿Estás seguro de que quieres eliminar el pasillo "${name}"? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        const data = await res.json();
+        onUpdateCategories(data.categories);
+        showToast(`Pasillo "${name}" eliminado exitosamente`);
+      } else {
+        showToast('Error al eliminar el pasillo');
+      }
+    } catch (e) {
+      showToast('Error de conexión al eliminar el pasillo');
+    }
+  };
+
   // ORDER STATUS CHANGE
   const handleUpdateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
     try {
@@ -2260,7 +2278,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     >
                       <i className="fa-solid fa-ruler-combined text-yellow-400 group-hover/btn:text-[#141414]"></i>
                       <span>Ajustar Imagen de Banner & Medidas</span>
-                    </button>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                        className="w-full mt-2 bg-red-950/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-800/70 hover:border-red-500 font-black text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow active:scale-95"
+                      >
+                        <i className="fa-solid fa-trash-can"></i>
+                        <span>Eliminar Pasillo</span>
+                      </button>
                   </div>
                 </div>
               ))}
