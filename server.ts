@@ -1947,37 +1947,49 @@ const STANDARD_BOTILLERIA_TEMPLATES: Record<string, Partial<CategoryData>> = {
 
 // Helper: Botillería AI & Heuristics Classification Engine
 async function classifyProductWithGemini(productName: string, availableCategories: Array<{id: string, name: string}>) {
-  // Use a fallback to process.env if settings object fails
   const ai = getGeminiAi() || new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
   
   if (!ai) return null;
   try {
-    const prompt = `Identify the product type for "${productName}" (is it snack, drink, wine, etc.?) and classify it into ONE of these: ${availableCategories.map(c => c.name).join(', ')}. Return JSON with categoryName, subcategory, brand.`;
+    const prompt = `Classify the product "${productName}" into exactly ONE of these categories: ${availableCategories.map(c => c.name).join(', ')}. 
+    Return ONLY a JSON object with fields: categoryName, subcategory, brand.
+    Example: {"categoryName": "Cervezas", "subcategory": "Cervezas Nacionales", "brand": "Escudo"}`;
+    
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash", // Using a stable model
+      model: "gemini-1.5-flash-latest",
       contents: prompt,
-      config: { tools: [{ googleSearch: {} }], responseMimeType: "application/json" },
+      config: { responseMimeType: "application/json" },
     });
-    return JSON.parse(response.text || '{}');
+    
+    const text = response.text || '{}';
+    return JSON.parse(text);
   } catch (e) {
-    console.error('Gemini classification error:', e);
+    console.error('Gemini classification error for product:', productName, e);
     return null;
   }
 }
 
 async function classifyProductsWithBotilleriaAI(items: any[], existingCategories?: any[]) {
   const runHeuristic = (name: string, price: number, origPrice?: number) => {
-    // ... [Heuristic logic from previous lines]
-    return { categoryId: 'cat-bebidas', categoryName: 'Bebidas, Aguas & Hielo', subcategory: 'Bebidas Gaseosas', image: 'bebida', brand: 'General', offerType: 'standard' };
+    // Simple heuristic improvement
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('cerveza')) return { categoryName: 'Cervezas', subcategory: 'Cervezas Nacionales' };
+    if (lowerName.includes('vino')) return { categoryName: 'Vinos', subcategory: 'Vinos Tintos' };
+    
+    // Default instead of hardcoded Bebidas Gaseosas
+    return { categoryName: 'Otros', subcategory: 'Sin clasificar' };
   };
 
   const results = await Promise.all(items.map(async (it) => {
       // 1. Try Gemini AI (with search grounding)
       const aiResult = await classifyProductWithGemini(it.name, existingCategories || []);
-      if (aiResult && aiResult.categoryName) return aiResult;
+      if (aiResult && aiResult.categoryName) {
+          return { ...it, ...aiResult };
+      }
 
       // 2. Fallback to heuristic
-      return runHeuristic(it.name, it.price, it.originalPrice);
+      const heuristicResult = runHeuristic(it.name, it.price, it.originalPrice);
+      return { ...it, ...heuristicResult };
   }));
 
   return { success: true, total: results.length, products: results };
