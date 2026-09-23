@@ -2115,7 +2115,7 @@ app.post('/api/admin/reclassify-catalog', async (req, res) => {
       success: true,
       message: `¡Catálogo reorganizado exitosamente! Se analizaron y clasificaron ${allProducts.length} productos con IA.`,
       totalReorganized: allProducts.length,
-      counts: classificationResult.counts,
+      counts: (classificationResult as any).counts,
       categories,
       megaOffers
     });

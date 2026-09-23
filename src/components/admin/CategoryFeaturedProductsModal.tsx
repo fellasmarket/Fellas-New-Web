@@ -39,7 +39,7 @@ export const CategoryFeaturedProductsModal: React.FC<CategoryFeaturedProductsMod
 
   // Initialize with existing featuredProductIds or first 6 of the category
   const [selectedIds, setSelectedIds] = useState<string[]>(() => {
-    if (category.featuredProductIds && category.featuredProductIds.length > 0) {
+    if (category.featuredProductIds !== undefined) {
       // Filter out any IDs that might no longer exist in availableCategoryProducts
       const valid = category.featuredProductIds.filter(id => 
         availableCategoryProducts.some(p => p.id === id)
@@ -54,7 +54,7 @@ export const CategoryFeaturedProductsModal: React.FC<CategoryFeaturedProductsMod
   // Synchronize when category or available products change
   useEffect(() => {
     if (category) {
-      if (category.featuredProductIds && category.featuredProductIds.length > 0) {
+      if (category.featuredProductIds !== undefined) {
         const valid = category.featuredProductIds.filter(id => 
           availableCategoryProducts.some(p => p.id === id)
         );
