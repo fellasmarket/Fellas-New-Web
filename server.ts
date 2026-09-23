@@ -615,8 +615,8 @@ let r2SyncStatusMessage: string = 'Persistencia Cloudflare R2 lista';
 let isR2Syncing = false;
 
 // Persist complete database snapshot to Cloudflare R2 & local disk
-async function persistDatabaseToR2(): Promise<{ success: boolean; error?: string }> {
-  if (isR2Syncing) return { success: true };
+async function persistDatabaseToR2(): Promise<{ success: boolean; error?: string; syncedToR2?: boolean }> {
+  if (isR2Syncing) return { success: true, syncedToR2: false };
   isR2Syncing = true;
   try {
     const totalProducts = categories.reduce((sum, c) => sum + (c.products?.length || 0), 0);
@@ -657,6 +657,7 @@ async function persistDatabaseToR2(): Promise<{ success: boolean; error?: string
     const client = getS3Client();
     const bucketName = process.env.R2_BUCKET_NAME?.trim();
 
+    let syncedToR2 = false;
     if (client && bucketName) {
       await client.send(new PutObjectCommand({
         Bucket: bucketName,
@@ -668,12 +669,13 @@ async function persistDatabaseToR2(): Promise<{ success: boolean; error?: string
       lastR2SyncTime = new Date().toISOString();
       r2SyncStatusMessage = `Sincronizado con Cloudflare R2 (${totalProducts} productos protegidos)`;
       console.log(`[Cloudflare R2] ✅ Base de datos asegurada en R2 (${totalProducts} productos, ${categories.length} pasillos).`);
+      syncedToR2 = true;
     } else {
       lastR2SyncTime = new Date().toISOString();
       r2SyncStatusMessage = `Guardado local (${totalProducts} productos). R2 no configurado.`;
     }
 
-    return { success: true };
+    return { success: true, syncedToR2 };
   } catch (err: any) {
     console.error('[Cloudflare R2] Error al respaldar base de datos:', err);
     r2SyncStatusMessage = `Error al sincronizar con R2: ${err?.message || 'Fallo de conexión'}`;
@@ -1681,11 +1683,19 @@ app.post('/api/admin/r2-sync-now', async (req, res) => {
     const result = await persistDatabaseToR2();
     if (result.success) {
       const totalProducts = categories.reduce((sum, c) => sum + (c.products?.length || 0), 0);
-      return res.json({
-        success: true,
-        message: `¡Todos los datos (${totalProducts} productos en ${categories.length} pasillos) han sido guardados permanentemente en Cloudflare R2!`,
-        lastSyncTime: lastR2SyncTime
-      });
+      if (result.syncedToR2) {
+        return res.json({
+          success: true,
+          message: `¡Todos los datos (${totalProducts} productos en ${categories.length} pasillos) han sido guardados permanentemente en Cloudflare R2!`,
+          lastSyncTime: lastR2SyncTime
+        });
+      } else {
+        return res.json({
+          success: true,
+          message: `⚠️ RESPALDO LOCAL GUARDADO. NOTA: Cloudflare R2 no está configurado (revisa las variables de entorno). Los datos solo se guardaron localmente en el contenedor y podrían perderse si este se reinicia.`,
+          lastSyncTime: lastR2SyncTime
+        });
+      }
     } else {
       return res.status(500).json({ success: false, error: result.error });
     }

@@ -1030,7 +1030,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleMoveCategory = (index: number, direction: 'up' | 'down') => {
+  const handleMoveCategory = async (index: number, direction: 'up' | 'down') => {
     const newCategories = [...categories];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     
@@ -1038,7 +1038,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     
     [newCategories[index], newCategories[targetIndex]] = [newCategories[targetIndex], newCategories[index]];
     
+    // Optimizamente actualizamos el local para fluidez inmediata
     onUpdateCategories(newCategories);
+
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categories: newCategories })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onUpdateCategories(data.categories);
+        showToast('Orden de pasillos guardado correctamente');
+      } else {
+        showToast('Error al guardar el nuevo orden en el servidor');
+      }
+    } catch (e) {
+      showToast('Error de conexión al guardar el orden de pasillos');
+    }
   };
 
   // ORDER STATUS CHANGE
@@ -2147,13 +2165,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   Organiza las secciones temáticas de la tienda (Destilados, Cervezas, Vinos, Snacks, etc.) y ajusta sus banners.
                 </p>
               </div>
-              <button
-                onClick={() => setIsCategoryModalOpen(true)}
-                className="bg-[#ffd025] hover:bg-yellow-400 text-[#141414] font-black text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow cursor-pointer active:scale-95 uppercase"
-              >
-                <i className="fa-solid fa-plus"></i>
-                <span>Nuevo Pasillo</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/categories', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ categories })
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        onUpdateCategories(data.categories);
+                        showToast('✅ ¡Orden de pasillos guardado permanentemente en el servidor y sincronizado!');
+                      } else {
+                        showToast('❌ Error al guardar el orden de pasillos');
+                      }
+                    } catch (e) {
+                      showToast('❌ Error de conexión al intentar guardar');
+                    }
+                  }}
+                  className="bg-emerald-950/40 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-800/80 hover:border-emerald-500 font-black text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow cursor-pointer active:scale-95 uppercase"
+                >
+                  <i className="fa-solid fa-floppy-disk"></i>
+                  <span>Guardar Orden</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryModalOpen(true)}
+                  className="bg-[#ffd025] hover:bg-yellow-400 text-[#141414] font-black text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow cursor-pointer active:scale-95 uppercase"
+                >
+                  <i className="fa-solid fa-plus"></i>
+                  <span>Nuevo Pasillo</span>
+                </button>
+              </div>
             </div>
 
             {/* GUÍA DE MEDIDAS EXACTAS DE LOS BANNERS DE CLASIFICACIÓN */}
