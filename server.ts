@@ -27,12 +27,37 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 } // Up to 20MB files from PC
 });
 
+function getCleanEnv(key: string): string | undefined {
+  const val = process.env[key];
+  if (!val) return undefined;
+  let trimmed = val.trim();
+  // Quitar comillas accidentales de archivos .env copiados y pegados directamente
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || 
+      (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    trimmed = trimmed.substring(1, trimmed.length - 1).trim();
+  }
+  return trimmed || undefined;
+}
+
+function getR2Credentials() {
+  const accessKeyId = getCleanEnv('R2_ACCESS_KEY_ID') || getCleanEnv('CLOUDFLARE_R2_ACCESS_KEY_ID') || getCleanEnv('R2_ACCESS_KEY');
+  const secretAccessKey = getCleanEnv('R2_SECRET_ACCESS_KEY') || getCleanEnv('CLOUDFLARE_R2_SECRET_ACCESS_KEY') || getCleanEnv('R2_SECRET_KEY');
+  const endpoint = getCleanEnv('R2_ENDPOINT') || getCleanEnv('CLOUDFLARE_R2_ENDPOINT') || getCleanEnv('R2_ENDPOINT_URL');
+  const bucketName = getCleanEnv('R2_BUCKET_NAME') || getCleanEnv('CLOUDFLARE_R2_BUCKET_NAME') || getCleanEnv('R2_BUCKET');
+  const publicUrl = getCleanEnv('R2_PUBLIC_URL') || getCleanEnv('CLOUDFLARE_R2_PUBLIC_URL');
+
+  return {
+    accessKeyId,
+    secretAccessKey,
+    endpoint,
+    bucketName,
+    publicUrl
+  };
+}
+
 let s3Client: S3Client | null = null;
 function getS3Client() {
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim();
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim();
-  const endpoint = process.env.R2_ENDPOINT?.trim();
-  const bucketName = process.env.R2_BUCKET_NAME?.trim();
+  const { accessKeyId, secretAccessKey, endpoint, bucketName } = getR2Credentials();
 
   if (!s3Client && accessKeyId && secretAccessKey && endpoint && bucketName) {
     try {
@@ -44,6 +69,7 @@ function getS3Client() {
           secretAccessKey,
         },
       });
+      console.log('[Cloudflare R2] S3 Client initialized successfully with normalized variables.');
     } catch (s3InitErr) {
       console.error('Error initializing Cloudflare R2 S3 Client:', s3InitErr);
       s3Client = null;
@@ -62,7 +88,7 @@ app.use('/uploads', async (req, res, next) => {
 
   // Fallback: If not on local disk (e.g. fresh container restart), fetch directly from Cloudflare R2
   const client = getS3Client();
-  const bucketName = process.env.R2_BUCKET_NAME;
+  const { bucketName } = getR2Credentials();
   if (client && bucketName && relPath) {
     try {
       const response = await client.send(new GetObjectCommand({
@@ -95,9 +121,7 @@ app.use('/uploads', express.static(uploadsBaseDir));
 
 // Generate public URL for Cloudflare R2 or local fallback
 function getR2PublicUrl(key: string): string {
-  const publicUrl = process.env.R2_PUBLIC_URL?.trim();
-  const bucketName = process.env.R2_BUCKET_NAME?.trim();
-  const endpoint = process.env.R2_ENDPOINT?.trim();
+  const { publicUrl, bucketName, endpoint } = getR2Credentials();
 
   if (publicUrl) {
     return `${publicUrl.replace(/\/$/, '')}/${key}`;
@@ -137,19 +161,15 @@ async function compressImageBuffer(inputBuffer: Buffer, preferredFormat: 'webp' 
 
 // Endpoint: Storage Status (Checks Cloudflare R2 readiness)
 app.get('/api/admin/storage-status', (req, res) => {
-  const isR2Ready = !!(
-    process.env.R2_ACCESS_KEY_ID?.trim() &&
-    process.env.R2_SECRET_ACCESS_KEY?.trim() &&
-    process.env.R2_ENDPOINT?.trim() &&
-    process.env.R2_BUCKET_NAME?.trim()
-  );
+  const { accessKeyId, secretAccessKey, endpoint, bucketName, publicUrl } = getR2Credentials();
+  const isR2Ready = !!(accessKeyId && secretAccessKey && endpoint && bucketName);
 
   res.json({
     r2Configured: isR2Ready,
-    bucket: process.env.R2_BUCKET_NAME || null,
-    endpoint: process.env.R2_ENDPOINT ? process.env.R2_ENDPOINT.replace(/\/$/, '') : null,
-    hasPublicUrl: !!process.env.R2_PUBLIC_URL?.trim(),
-    publicUrl: process.env.R2_PUBLIC_URL || null,
+    bucket: bucketName || null,
+    endpoint: endpoint ? endpoint.replace(/\/$/, '') : null,
+    hasPublicUrl: !!publicUrl,
+    publicUrl: publicUrl || null,
     storageType: isR2Ready ? 'Cloudflare R2' : 'Local (Comprimido con Sharp)'
   });
 });
@@ -180,10 +200,11 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
     const client = getS3Client();
 
     // 2. If Cloudflare R2 is configured, upload to R2 Bucket
-    if (client && process.env.R2_BUCKET_NAME) {
+    const { bucketName } = getR2Credentials();
+    if (client && bucketName) {
       try {
         await client.send(new PutObjectCommand({
-          Bucket: process.env.R2_BUCKET_NAME,
+          Bucket: bucketName,
           Key: key,
           Body: compressedBuffer,
           ContentType: contentType,
@@ -261,10 +282,11 @@ app.post('/api/upload-base64', async (req, res) => {
     const key = `products/${Date.now()}-${cleanName}.${ext}`;
     const client = getS3Client();
 
-    if (client && process.env.R2_BUCKET_NAME) {
+    const { bucketName } = getR2Credentials();
+    if (client && bucketName) {
       try {
         await client.send(new PutObjectCommand({
-          Bucket: process.env.R2_BUCKET_NAME,
+          Bucket: bucketName,
           Key: key,
           Body: compressedBuffer,
           ContentType: contentType,
@@ -427,6 +449,8 @@ let settings: StoreSettings = {
   bottomDualBanner2Image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?q=80&w=800&auto=format&fit=crop',
   bottomDualBanner2Link: '#mega-ofertas',
   agencyName: 'Muller Ads and Design',
+  backgroundImage: '',
+  backgroundRepeat: false,
   scheduleConfig: JSON.parse(JSON.stringify(DEFAULT_STORE_SCHEDULE))
 };
 
@@ -655,7 +679,7 @@ async function persistDatabaseToR2(): Promise<{ success: boolean; error?: string
 
     // 2. Upload to Cloudflare R2 bucket
     const client = getS3Client();
-    const bucketName = process.env.R2_BUCKET_NAME?.trim();
+    const { bucketName } = getR2Credentials();
 
     let syncedToR2 = false;
     if (client && bucketName) {
@@ -697,7 +721,7 @@ function scheduleR2Sync(delayMs: number = 800) {
 // Load database from Cloudflare R2 on boot
 async function loadDatabaseFromR2(): Promise<boolean> {
   const client = getS3Client();
-  const bucketName = process.env.R2_BUCKET_NAME?.trim();
+  const { bucketName } = getR2Credentials();
 
   let jsonStr: string | null = null;
   let source = 'ninguno';
@@ -1656,17 +1680,13 @@ app.post('/api/admin/database/restore', (req, res) => {
 
 // 11.1 Cloudflare R2 Database Persistence & Recovery Endpoints
 app.get('/api/admin/r2-database-status', (req, res) => {
-  const isR2Ready = !!(
-    process.env.R2_ACCESS_KEY_ID?.trim() &&
-    process.env.R2_SECRET_ACCESS_KEY?.trim() &&
-    process.env.R2_ENDPOINT?.trim() &&
-    process.env.R2_BUCKET_NAME?.trim()
-  );
+  const { accessKeyId, secretAccessKey, endpoint, bucketName } = getR2Credentials();
+  const isR2Ready = !!(accessKeyId && secretAccessKey && endpoint && bucketName);
   const totalProducts = categories.reduce((sum, c) => sum + (c.products?.length || 0), 0);
 
   res.json({
     r2Configured: isR2Ready,
-    bucket: process.env.R2_BUCKET_NAME || null,
+    bucket: bucketName || null,
     key: R2_DATABASE_KEY,
     lastSyncTime: lastR2SyncTime,
     statusMessage: r2SyncStatusMessage,

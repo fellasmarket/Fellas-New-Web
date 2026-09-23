@@ -210,6 +210,8 @@ export interface StoreSettings {
   socialTwitter: string;
   socialFacebook: string;
   socialWhatsapp: string;
+  backgroundImage?: string;
+  backgroundRepeat?: boolean;
   megaOffersConfig?: MegaOffersConfig;
   bottomBannerImage?: string;
   bottomBannerLink?: string;

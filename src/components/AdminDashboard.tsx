@@ -112,6 +112,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
   const [isDraggingLogo, setIsDraggingLogo] = useState(false);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
+  const [isDraggingBg, setIsDraggingBg] = useState(false);
+  const [isUploadingBg, setIsUploadingBg] = useState(false);
+  const bgFileInputRef = useRef<HTMLInputElement>(null);
 
   // Desktop Notifications & Audio Chime System
   const {
@@ -785,6 +788,82 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleBgFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Por favor selecciona un archivo de imagen válido.');
+      return;
+    }
+
+    setIsUploadingBg(true);
+    showToast('Subiendo y optimizando imagen de fondo...');
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('productName', 'background-tienda');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || 'Error al subir la imagen');
+      }
+
+      setFormSettings(prev => ({ ...prev, backgroundImage: data.url }));
+      showToast('¡Imagen de fondo cargada! Haz clic en "Guardar Ajustes" para aplicarla.');
+    } catch (err: any) {
+      console.error(err);
+      showToast(`Error al subir la imagen de fondo: ${err?.message || 'Error de conexión'}`);
+    } finally {
+      setIsUploadingBg(false);
+    }
+  };
+
+  const handleBgDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingBg(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Por favor arrastra un archivo de imagen válido.');
+      return;
+    }
+
+    setIsUploadingBg(true);
+    showToast('Subiendo y optimizando imagen de fondo...');
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('productName', 'background-tienda');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || 'Error al subir la imagen');
+      }
+
+      setFormSettings(prev => ({ ...prev, backgroundImage: data.url }));
+      showToast('¡Imagen de fondo cargada! Haz clic en "Guardar Ajustes" para aplicarla.');
+    } catch (err: any) {
+      console.error(err);
+      showToast(`Error al subir la imagen de fondo: ${err?.message || 'Error de conexión'}`);
+    } finally {
+      setIsUploadingBg(false);
+    }
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -3811,6 +3890,135 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       className="w-full bg-[#141414] border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:border-[#ffd025]"
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Fondo Temático de la Tienda (Upload o URL) */}
+            <div className="space-y-4 pt-4 border-t border-gray-800">
+              <div className="flex items-center justify-between border-b border-gray-800 pb-2">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-300 uppercase flex items-center gap-2">
+                    <i className="fa-solid fa-image text-[#ffd025]"></i> Imagen de Fondo de la Tienda (Temático)
+                  </h3>
+                  <p className="text-[11px] text-gray-400">
+                    Sube una imagen de fondo (texturas, motivos, colores, festividades) para personalizar la estética de la tienda.
+                  </p>
+                </div>
+                {formSettings.backgroundImage && (
+                  <button
+                    type="button"
+                    onClick={() => setFormSettings({ ...formSettings, backgroundImage: '' })}
+                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer font-bold"
+                  >
+                    <i className="fa-solid fa-trash"></i>
+                    <span>Restablecer fondo (Blanco)</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Upload Dropzone from Desktop for Background */}
+              <input
+                type="file"
+                ref={bgFileInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={handleBgFileUpload}
+              />
+
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDraggingBg(true); }}
+                onDragLeave={() => setIsDraggingBg(false)}
+                onDrop={handleBgDrop}
+                onClick={() => bgFileInputRef.current?.click()}
+                className={`p-6 rounded-2xl border-2 border-dashed transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 relative overflow-hidden ${
+                  isDraggingBg
+                    ? 'border-[#ffd025] bg-[#ffd025]/10'
+                    : 'border-gray-700 bg-[#141414] hover:border-gray-600 hover:bg-[#161616]'
+                }`}
+              >
+                {isUploadingBg ? (
+                  <div className="flex flex-col items-center gap-2 py-4">
+                    <i className="fa-solid fa-circle-notch fa-spin text-2xl text-[#ffd025]"></i>
+                    <p className="text-xs font-bold text-white">Subiendo y optimizando imagen de fondo...</p>
+                  </div>
+                ) : formSettings.backgroundImage ? (
+                  <div className="space-y-3">
+                    <div className="p-2 bg-[#181818] rounded-xl border border-gray-800 inline-block max-w-xs relative group/bg">
+                      <img
+                        src={formSettings.backgroundImage}
+                        alt="Fondo de pantalla cargado"
+                        className="max-h-24 w-auto object-cover rounded-lg mx-auto"
+                      />
+                    </div>
+                    <div>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-emerald-400 text-xs font-bold">
+                        <i className="fa-solid fa-check"></i>
+                        Imagen de fondo activa
+                      </span>
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Haz clic o arrastra otra imagen para reemplazarla
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-12 h-12 rounded-2xl bg-[#ffd025]/15 border border-[#ffd025]/30 text-[#ffd025] flex items-center justify-center text-xl">
+                      <i className="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white">
+                        Haz clic para subir tu imagen de fondo desde tu PC
+                      </p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        o arrastra y suelta tu archivo de imagen aquí (comprimido automáticamente)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-[#ffd025] hover:bg-yellow-400 text-[#141414] font-black text-xs rounded-xl shadow cursor-pointer uppercase flex items-center gap-1.5"
+                    >
+                      <i className="fa-solid fa-folder-open"></i>
+                      <span>Explorar Escritorio</span>
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* URL & Configuración de Repetición */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                    O pegar URL de imagen de fondo
+                  </label>
+                  <input
+                    type="text"
+                    value={formSettings.backgroundImage || ''}
+                    onChange={(e) => setFormSettings({ ...formSettings, backgroundImage: e.target.value })}
+                    placeholder="https://ejemplo.com/textura-fondo.jpg"
+                    className="w-full bg-[#141414] border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:border-[#ffd025] outline-none"
+                  />
+                </div>
+                <div className="flex items-center justify-between bg-[#141414] p-3 rounded-2xl border border-gray-800">
+                  <div>
+                    <label className="block text-xs font-bold text-white uppercase">
+                      Repetir Imagen de Fondo (Mosaico)
+                    </label>
+                    <p className="text-[10px] text-gray-400">
+                      Actívalo si estás usando un patrón o textura pequeña.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormSettings({ ...formSettings, backgroundRepeat: !formSettings.backgroundRepeat })}
+                    className={`w-12 h-6 rounded-full transition relative flex items-center p-1 cursor-pointer ${
+                      formSettings.backgroundRepeat ? 'bg-emerald-500' : 'bg-gray-700'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full bg-white shadow-md transition transform ${
+                      formSettings.backgroundRepeat ? 'translate-x-6' : 'translate-x-0'
+                    }`} />
+                  </button>
                 </div>
               </div>
             </div>

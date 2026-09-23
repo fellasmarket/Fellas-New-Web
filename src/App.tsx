@@ -490,7 +490,16 @@ export default function App() {
     : [];
 
   return (
-    <div className="bg-stone-100 min-h-screen text-[#141414] antialiased relative selection:bg-[#ffd129] selection:text-[#141414]">
+    <div 
+      className="bg-stone-100 min-h-screen text-[#141414] antialiased relative selection:bg-[#ffd129] selection:text-[#141414]"
+      style={settings.backgroundImage ? {
+        backgroundImage: `url(${settings.backgroundImage})`,
+        backgroundRepeat: settings.backgroundRepeat ? 'repeat' : 'no-repeat',
+        backgroundSize: settings.backgroundRepeat ? 'auto' : 'cover',
+        backgroundAttachment: settings.backgroundRepeat ? 'scroll' : 'fixed',
+        backgroundPosition: 'center',
+      } : {}}
+    >
       {/* RENDERIZADO CONDICIONAL: Vista Admin vs Vista Delivery vs Vista Tienda */}
       {currentView === 'admin' ? (
         <AdminDashboard
