@@ -57,7 +57,10 @@ const DEFAULT_SETTINGS: StoreSettings = {
     { name: 'Cliente VIP Sediento', minPurchases: 8, discountPercent: 10 },
     { name: 'Parrillero de Oro', minPurchases: 15, discountPercent: 15 }
   ],
-  agencyName: 'Muller Ads and Design'
+  agencyName: 'Muller Ads and Design',
+  backgroundImage: '',
+  backgroundRepeat: false,
+  backgroundColor: '#111112'
 };
 
 export default function App() {
@@ -88,41 +91,16 @@ export default function App() {
     }
   }, [isEmergencyMode, selectedCatalogCategoryId]);
 
-  // Cart state with 2 initial liquor store items
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      product: {
-        id: 'dest-1',
-        name: 'Pisco Mistral Gran Nobel 40° 750ml',
-        category: 'Destilados & Piscos',
-        categoryId: 'cat-destilados',
-        subcategory: 'Pisco',
-        price: 24990,
-        originalPrice: 29990,
-        discount: '-17%',
-        image: 'https://images.unsplash.com/photo-1527061011665-3652c757a4d4?q=80&w=400&auto=format&fit=crop',
-        description: 'Añejado pacientemente en barricas de roble americano.',
-        buttonText: 'Agregar'
-      },
-      quantity: 1
-    },
-    {
-      product: {
-        id: 'cer-1',
-        name: 'Pack Cerveza Corona Extra 24x330ml',
-        category: 'Cervezas Heladas & Artesanales',
-        categoryId: 'cat-cervezas',
-        subcategory: 'Cervezas',
-        price: 22990,
-        originalPrice: 26990,
-        discount: '-15%',
-        image: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=400&auto=format&fit=crop',
-        description: 'Cerveza rubia tipo Lager mexicana refrescante.',
-        buttonText: 'Agregar'
-      },
-      quantity: 1
+  // Cart state initialized empty by default
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
+  const [isAgeVerified, setIsAgeVerified] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('fellas_age_verified') === 'true';
+    } catch {
+      return false;
     }
-  ]);
+  });
 
   const [location, setLocation] = useState<string>('Santiago Centro');
   const [user, setUser] = useState<UserAccount | null>(null);
@@ -212,6 +190,8 @@ export default function App() {
         }
       } catch (err) {
         console.log('Using default local store data:', err);
+      } finally {
+        setIsInitialLoading(false);
       }
     };
 
@@ -489,16 +469,123 @@ export default function App() {
       )
     : [];
 
+  // 1. Age Verification first (for customers only)
+  if (!isAgeVerified && currentView === 'store') {
+    return (
+      <div className="min-h-screen bg-[#111112] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden select-none">
+        {/* Subtle background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-[#ffd025]/5 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="bg-[#171719] border border-stone-800 p-6 sm:p-7 rounded-3xl w-full max-w-sm text-center shadow-2xl relative z-10 space-y-5 animate-fade-in">
+          
+          {/* Logo Section */}
+          <div className="space-y-2">
+            {settings.logoImage ? (
+              <img
+                src={settings.logoImage}
+                alt={settings.logoTextPrimary || 'Fellas'}
+                className="h-12 w-auto object-contain mx-auto"
+              />
+            ) : (
+              <div className="inline-flex flex-col items-center">
+                <span className="text-xl font-black text-[#ffd025] tracking-widest uppercase">
+                  {settings.logoTextPrimary || 'FELLAS'}
+                </span>
+                {settings.logoTextSecondary && (
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest -mt-0.5">
+                    {settings.logoTextSecondary}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="h-0.5 w-10 bg-[#ffd025]/20 mx-auto rounded"></div>
+          </div>
+
+          {/* Age Prompt */}
+          <div className="space-y-1.5">
+            <h2 className="text-base font-black text-white tracking-tight uppercase">
+              Verificación de Edad
+            </h2>
+            <p className="text-[11px] text-stone-400 leading-relaxed font-medium">
+              Debes tener la edad legal para comprar alcohol y productos para mayores en Chile. ¿Tienes 18 años de edad o más?
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-2.5 pt-1">
+            <button
+              onClick={() => {
+                try {
+                  localStorage.setItem('fellas_age_verified', 'true');
+                } catch (e) {}
+                setIsAgeVerified(true);
+              }}
+              className="w-full py-3 bg-[#ffd025] hover:bg-yellow-400 text-stone-950 font-black text-xs rounded-xl tracking-wider uppercase transition shadow hover:shadow-yellow-500/10 cursor-pointer active:scale-95 duration-100 flex items-center justify-center gap-1.5"
+            >
+              <i className="fa-solid fa-circle-check"></i>
+              <span>Sí, soy mayor de 18 años</span>
+            </button>
+            
+            <button
+              onClick={() => {
+                window.location.href = 'https://www.google.com';
+              }}
+              className="w-full py-2.5 bg-stone-900 hover:bg-[#202022] text-stone-400 hover:text-white font-bold text-[11px] rounded-xl tracking-wider uppercase transition border border-stone-800 cursor-pointer"
+            >
+              No, soy menor de edad
+            </button>
+          </div>
+
+          {/* Disclaimer */}
+          <div className="text-[9px] text-stone-500 leading-relaxed border-t border-stone-800/60 pt-4 font-medium">
+            <p className="flex items-center justify-center gap-1 text-[#ffd025]/50 mb-1 font-bold uppercase tracking-wider text-[8px]">
+              <i className="fa-solid fa-shield-halved"></i>
+              <span>Conexión Segura</span>
+            </p>
+            <p>
+              Consumo responsable. El abuso de alcohol es nocivo para la salud. Ley de Alcoholes N° 19.925.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Loading fallback (only if verification is completed but data is still fetching)
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-[#111112] text-white flex flex-col items-center justify-center p-6 select-none">
+        <div className="flex flex-col items-center max-w-sm text-center space-y-6">
+          <div className="relative flex items-center justify-center">
+            {/* Ambient pulse */}
+            <div className="absolute w-28 h-28 rounded-full border-2 border-[#ffd025]/20 animate-ping duration-[1800ms]"></div>
+            {/* Main loader */}
+            <div className="w-16 h-16 rounded-full border-4 border-stone-800 border-t-4 border-t-[#ffd025] animate-spin"></div>
+            <i className="fa-solid fa-wine-glass-empty absolute text-2xl text-[#ffd025]"></i>
+          </div>
+          <div className="space-y-2 animate-pulse">
+            <h1 className="text-xl font-black tracking-widest text-[#ffd025] uppercase">Fellas Market</h1>
+            <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">Cargando catálogo oficial...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
-      className="bg-stone-100 min-h-screen text-[#141414] antialiased relative selection:bg-[#ffd129] selection:text-[#141414]"
-      style={settings.backgroundImage ? {
-        backgroundImage: `url(${settings.backgroundImage})`,
+      className="bg-[#111112] min-h-screen text-[#141414] antialiased relative selection:bg-[#ffd129] selection:text-[#141414]"
+      style={{
+        backgroundColor: settings.backgroundColor || '#111112',
+        backgroundImage: settings.backgroundImage 
+          ? `linear-gradient(to bottom, ${(settings.backgroundColor || '#111112')}f2, #060607fb), url(${settings.backgroundImage})`
+          : `linear-gradient(to bottom, ${settings.backgroundColor || '#111112'} 0%, #060607 100%)`,
         backgroundRepeat: settings.backgroundRepeat ? 'repeat' : 'no-repeat',
         backgroundSize: settings.backgroundRepeat ? 'auto' : 'cover',
         backgroundAttachment: settings.backgroundRepeat ? 'scroll' : 'fixed',
         backgroundPosition: 'center',
-      } : {}}
+      }}
     >
       {/* RENDERIZADO CONDICIONAL: Vista Admin vs Vista Delivery vs Vista Tienda */}
       {currentView === 'admin' ? (

@@ -4021,6 +4021,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </button>
                 </div>
               </div>
+
+              {/* Color de Fondo y Degradado */}
+              <div className="bg-[#141414] p-4 rounded-2xl border border-gray-800 space-y-4 mt-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-bold text-white uppercase flex items-center gap-1.5">
+                      <i className="fa-solid fa-palette text-[#ffd025]"></i> Color Base del Degradado
+                    </h4>
+                    <p className="text-[10px] text-gray-400">
+                      Elige un color. La tienda generará automáticamente un degradado que se funde con elegancia hacia el negro.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div 
+                      className="w-10 h-10 rounded-xl border border-stone-700 shadow-inner relative overflow-hidden cursor-pointer"
+                      style={{ backgroundColor: formSettings.backgroundColor || '#111112' }}
+                    >
+                      <input 
+                        type="color" 
+                        value={formSettings.backgroundColor || '#111112'}
+                        onChange={(e) => setFormSettings({ ...formSettings, backgroundColor: e.target.value })}
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={7}
+                      value={formSettings.backgroundColor || '#111112'}
+                      onChange={(e) => setFormSettings({ ...formSettings, backgroundColor: e.target.value })}
+                      placeholder="#111112"
+                      className="w-24 bg-[#18181a] border border-gray-800 rounded-xl p-2 text-center text-xs font-mono text-white focus:border-[#ffd025] outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Acceso Rápido al Panel de Delivery */}

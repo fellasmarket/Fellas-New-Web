@@ -212,6 +212,7 @@ export interface StoreSettings {
   socialWhatsapp: string;
   backgroundImage?: string;
   backgroundRepeat?: boolean;
+  backgroundColor?: string;
   megaOffersConfig?: MegaOffersConfig;
   bottomBannerImage?: string;
   bottomBannerLink?: string;

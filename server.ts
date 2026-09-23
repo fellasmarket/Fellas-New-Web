@@ -451,6 +451,7 @@ let settings: StoreSettings = {
   agencyName: 'Muller Ads and Design',
   backgroundImage: '',
   backgroundRepeat: false,
+  backgroundColor: '#111112',
   scheduleConfig: JSON.parse(JSON.stringify(DEFAULT_STORE_SCHEDULE))
 };
 
