@@ -31,7 +31,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
   return (
     <section className="max-w-7xl mx-auto mt-2.5 sm:mt-6 px-1 sm:px-0 relative">
       <div
-        className={`relative overflow-hidden rounded-xl sm:rounded-3xl p-2 sm:p-6 shadow-xl sm:shadow-2xl text-white bg-[#002b7f] ${
+        className={`relative overflow-hidden rounded-xl sm:rounded-3xl p-2 sm:p-6 shadow-xl sm:shadow-2xl text-white bg-[#141414] ${
           isVisualEditMode ? 'ring-2 ring-red-400 ring-dashed' : ''
         }`}
       >
@@ -40,7 +40,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
           src={bgImg}
           alt="Fondo promociones"
           referrerPolicy="no-referrer"
-          className="absolute inset-0 w-full h-full object-cover opacity-90 mix-blend-screen"
+          className="absolute inset-0 w-full h-full object-cover opacity-100"
         />
 
         {/* Destellos vectoriales */}
@@ -99,7 +99,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
         </svg>
 
         {/* Capa de degradado */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#001742]/85 via-[#002b7f]/70 to-[#001742]/85 pointer-events-none z-[1]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/35 to-black/80 pointer-events-none z-[1]" />
 
         {/* Contenido en primer plano */}
         <div className="relative z-10">
