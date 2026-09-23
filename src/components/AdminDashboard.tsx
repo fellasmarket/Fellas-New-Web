@@ -1031,6 +1031,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const handleMoveCategory = (index: number, direction: 'up' | 'down') => {
+    const newCategories = [...categories];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    if (targetIndex < 0 || targetIndex >= newCategories.length) return;
+    
+    [newCategories[index], newCategories[targetIndex]] = [newCategories[targetIndex], newCategories[index]];
+    
+    onUpdateCategories(newCategories);
+  };
+
   // ORDER STATUS CHANGE
   const handleUpdateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
     try {
@@ -2197,7 +2208,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {categories.map((cat) => (
+              {categories.map((cat, index) => (
                 <div key={cat.id} className="bg-[#1a1a1a] border border-gray-800 hover:border-stone-700 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between transition group">
                   <div>
                     <div className="h-36 relative overflow-hidden bg-gray-900">
@@ -2250,6 +2261,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                   {/* Botones de Gestión de Pasillo & Portada */}
                   <div className="p-4 pt-0 border-t border-gray-800/80 mt-2 space-y-2">
+                    {/* Botones de Reordenamiento */}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveCategory(index, 'up')}
+                        disabled={index === 0}
+                        className="flex-1 bg-[#1a1a1a] hover:bg-stone-800 text-stone-400 disabled:opacity-30 border border-stone-800 font-bold text-xs py-2 rounded-lg transition"
+                      >
+                        <i className="fa-solid fa-chevron-up"></i>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveCategory(index, 'down')}
+                        disabled={index === categories.length - 1}
+                        className="flex-1 bg-[#1a1a1a] hover:bg-stone-800 text-stone-400 disabled:opacity-30 border border-stone-800 font-bold text-xs py-2 rounded-lg transition"
+                      >
+                        <i className="fa-solid fa-chevron-down"></i>
+                      </button>
+                    </div>
+
                     {/* Botón para Elegir los 6 Productos de la Sección */}
                     <button
                       type="button"
