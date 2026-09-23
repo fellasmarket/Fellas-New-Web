@@ -109,6 +109,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [categories]);
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
   const [isDraggingLogo, setIsDraggingLogo] = useState(false);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1014,15 +1015,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleDeleteCategory = async (id: string, name: string) => {
-    if (!window.confirm(`¿Estás seguro de que quieres eliminar el pasillo "${name}"? Esta acción no se puede deshacer.`)) {
-      return;
-    }
     try {
       const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
       if (res.ok) {
         const data = await res.json();
         onUpdateCategories(data.categories);
         showToast(`Pasillo "${name}" eliminado exitosamente`);
+        setDeletingCatId(null);
       } else {
         showToast('Error al eliminar el pasillo');
       }
@@ -2310,14 +2309,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <i className="fa-solid fa-ruler-combined text-yellow-400 group-hover/btn:text-[#141414]"></i>
                       <span>Ajustar Imagen de Banner & Medidas</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCategory(cat.id, cat.name)}
-                        className="w-full mt-2 bg-red-950/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-800/70 hover:border-red-500 font-black text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow active:scale-95"
-                      >
-                        <i className="fa-solid fa-trash-can"></i>
-                        <span>Eliminar Pasillo</span>
-                      </button>
+                      {deletingCatId === cat.id ? (
+                        <div className="flex gap-2 w-full mt-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-black text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow active:scale-95"
+                          >
+                            <i className="fa-solid fa-circle-exclamation"></i>
+                            <span>Sí, Eliminar</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeletingCatId(null)}
+                            className="flex-1 bg-stone-800 hover:bg-stone-700 text-stone-300 font-black text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setDeletingCatId(cat.id)}
+                          className="w-full mt-2 bg-red-950/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-800/70 hover:border-red-500 font-black text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow active:scale-95"
+                        >
+                          <i className="fa-solid fa-trash-can"></i>
+                          <span>Eliminar Pasillo</span>
+                        </button>
+                      )}
                   </div>
                 </div>
               ))}

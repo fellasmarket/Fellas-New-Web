@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { CategoryData, Product } from '../../types';
 
 interface CategoryFeaturedProductsModalProps {
@@ -39,26 +39,35 @@ export const CategoryFeaturedProductsModal: React.FC<CategoryFeaturedProductsMod
 
   // Initialize with existing featuredProductIds or first 6 of the category
   const [selectedIds, setSelectedIds] = useState<string[]>(() => {
-    if (category.featuredProductIds !== undefined) {
+    if (Array.isArray(category.featuredProductIds)) {
       // Filter out any IDs that might no longer exist in availableCategoryProducts
       const valid = category.featuredProductIds.filter(id => 
         availableCategoryProducts.some(p => p.id === id)
       );
-      return valid.slice(0, 6);
+      return valid;
     }
     return availableCategoryProducts.slice(0, 6).map(p => p.id);
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const lastCategoryIdRef = useRef<string | null>(null);
 
-  // Synchronize when category or available products change
+  // Reset tracking when modal is closed
   useEffect(() => {
-    if (category) {
-      if (category.featuredProductIds !== undefined) {
+    if (!isOpen) {
+      lastCategoryIdRef.current = null;
+    }
+  }, [isOpen]);
+
+  // Synchronize ONLY when we load a different category, preventing background prop updates from overwriting user state
+  useEffect(() => {
+    if (category && category.id !== lastCategoryIdRef.current) {
+      lastCategoryIdRef.current = category.id;
+      if (Array.isArray(category.featuredProductIds)) {
         const valid = category.featuredProductIds.filter(id => 
           availableCategoryProducts.some(p => p.id === id)
         );
-        setSelectedIds(valid.slice(0, 6));
+        setSelectedIds(valid);
       } else {
         setSelectedIds(availableCategoryProducts.slice(0, 6).map(p => p.id));
       }
@@ -129,7 +138,7 @@ export const CategoryFeaturedProductsModal: React.FC<CategoryFeaturedProductsMod
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-[#171719] border border-[#ffd025]/30 rounded-3xl w-full max-w-4xl shadow-2xl p-5 sm:p-7 relative my-8 flex flex-col max-h-[92vh]">
+      <div className="bg-[#171719] border border-[#ffd025]/30 rounded-3xl w-full max-w-4xl shadow-2xl p-5 sm:p-7 relative my-8 flex flex-col max-h-[92vh] overflow-hidden">
         
         {/* Close Button */}
         <button
@@ -304,7 +313,7 @@ export const CategoryFeaturedProductsModal: React.FC<CategoryFeaturedProductsMod
           </div>
 
           {/* Product Grid / List */}
-          <div className="overflow-y-auto flex-1 pr-1 space-y-2 max-h-[300px]">
+          <div className="overflow-y-auto flex-1 min-h-[160px] pr-1 space-y-2">
             {filteredProducts.length === 0 ? (
               <div className="text-center py-8 text-stone-500 text-xs bg-[#121214] rounded-2xl border border-stone-800">
                 No se encontraron productos con el término "{searchQuery}"
