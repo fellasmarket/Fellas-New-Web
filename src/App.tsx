@@ -577,10 +577,10 @@ export default function App() {
     <div 
       className="bg-[#111112] min-h-screen text-[#141414] antialiased relative selection:bg-[#ffd129] selection:text-[#141414]"
       style={{
-        backgroundColor: settings.backgroundColor || '#111112',
+        backgroundColor: '#111112',
         backgroundImage: settings.backgroundImage 
-          ? `linear-gradient(to bottom, ${(settings.backgroundColor || '#111112')}f2, #060607fb), url(${settings.backgroundImage})`
-          : `linear-gradient(to bottom, ${settings.backgroundColor || '#111112'} 0%, #060607 100%)`,
+          ? `linear-gradient(to top, ${settings.backgroundColor || '#ffd025'}33 0%, transparent 50%), url(${settings.backgroundImage})`
+          : `linear-gradient(to top, ${settings.backgroundColor || '#ffd025'}33 0%, transparent 50%)`,
         backgroundRepeat: settings.backgroundRepeat ? 'repeat' : 'no-repeat',
         backgroundSize: settings.backgroundRepeat ? 'auto' : 'cover',
         backgroundAttachment: settings.backgroundRepeat ? 'scroll' : 'fixed',
