@@ -146,16 +146,16 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
           }`}
         />
 
-        {/* Botón Ver Más - Superpuesto en la parte inferior al centro del banner (más pequeño y delicado) */}
+        {/* Botón Ver Más - Superpuesto en la esquina inferior derecha del banner (más pequeño, discreto y elegante) */}
         {!isEmergencyMode && (
           <a
             id={`ver-mas-${category.id}`}
             href={`#catalogo-${category.id}`}
             onClick={handleOpenCatalog}
-            className="absolute bottom-2.5 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] px-3.5 py-1.5 sm:px-5 sm:py-2 rounded-full text-[9px] sm:text-xs font-black uppercase tracking-wider shadow-md transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer border border-yellow-500 whitespace-nowrap"
+            className="absolute bottom-1.5 right-1.5 sm:bottom-3 sm:right-3 z-20 inline-flex items-center gap-1 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[8px] sm:text-[10px] font-black uppercase tracking-wider shadow-md transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer border border-yellow-500 whitespace-nowrap"
           >
             <span>Ver Colección</span>
-            <i className="fa-solid fa-arrow-right text-[8px] sm:text-[9px]"></i>
+            <i className="fa-solid fa-arrow-right text-[7px] sm:text-[8px]"></i>
           </a>
         )}
       </div>
