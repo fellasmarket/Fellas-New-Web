@@ -43,61 +43,6 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
           className="absolute inset-0 w-full h-full object-cover opacity-100"
         />
 
-        {/* Destellos vectoriales */}
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none z-0"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <radialGradient id="white-glow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
-              <stop offset="40%" stopColor="#ffffff" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-            </radialGradient>
-            <radialGradient id="red-glow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#ff2233" stopOpacity="0.85" />
-              <stop offset="50%" stopColor="#e11d48" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#991b1b" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-
-          {/* Fuego artificial 1 */}
-          <g transform="translate(750, 45)">
-            <circle cx="0" cy="0" r="16" fill="url(#red-glow)" />
-            <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
-            {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg, i) => {
-              const rad = (deg * Math.PI) / 180;
-              const x1 = Math.cos(rad) * 6;
-              const y1 = Math.sin(rad) * 6;
-              const x2 = Math.cos(rad) * (i % 2 === 0 ? 28 : 20);
-              const y2 = Math.sin(rad) * (i % 2 === 0 ? 28 : 20);
-              const dotX = Math.cos(rad) * (i % 2 === 0 ? 33 : 24);
-              const dotY = Math.sin(rad) * (i % 2 === 0 ? 33 : 24);
-              return (
-                <g key={deg}>
-                  <line
-                    x1={x1}
-                    y1={y1}
-                    x2={x2}
-                    y2={y2}
-                    stroke={i % 2 === 0 ? '#ff3b47' : '#ffffff'}
-                    strokeWidth={i % 2 === 0 ? '1.8' : '1.2'}
-                    strokeLinecap="round"
-                    strokeOpacity="0.85"
-                  />
-                  <circle
-                    cx={dotX}
-                    cy={dotY}
-                    r={i % 2 === 0 ? 1.6 : 1.2}
-                    fill={i % 2 === 0 ? '#ffffff' : '#ffd129'}
-                    opacity="0.9"
-                  />
-                </g>
-              );
-            })}
-          </g>
-        </svg>
-
         {/* Capa de degradado */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/35 to-black/80 pointer-events-none z-[1]" />
 
