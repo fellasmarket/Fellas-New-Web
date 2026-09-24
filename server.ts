@@ -449,9 +449,13 @@ let settings: StoreSettings = {
   bottomDualBanner2Image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?q=80&w=800&auto=format&fit=crop',
   bottomDualBanner2Link: '#mega-ofertas',
   agencyName: 'Muller Ads and Design',
-  backgroundImage: '',
+  backgroundImage: '/src/assets/images/halloween_vintage_bg_1790193225470.jpg',
   backgroundRepeat: false,
-  backgroundColor: '#111112',
+  backgroundColor: '#141414',
+  sectionTitleColor: '#ffd025',
+  sectionTitleGlowColor: '#ffd025',
+  sectionTitleGlowEnabled: true,
+  categoryGridDescColor: '#a8a29e',
   scheduleConfig: JSON.parse(JSON.stringify(DEFAULT_STORE_SCHEDULE))
 };
 

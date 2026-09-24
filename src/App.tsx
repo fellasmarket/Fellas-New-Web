@@ -3,7 +3,6 @@ import { CartItem, Product, UserAccount, CategoryData, StoreSettings, HeroSlide,
 import { CATEGORIES as INITIAL_CATEGORIES, MEGA_OFFERS as INITIAL_MEGA_OFFERS, HERO_SLIDES as INITIAL_HERO_SLIDES, formatPrice, getDiscountPercentage } from './data/products';
 import { Header } from './components/Header';
 import { HeroSlider } from './components/HeroSlider';
-import { Newsletter } from './components/Newsletter';
 import { MegaOffers } from './components/MegaOffers';
 import { CategoryGrid } from './components/CategoryGrid';
 import { CategorySection } from './components/CategorySection';
@@ -58,9 +57,13 @@ const DEFAULT_SETTINGS: StoreSettings = {
     { name: 'Parrillero de Oro', minPurchases: 15, discountPercent: 15 }
   ],
   agencyName: 'Muller Ads and Design',
-  backgroundImage: '',
+  backgroundImage: '/src/assets/images/halloween_vintage_bg_1790193225470.jpg',
   backgroundRepeat: false,
-  backgroundColor: '#111112'
+  backgroundColor: '#141414',
+  sectionTitleColor: '#ffd025',
+  sectionTitleGlowColor: '#ffd025',
+  sectionTitleGlowEnabled: true,
+  categoryGridDescColor: '#a8a29e'
 };
 
 export default function App() {
@@ -472,7 +475,18 @@ export default function App() {
   // 1. Age Verification first (for customers only)
   if (!isAgeVerified && currentView === 'store') {
     return (
-      <div className="min-h-screen bg-[#111112] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden select-none">
+      <div 
+        className="min-h-screen text-white flex flex-col items-center justify-center p-4 relative overflow-hidden select-none"
+        style={{
+          backgroundColor: settings.backgroundColor || '#141414',
+          backgroundImage: settings.backgroundImage 
+            ? `linear-gradient(to bottom, rgba(20,20,20,0.85), rgba(12,12,13,0.95)), url(${settings.backgroundImage})`
+            : `linear-gradient(to bottom, #141414 0%, #0c0c0d 100%)`,
+          backgroundRepeat: settings.backgroundRepeat ? 'repeat' : 'no-repeat',
+          backgroundSize: settings.backgroundRepeat ? 'auto' : 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
         {/* Subtle background glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-[#ffd025]/5 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -575,12 +589,12 @@ export default function App() {
 
   return (
     <div 
-      className="bg-[#111112] min-h-screen text-[#141414] antialiased relative selection:bg-[#ffd129] selection:text-[#141414]"
+      className="bg-[#141414] min-h-screen text-[#141414] antialiased relative selection:bg-[#ffd129] selection:text-[#141414]"
       style={{
-        backgroundColor: '#111112',
+        backgroundColor: settings.backgroundColor || '#141414',
         backgroundImage: settings.backgroundImage 
-          ? `linear-gradient(to top, ${settings.backgroundColor || '#ffd025'}33 0%, transparent 50%), url(${settings.backgroundImage})`
-          : `linear-gradient(to top, ${settings.backgroundColor || '#ffd025'}33 0%, transparent 50%)`,
+          ? `linear-gradient(to top, ${settings.backgroundColor || '#141414'}88 0%, ${settings.backgroundColor || '#141414'}ea 100%), url(${settings.backgroundImage})`
+          : `linear-gradient(to top, ${settings.backgroundColor || '#141414'} 0%, #0c0c0d 100%)`,
         backgroundRepeat: settings.backgroundRepeat ? 'repeat' : 'no-repeat',
         backgroundSize: settings.backgroundRepeat ? 'auto' : 'cover',
         backgroundAttachment: settings.backgroundRepeat ? 'scroll' : 'fixed',
@@ -804,10 +818,7 @@ export default function App() {
                   onQuickEdit={(slide) => setQuickEditTarget({ type: 'hero_slide', slide: slide, index: 0 })}
                 />
 
-                {/* 2. Banner de Suscripción Newsletter */}
-                <Newsletter onSubscribe={handleNewsletterSubscribe} />
-
-                {/* 3. Mega Oferta Destacada */}
+                {/* 2. Mega Oferta Destacada */}
                 <MegaOffers
                   onAddToCart={handleAddToCart}
                   megaOffers={megaOffers}
@@ -819,7 +830,13 @@ export default function App() {
 
                 {/* 4. Colecciones & Áreas (Oculto estrictamente cuando la Tienda Alterna está activa) */}
                 {!isEmergencyMode && (
-                  <CategoryGrid isEmergencyMode={isEmergencyMode} />
+                  <CategoryGrid 
+                    isEmergencyMode={isEmergencyMode} 
+                    titleColor={settings.sectionTitleColor} 
+                    glowColor={settings.sectionTitleGlowColor}
+                    glowEnabled={settings.sectionTitleGlowEnabled}
+                    descColor={settings.categoryGridDescColor}
+                  />
                 )}
 
                 {/* 5. Secciones de Categorías (con selección de 6 productos por pasillo en Tienda Alterna) */}
@@ -828,6 +845,9 @@ export default function App() {
                     key={category.id}
                     category={category}
                     isEmergencyMode={isEmergencyMode}
+                    titleColor={settings.sectionTitleColor}
+                    glowColor={settings.sectionTitleGlowColor}
+                    glowEnabled={settings.sectionTitleGlowEnabled}
                     onAddToCart={handleAddToCart}
                     onOpenCategoryCatalog={(catId) => {
                       if (!isEmergencyMode) {

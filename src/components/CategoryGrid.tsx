@@ -69,18 +69,37 @@ const CATEGORY_ITEMS: CategoryCardItem[] = [
 
 interface CategoryGridProps {
   isEmergencyMode?: boolean;
+  titleColor?: string;
+  glowColor?: string;
+  glowEnabled?: boolean;
+  descColor?: string;
 }
 
-export const CategoryGrid: React.FC<CategoryGridProps> = ({ isEmergencyMode = false }) => {
+export const CategoryGrid: React.FC<CategoryGridProps> = ({ 
+  isEmergencyMode = false, 
+  titleColor = '#141414',
+  glowColor = '#ffd025',
+  glowEnabled = false,
+  descColor = '#a8a29e'
+}) => {
   if (isEmergencyMode) return null;
 
   return (
     <section className="max-w-7xl mx-auto mt-8 px-1 sm:px-0">
-      <div className="mb-4 px-2">
-        <h3 className="text-base font-bold text-[#141414] flex items-center gap-2">
+      <div className="mb-4 px-2 text-center flex flex-col items-center justify-center">
+        <h3 
+          className="text-base font-bold flex items-center gap-2 justify-center text-center"
+          style={{ 
+            color: titleColor,
+            textShadow: glowEnabled && glowColor ? `0 0 8px ${glowColor}, 0 0 15px ${glowColor}` : 'none'
+          }}
+        >
           <span>🍾</span> Explorar Colecciones & Áreas
         </h3>
-        <p className="text-xs text-stone-600 font-light mt-0.5">
+        <p 
+          className="text-xs font-light mt-0.5 text-center"
+          style={{ color: descColor }}
+        >
           Encuentra tus licores favoritos, cervezas heladas, vinos y acompañamientos para cada ocasión.
         </p>
       </div>

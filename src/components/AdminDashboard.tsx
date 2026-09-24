@@ -4055,6 +4055,137 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     />
                   </div>
                 </div>
+
+                <div className="h-px bg-gray-800/60 my-1"></div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-bold text-white uppercase flex items-center gap-1.5">
+                      <i className="fa-solid fa-font text-[#ffd025]"></i> Color de Títulos de Sección
+                    </h4>
+                    <p className="text-[10px] text-gray-400">
+                      Elige el color para los títulos separadores de pasillos y colecciones (ej. Blanco, Amarillo, etc.)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div 
+                      className="w-10 h-10 rounded-xl border border-stone-700 shadow-inner relative overflow-hidden cursor-pointer"
+                      style={{ backgroundColor: formSettings.sectionTitleColor || '#141414' }}
+                    >
+                      <input 
+                        type="color" 
+                        value={formSettings.sectionTitleColor || '#141414'}
+                        onChange={(e) => setFormSettings({ ...formSettings, sectionTitleColor: e.target.value })}
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={7}
+                      value={formSettings.sectionTitleColor || '#141414'}
+                      onChange={(e) => setFormSettings({ ...formSettings, sectionTitleColor: e.target.value })}
+                      placeholder="#141414"
+                      className="w-24 bg-[#18181a] border border-gray-800 rounded-xl p-2 text-center text-xs font-mono text-white focus:border-[#ffd025] outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="h-px bg-gray-800/60 my-1"></div>
+
+                {/* Habilitar Resplandor */}
+                <div className="flex items-center justify-between gap-3 py-1">
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-bold text-white uppercase flex items-center gap-1.5">
+                      <i className="fa-solid fa-wand-magic-sparkles text-[#ffd025]"></i> Efecto Resplandor en Títulos
+                    </h4>
+                    <p className="text-[10px] text-gray-400">
+                      Activa un brillo atmosférico/glow de fondo para destacar aún más los títulos.
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input 
+                      type="checkbox" 
+                      checked={formSettings.sectionTitleGlowEnabled || false}
+                      onChange={(e) => setFormSettings({ ...formSettings, sectionTitleGlowEnabled: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-stone-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                  </label>
+                </div>
+
+                {formSettings.sectionTitleGlowEnabled && (
+                  <>
+                    <div className="h-px bg-gray-800/60 my-1"></div>
+
+                    {/* Color del Resplandor */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs font-bold text-white uppercase flex items-center gap-1.5">
+                          <i className="fa-solid fa-circle-half-stroke text-[#ffd025]"></i> Color del Resplandor
+                        </h4>
+                        <p className="text-[10px] text-gray-400">
+                          Color del brillo atmosférico (ej. Dorado, Naranja, etc.)
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div 
+                          className="w-10 h-10 rounded-xl border border-stone-700 shadow-inner relative overflow-hidden cursor-pointer"
+                          style={{ backgroundColor: formSettings.sectionTitleGlowColor || '#ffd025' }}
+                        >
+                          <input 
+                            type="color" 
+                            value={formSettings.sectionTitleGlowColor || '#ffd025'}
+                            onChange={(e) => setFormSettings({ ...formSettings, sectionTitleGlowColor: e.target.value })}
+                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          maxLength={7}
+                          value={formSettings.sectionTitleGlowColor || '#ffd025'}
+                          onChange={(e) => setFormSettings({ ...formSettings, sectionTitleGlowColor: e.target.value })}
+                          placeholder="#ffd025"
+                          className="w-24 bg-[#18181a] border border-gray-800 rounded-xl p-2 text-center text-xs font-mono text-white focus:border-[#ffd025] outline-none"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="h-px bg-gray-800/60 my-1"></div>
+
+                {/* Color de Descripción de Colecciones */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-bold text-white uppercase flex items-center gap-1.5">
+                      <i className="fa-solid fa-align-left text-[#ffd025]"></i> Color de Descripción de Colecciones
+                    </h4>
+                    <p className="text-[10px] text-gray-400">
+                      Color de la descripción en el módulo "Explorar Colecciones & Áreas" (ej. Blanco, gris claro, etc.)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div 
+                      className="w-10 h-10 rounded-xl border border-stone-700 shadow-inner relative overflow-hidden cursor-pointer"
+                      style={{ backgroundColor: formSettings.categoryGridDescColor || '#a8a29e' }}
+                    >
+                      <input 
+                        type="color" 
+                        value={formSettings.categoryGridDescColor || '#a8a29e'}
+                        onChange={(e) => setFormSettings({ ...formSettings, categoryGridDescColor: e.target.value })}
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={7}
+                      value={formSettings.categoryGridDescColor || '#a8a29e'}
+                      onChange={(e) => setFormSettings({ ...formSettings, categoryGridDescColor: e.target.value })}
+                      placeholder="#a8a29e"
+                      className="w-24 bg-[#18181a] border border-gray-800 rounded-xl p-2 text-center text-xs font-mono text-white focus:border-[#ffd025] outline-none"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -213,6 +213,10 @@ export interface StoreSettings {
   backgroundImage?: string;
   backgroundRepeat?: boolean;
   backgroundColor?: string;
+  sectionTitleColor?: string;
+  sectionTitleGlowColor?: string;
+  sectionTitleGlowEnabled?: boolean;
+  categoryGridDescColor?: string;
   megaOffersConfig?: MegaOffersConfig;
   bottomBannerImage?: string;
   bottomBannerLink?: string;

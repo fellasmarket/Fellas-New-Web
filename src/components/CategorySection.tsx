@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { CategoryData, Product } from '../types';
 import { formatPrice, getDiscountPercentage } from '../data/products';
 import { Emoji3D, getCategoryEmoji3DKey } from './Emoji3D';
@@ -11,6 +11,9 @@ interface CategorySectionProps {
   onQuickEditProduct?: (product: Product, categoryId: string) => void;
   onQuickEditCategory?: (category: CategoryData) => void;
   isEmergencyMode?: boolean;
+  titleColor?: string;
+  glowColor?: string;
+  glowEnabled?: boolean;
 }
 
 export const CategorySection: React.FC<CategorySectionProps> = ({
@@ -20,9 +23,68 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   isVisualEditMode = false,
   onQuickEditProduct,
   onQuickEditCategory,
-  isEmergencyMode = false
+  isEmergencyMode = false,
+  titleColor = '#141414',
+  glowColor = '#ffd025',
+  glowEnabled = false
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollIntervalRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Position scroll container to center copy for seamless infinite effect on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (scrollContainerRef.current) {
+        const container = scrollContainerRef.current;
+        const card = container.querySelector('div');
+        if (card) {
+          const cardWidth = card.offsetWidth + 16;
+          container.scrollLeft = cardWidth * 6;
+        }
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [category]);
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    const card = container.querySelector('div');
+    if (!card) return;
+    const cardWidth = card.offsetWidth + 16;
+    const totalSingleSetWidth = cardWidth * 6;
+
+    if (container.scrollLeft >= totalSingleSetWidth * 2) {
+      container.scrollLeft -= totalSingleSetWidth;
+    } else if (container.scrollLeft <= totalSingleSetWidth * 0.2) {
+      container.scrollLeft += totalSingleSetWidth;
+    }
+  };
+
+  const startAutoScroll = (direction: 'left' | 'right') => {
+    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+    scrollIntervalRef.current = setInterval(() => {
+      if (scrollContainerRef.current) {
+        const step = direction === 'left' ? -10 : 10;
+        scrollContainerRef.current.scrollBy({ left: step });
+      }
+    }, 20);
+  };
+
+  const stopAutoScroll = () => {
+    if (scrollIntervalRef.current) {
+      clearInterval(scrollIntervalRef.current);
+      scrollIntervalRef.current = null;
+    }
+  };
 
   const displayProducts = React.useMemo(() => {
     if (category.featuredProductIds && category.featuredProductIds.length > 0) {
@@ -30,20 +92,10 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
         .map(id => category.products.find(p => p.id === id))
         .filter((p): p is Product => !!p);
       const remaining = category.products.filter(p => !category.featuredProductIds?.includes(p.id));
-      return [...featured, ...remaining].slice(0, 6);
+      return [...featured, [...featured, ...remaining]].flat().filter((p, index, self) => self.findIndex(t => t.id === p.id) === index).slice(0, 6);
     }
     return category.products.slice(0, 6);
   }, [category]);
-
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      const card = container.querySelector('div');
-      const cardWidth = card ? card.offsetWidth + 16 : 230;
-      const scrollAmount = direction === 'left' ? -cardWidth * 2 : cardWidth * 2;
-      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
 
   const handleOpenCatalog = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -54,10 +106,10 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   };
 
   return (
-    <section id={category.id} className="max-w-7xl mx-auto mt-4 sm:mt-8 pt-2 sm:pt-4 border-t border-stone-200 px-1 sm:px-0 relative">
+    <section id={category.id} className="max-w-7xl mx-auto mt-6 sm:mt-10 px-1 sm:px-0 relative">
       {/* Banner de Categoría */}
       <div
-        className={`relative w-full h-20 sm:h-[26vh] md:h-[28vh] min-h-[80px] sm:min-h-[200px] max-h-[270px] rounded-xl sm:rounded-3xl overflow-hidden shadow-md sm:shadow-xl bg-stone-900 group ${
+        className={`relative w-full h-24 sm:h-[26vh] md:h-[28vh] min-h-[100px] sm:min-h-[200px] max-h-[270px] rounded-xl sm:rounded-3xl overflow-hidden shadow-md sm:shadow-xl bg-stone-900 group ${
           isVisualEditMode ? 'ring-2 ring-blue-400 ring-dashed cursor-pointer' : ''
         }`}
         onClick={() => {
@@ -93,69 +145,48 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               : 'object-center'
           }`}
         />
+
+        {/* Botón Ver Más - Superpuesto en la parte inferior al centro del banner (más pequeño y delicado) */}
+        {!isEmergencyMode && (
+          <a
+            id={`ver-mas-${category.id}`}
+            href={`#catalogo-${category.id}`}
+            onClick={handleOpenCatalog}
+            className="absolute bottom-2.5 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1 bg-[#ffd129] hover:bg-yellow-400 text-[#141414] px-3.5 py-1.5 sm:px-5 sm:py-2 rounded-full text-[9px] sm:text-xs font-black uppercase tracking-wider shadow-md transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer border border-yellow-500 whitespace-nowrap"
+          >
+            <span>Ver Colección</span>
+            <i className="fa-solid fa-arrow-right text-[8px] sm:text-[9px]"></i>
+          </a>
+        )}
       </div>
 
-      {/* Franja Carrusel (6 productos) con botón de Ver Más */}
-      <div className="mt-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 mb-3 px-1">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <h4 className="text-sm md:text-base font-bold text-[#141414] flex items-center gap-2 truncate">
-              <Emoji3D name={getCategoryEmoji3DKey(category.id, category.name)} className="w-5 h-5 shrink-0" alt={category.name} /> 
-              <span className="truncate">{category.name}</span>
-            </h4>
-            <span className="text-[11px] text-stone-500 font-normal hidden sm:inline shrink-0">
-              {isEmergencyMode ? '(Selección express disponible)' : `(${category.products.length} productos)`}
-            </span>
-          </div>
+      <div className="mt-4 relative group/carrousel w-screen left-1/2 -translate-x-1/2 overflow-visible">
+        {/* Zonas de desplazamiento por hover a la izquierda y derecha (totalmente transparentes y sin degradados en los extremos de la pantalla) */}
+        <div 
+          onMouseEnter={() => startAutoScroll('left')}
+          onMouseLeave={stopAutoScroll}
+          className="absolute left-0 top-0 bottom-4 w-16 sm:w-24 z-30 cursor-w-resize bg-transparent pointer-events-auto"
+        />
 
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Botón Ver Más */}
-            {!isEmergencyMode && (
-              <a
-                id={`ver-mas-${category.id}`}
-                href={`#catalogo-${category.id}`}
-                onClick={handleOpenCatalog}
-                className="inline-flex items-center gap-1.5 bg-stone-900 hover:bg-[#141414] text-[#ffd129] hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-bold border border-stone-800 transition shadow-sm active:scale-95 cursor-pointer"
-              >
-                <span>Ver más</span>
-                <i className="fa-solid fa-arrow-right text-[10px]"></i>
-              </a>
-            )}
+        <div 
+          onMouseEnter={() => startAutoScroll('right')}
+          onMouseLeave={stopAutoScroll}
+          className="absolute right-0 top-0 bottom-4 w-16 sm:w-24 z-30 cursor-e-resize bg-transparent pointer-events-auto"
+        />
 
-            {/* Controles del Carrusel */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => scroll('left')}
-                className="w-7 h-7 rounded-lg bg-stone-200 hover:bg-[#ffd129] text-stone-700 hover:text-[#141414] transition flex items-center justify-center text-xs font-bold shadow-sm cursor-pointer"
-                title="Desplazar a la izquierda"
-                aria-label="Desplazar productos a la izquierda"
-              >
-                ◀
-              </button>
-              <button
-                onClick={() => scroll('right')}
-                className="w-7 h-7 rounded-lg bg-stone-200 hover:bg-[#ffd129] text-stone-700 hover:text-[#141414] transition flex items-center justify-center text-xs font-bold shadow-sm cursor-pointer"
-                title="Desplazar a la derecha"
-                aria-label="Desplazar productos a la derecha"
-              >
-                ▶
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Carrusel horizontal configurado exactamente a 6 productos */}
+        {/* Carrusel horizontal configurado para ser infinito y sin marcos */}
         <div
           ref={scrollContainerRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 pt-1 no-scrollbar scroll-smooth snap-x snap-mandatory touch-pan-x"
+          onScroll={handleScroll}
+          className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 pt-1 no-scrollbar scroll-smooth snap-x snap-mandatory touch-pan-x px-4 xl:px-[calc((100vw-80rem)/2+1.5rem)]"
         >
-          {displayProducts.map((product) => {
+          {[...displayProducts, ...displayProducts, ...displayProducts].map((product, idx) => {
             const autoDiscount = product.discount || getDiscountPercentage(product.price, product.originalPrice);
             const hasDiscount = product.originalPrice && product.originalPrice > product.price;
 
             return (
               <div
-                key={product.id}
+                key={`${product.id}-inf-${idx}`}
                 className={`w-[155px] sm:w-[210px] md:w-[220px] min-w-[155px] sm:min-w-[210px] md:min-w-[220px] max-w-[160px] sm:max-w-[210px] md:max-w-[220px] snap-start bg-white border border-stone-200 hover:border-[#ffd129] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between shrink-0 group relative ${
                   isVisualEditMode ? 'cursor-pointer ring-1 ring-amber-400 ring-dashed hover:ring-2' : ''
                 }`}
