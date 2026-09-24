@@ -748,18 +748,18 @@ export default function App() {
                               <button
                                 disabled
                                 aria-label={`${product.name} sin stock`}
-                                className="bg-stone-800 text-stone-500 text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-2 rounded-lg sm:rounded-xl cursor-not-allowed flex items-center gap-1 opacity-70 shrink-0"
+                                className="bg-stone-800/80 text-stone-500 w-8 h-8 rounded-full cursor-not-allowed flex items-center justify-center opacity-70 shrink-0"
+                                title="Sin stock"
                               >
-                                <i className="fa-solid fa-ban text-[9px] sm:text-[11px]"></i>
-                                <span className="hidden xs:inline">Agotado</span>
+                                <i className="fa-solid fa-ban text-xs"></i>
                               </button>
                             ) : (
                               <button
                                 onClick={() => handleAddToCart(product)}
-                                className="bg-[#ffd129] text-[#141414] text-[10px] sm:text-xs font-bold px-2.5 sm:px-3.5 py-1 sm:py-2 rounded-lg sm:rounded-xl hover:bg-yellow-400 transition shadow-sm flex items-center gap-1 cursor-pointer active:scale-95 shrink-0"
+                                className="bg-[#ffd129] text-[#141414] hover:bg-yellow-400 w-8 h-8 rounded-full transition shadow-sm active:scale-95 flex items-center justify-center cursor-pointer shrink-0"
+                                title="Agregar al carro"
                               >
-                                <i className="fa-solid fa-cart-plus text-[9px] sm:text-[11px]"></i>
-                                <span>{product.buttonText || 'Comprar'}</span>
+                                <i className="fa-solid fa-plus text-sm"></i>
                               </button>
                             )}
                           </div>

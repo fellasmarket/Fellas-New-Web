@@ -106,7 +106,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   };
 
   return (
-    <section id={category.id} className="max-w-7xl mx-auto mt-6 sm:mt-10 px-1 sm:px-0 relative">
+    <section id={category.id} className="max-w-7xl mx-auto mt-3 sm:mt-4 px-1 sm:px-0 relative">
       {/* Banner de Categoría */}
       <div
         className={`relative w-full h-24 sm:h-[26vh] md:h-[28vh] min-h-[100px] sm:min-h-[200px] max-h-[270px] rounded-xl sm:rounded-3xl overflow-hidden shadow-md sm:shadow-xl bg-stone-900 group ${
@@ -270,10 +270,10 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                     <button
                       disabled
                       aria-label={`${product.name} sin stock`}
-                      className="bg-stone-800 text-stone-500 text-[10px] font-bold px-2 py-1.5 rounded-lg cursor-not-allowed flex items-center gap-1 opacity-70 shrink-0"
+                      className="bg-stone-800/80 text-stone-500 w-8 h-8 rounded-full cursor-not-allowed flex items-center justify-center opacity-70 shrink-0"
+                      title="Sin stock"
                     >
-                      <Emoji3D name="prohibited" className="w-3 h-3" alt="Sin stock" />
-                      <span>Sin stock</span>
+                      <i className="fa-solid fa-ban text-xs"></i>
                     </button>
                   ) : (
                     <button
@@ -283,10 +283,10 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                           onAddToCart(product);
                         }
                       }}
-                      className="bg-[#ffd129] text-[#141414] text-[10px] font-bold px-2.5 sm:px-3 py-1.5 rounded-lg hover:bg-yellow-400 transition shadow-sm active:scale-95 flex items-center gap-1 cursor-pointer shrink-0"
+                      className="bg-[#ffd129] text-[#141414] hover:bg-yellow-400 w-8 h-8 rounded-full transition shadow-sm active:scale-95 flex items-center justify-center cursor-pointer shrink-0"
+                      title="Agregar al carro"
                     >
-                      <Emoji3D name="cart" className="w-3.5 h-3.5" alt="Comprar" />
-                      <span>Comprar</span>
+                      <i className="fa-solid fa-plus text-sm"></i>
                     </button>
                   )}
                 </div>

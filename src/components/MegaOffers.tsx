@@ -169,9 +169,10 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                         <button
                           disabled
                           aria-label={`${offer.name} sin stock`}
-                          className="bg-stone-850 text-stone-500 text-[9px] sm:text-xs font-black px-1.5 sm:px-4 py-0.5 sm:py-2 rounded sm:rounded-xl cursor-not-allowed flex items-center gap-0.5 opacity-70 shrink-0"
+                          className="bg-stone-800/80 text-stone-500 w-8 h-8 rounded-full cursor-not-allowed flex items-center justify-center opacity-70 shrink-0"
+                          title="Sin stock"
                         >
-                          <Emoji3D name="prohibited" className="w-3 h-3" alt="Agotado" /> <span className="hidden xs:inline">Agotado</span>
+                          <i className="fa-solid fa-ban text-xs"></i>
                         </button>
                       ) : (
                         <button
@@ -181,9 +182,10 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                               onAddToCart(offer);
                             }
                           }}
-                          className="bg-[#ffd129] hover:bg-yellow-400 text-[#141414] font-black text-[9px] sm:text-xs px-2 sm:px-4 py-0.5 sm:py-2 rounded sm:rounded-xl transition flex items-center gap-1 shadow active:scale-95 cursor-pointer shrink-0"
+                          className="bg-[#ffd129] text-[#141414] hover:bg-yellow-400 w-8 h-8 rounded-full transition shadow-sm active:scale-95 flex items-center justify-center cursor-pointer shrink-0"
+                          title="Agregar al carro"
                         >
-                          <Emoji3D name="cart" className="w-3.5 h-3.5" alt="Comprar" /> <span>Comprar</span>
+                          <i className="fa-solid fa-plus text-sm"></i>
                         </button>
                       )}
                     </div>
