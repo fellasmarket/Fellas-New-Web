@@ -269,22 +269,18 @@ export default function App() {
   };
 
   const handleLogin = (name: string, email: string, role: 'admin' | 'customer' | 'delivery' = 'customer') => {
-    const isSpecialAdmin = email.toLowerCase().includes('admin') || role === 'admin';
-    const isDelivery = role === 'delivery' || email.toLowerCase().includes('delivery');
-    const userRole: 'admin' | 'customer' | 'delivery' = isSpecialAdmin ? 'admin' : isDelivery ? 'delivery' : 'customer';
-    
     setUser({
       name,
       email,
       isLoggedIn: true,
-      role: userRole,
-      discountPercent: userRole === 'customer' ? settings.customerDiscountPercent : 0
+      role: role,
+      discountPercent: role === 'customer' ? settings.customerDiscountPercent : 0
     });
 
-    if (userRole === 'admin') {
+    if (role === 'admin') {
       showToast(`¡Bienvenido Administrador ${name}! Abriendo panel de control.`);
       setCurrentView('admin');
-    } else if (userRole === 'delivery') {
+    } else if (role === 'delivery') {
       showToast(`¡Bienvenido Repartidor ${name}! Abriendo panel de pedidos en ruta.`);
       setCurrentView('delivery');
     } else {
@@ -498,18 +494,13 @@ export default function App() {
               <img
                 src={settings.logoImage}
                 alt={settings.logoTextPrimary || 'Fellas'}
-                className="h-12 w-auto object-contain mx-auto"
+                className="h-14 w-auto object-contain mx-auto"
               />
             ) : (
               <div className="inline-flex flex-col items-center">
-                <span className="text-xl font-black text-[#ffd025] tracking-widest uppercase">
-                  {settings.logoTextPrimary || 'FELLAS'}
+                <span className="text-3xl font-black text-white tracking-widest uppercase">
+                  {settings.logoTextPrimary}<span className="text-[#ffd129]">{settings.logoTextAccent}</span>
                 </span>
-                {settings.logoTextSecondary && (
-                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest -mt-0.5">
-                    {settings.logoTextSecondary}
-                  </span>
-                )}
               </div>
             )}
             <div className="h-0.5 w-10 bg-[#ffd025]/20 mx-auto rounded"></div>
@@ -561,27 +552,6 @@ export default function App() {
             </p>
           </div>
 
-        </div>
-      </div>
-    );
-  }
-
-  // 2. Loading fallback (only if verification is completed but data is still fetching)
-  if (isInitialLoading) {
-    return (
-      <div className="min-h-screen bg-[#111112] text-white flex flex-col items-center justify-center p-6 select-none">
-        <div className="flex flex-col items-center max-w-sm text-center space-y-6">
-          <div className="relative flex items-center justify-center">
-            {/* Ambient pulse */}
-            <div className="absolute w-28 h-28 rounded-full border-2 border-[#ffd025]/20 animate-ping duration-[1800ms]"></div>
-            {/* Main loader */}
-            <div className="w-16 h-16 rounded-full border-4 border-stone-800 border-t-4 border-t-[#ffd025] animate-spin"></div>
-            <i className="fa-solid fa-wine-glass-empty absolute text-2xl text-[#ffd025]"></i>
-          </div>
-          <div className="space-y-2 animate-pulse">
-            <h1 className="text-xl font-black tracking-widest text-[#ffd025] uppercase">Fellas Market</h1>
-            <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">Cargando catálogo oficial...</p>
-          </div>
         </div>
       </div>
     );
@@ -703,7 +673,7 @@ export default function App() {
                       return (
                         <div
                           key={product.id}
-                          className={`bg-white border border-stone-200 hover:border-[#ffd129] rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative ${
+                          className={`bg-[#121214]/90 border border-stone-800/80 hover:border-[#ffd129] rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative ${
                             user?.role === 'admin' && isVisualEditMode ? 'cursor-pointer ring-1 ring-amber-400 ring-dashed' : ''
                           }`}
                           onClick={() => {
@@ -712,6 +682,16 @@ export default function App() {
                             }
                           }}
                         >
+                          {/* Capa de fondo desenfocado de la misma foto del producto */}
+                          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-xl sm:rounded-2xl">
+                            <img 
+                              src={product.image} 
+                              alt="" 
+                              className="w-full h-full object-cover blur-md scale-125 opacity-30" 
+                            />
+                            <div className="absolute inset-0 bg-stone-950/75"></div>
+                          </div>
+
                           {user?.role === 'admin' && isVisualEditMode && (
                             <button
                               type="button"
@@ -724,8 +704,8 @@ export default function App() {
                               <i className="fa-solid fa-pen"></i> <span className="hidden xs:inline">Editar</span>
                             </button>
                           )}
-                          <div>
-                            <div className="aspect-square w-full bg-stone-100 rounded-lg sm:rounded-xl mb-2 sm:mb-3 overflow-hidden relative">
+                          <div className="relative z-10">
+                            <div className="aspect-square w-full bg-stone-900 rounded-lg sm:rounded-xl mb-2 sm:mb-3 overflow-hidden relative border border-stone-800/50">
                               <img
                                 src={product.image}
                                 alt={product.name}
@@ -742,33 +722,33 @@ export default function App() {
                                 </span>
                               )}
                             </div>
-                            <span className="text-[8px] sm:text-[10px] font-bold text-amber-600 uppercase tracking-wider">
+                            <span className="text-[8px] sm:text-[10px] font-bold text-amber-500 uppercase tracking-wider block truncate">
                               {product.subcategory}
                             </span>
-                            <h4 className="text-xs sm:text-sm font-bold text-stone-900 mt-0.5 group-hover:text-amber-600 transition line-clamp-2 leading-tight">
+                            <h4 className="text-xs sm:text-sm font-bold text-stone-100 mt-0.5 group-hover:text-[#ffd129] transition line-clamp-2 leading-tight">
                               {product.name}
                             </h4>
-                            <p className="text-[10px] sm:text-xs text-stone-500 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-2">
+                            <p className="text-[10px] sm:text-xs text-stone-400 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-2 font-light">
                               {product.description}
                             </p>
                           </div>
-                          <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-stone-100 flex items-center justify-between gap-1">
+                          <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-stone-800/80 flex items-center justify-between gap-1 relative z-10">
                             <div className="min-w-0">
                               {hasDiscount && (
-                                <span className="text-[9px] sm:text-[11px] font-bold text-red-600 line-through decoration-red-600 decoration-2 block leading-tight">
+                                <span className="text-[9px] sm:text-[11px] font-bold text-red-500 line-through decoration-red-500 decoration-2 block leading-tight">
                                   {formatPrice(product.originalPrice!)}
                                 </span>
                               )}
-                              <span className="text-xs sm:text-sm font-black text-[#141414] block truncate">
+                              <span className="text-xs sm:text-sm font-black text-white block truncate">
                                 {formatPrice(product.price)}
-                                {product.unit && <span className="text-[8px] sm:text-[10px] font-normal text-stone-500 ml-0.5">{product.unit}</span>}
+                                {product.unit && <span className="text-[8px] sm:text-[10px] font-normal text-stone-400 ml-0.5">{product.unit}</span>}
                               </span>
                             </div>
                             {product.inStock === false ? (
                               <button
                                 disabled
                                 aria-label={`${product.name} sin stock`}
-                                className="bg-stone-200 text-stone-500 text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-2 rounded-lg sm:rounded-xl cursor-not-allowed flex items-center gap-1 opacity-70 shrink-0"
+                                className="bg-stone-800 text-stone-500 text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-2 rounded-lg sm:rounded-xl cursor-not-allowed flex items-center gap-1 opacity-70 shrink-0"
                               >
                                 <i className="fa-solid fa-ban text-[9px] sm:text-[11px]"></i>
                                 <span className="hidden xs:inline">Agotado</span>

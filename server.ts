@@ -449,7 +449,7 @@ let settings: StoreSettings = {
   bottomDualBanner2Image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?q=80&w=800&auto=format&fit=crop',
   bottomDualBanner2Link: '#mega-ofertas',
   agencyName: 'Muller Ads and Design',
-  backgroundImage: '/src/assets/images/halloween_vintage_bg_1790193225470.jpg',
+  backgroundImage: '/images/halloween_vintage_bg_1790193225470.jpg',
   backgroundRepeat: false,
   backgroundColor: '#141414',
   sectionTitleColor: '#ffd025',
@@ -788,6 +788,10 @@ async function loadDatabaseFromR2(): Promise<boolean> {
     }
     if (data.settings && typeof data.settings === 'object') {
       settings = { ...settings, ...data.settings };
+      // Migrate old background path for production compatibility
+      if (settings.backgroundImage && settings.backgroundImage.startsWith('/src/assets/images/')) {
+        settings.backgroundImage = settings.backgroundImage.replace('/src/assets/images/', '/images/');
+      }
     }
     if (Array.isArray(data.orders) && data.orders.length > 0) {
       orders = data.orders;
@@ -827,23 +831,43 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(400).json({ error: 'Credenciales incompletas' });
   }
 
-  // Admin access (Accepts fellhonpm as requested by creator of fellasmarket.cl, plus default credentials)
-  const isAuthorizedAdminPassword = 
-    password === 'fellhonpm' || 
-    password === 'admin123' || 
-    password === 'admin' || 
-    password === '123456';
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanPass = password.trim();
 
-  const isAuthorizedAdminUser = 
-    email.trim().toLowerCase() === 'admin@botilleria.cl' || 
-    email.trim().toLowerCase() === 'admin' || 
-    email.trim().toLowerCase() === 'admin@admin.com' ||
-    email.trim().toLowerCase() === 'admin@fellasmarket.cl' ||
-    email.trim().toLowerCase() === 'fellas' ||
-    email.trim().toLowerCase() === 'fellasmarket' ||
-    email.trim().toLowerCase() === 'igncio.muller18@gmail.com';
+  // Admin access indicators (based on email list or containing 'admin' or 'fellas')
+  const isAdminEmail = 
+    cleanEmail === 'admin@botilleria.cl' || 
+    cleanEmail === 'admin' || 
+    cleanEmail === 'admin@admin.com' ||
+    cleanEmail === 'admin@fellasmarket.cl' ||
+    cleanEmail === 'fellas' ||
+    cleanEmail === 'fellasmarket' ||
+    cleanEmail === 'igncio.muller18@gmail.com' ||
+    cleanEmail.includes('admin');
 
-  if (isAuthorizedAdminUser && isAuthorizedAdminPassword) {
+  // Delivery access indicators (username or containing 'delivery' / 'repartidor')
+  const isDeliveryEmail = 
+    cleanEmail === 'delivery' || 
+    cleanEmail === 'delivery@botilleria.cl' ||
+    cleanEmail === 'delivery@fellasmarket.cl' ||
+    cleanEmail === 'repartidor' ||
+    cleanEmail.includes('delivery');
+
+  // 1. Strict Admin Password Check
+  if (isAdminEmail) {
+    const isAuthorizedAdminPassword = 
+      cleanPass === 'fellhonpm' || 
+      cleanPass === 'admin123' || 
+      cleanPass === 'admin' || 
+      cleanPass === '123456';
+
+    if (!isAuthorizedAdminPassword) {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Contraseña incorrecta para la cuenta de Administrador.' 
+      });
+    }
+
     return res.json({
       success: true,
       user: {
@@ -856,28 +880,25 @@ app.post('/api/auth/login', (req, res) => {
     });
   }
 
-  // Also if someone inputs fellhonpm with any username/email starting with admin or fellas, grant admin access directly
-  if (password === 'fellhonpm') {
-    return res.json({
-      success: true,
-      user: {
-        name: 'Administrador Fellas Market',
-        email: email.includes('@') ? email : 'admin@fellasmarket.cl',
-        role: 'admin',
-        isLoggedIn: true
-      },
-      token: 'jwt-fellas-admin-token-fellhonpm'
+  // Also if password is an admin-only credential, reject if the username is wrong/unauthorized
+  if (cleanPass === 'fellhonpm') {
+    return res.status(401).json({
+      success: false,
+      error: 'La contraseña ingresada pertenece a un rol restringido.'
     });
   }
 
-  // Delivery Driver access (requested: username "delivery", password "botifelldely")
-  const isDeliveryUser = 
-    email.trim().toLowerCase() === 'delivery' || 
-    email.trim().toLowerCase() === 'delivery@botilleria.cl' ||
-    email.trim().toLowerCase() === 'delivery@fellasmarket.cl' ||
-    email.trim().toLowerCase() === 'repartidor';
+  // 2. Strict Delivery Password Check
+  if (isDeliveryEmail) {
+    const isAuthorizedDeliveryPassword = cleanPass === 'botifelldely';
 
-  if ((isDeliveryUser && password === 'botifelldely') || password === 'botifelldely') {
+    if (!isAuthorizedDeliveryPassword) {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Contraseña incorrecta para la cuenta de Repartidor.' 
+      });
+    }
+
     return res.json({
       success: true,
       user: {
@@ -890,7 +911,14 @@ app.post('/api/auth/login', (req, res) => {
     });
   }
 
-  // Regular customer login
+  if (cleanPass === 'botifelldely') {
+    return res.status(401).json({
+      success: false,
+      error: 'La contraseña ingresada pertenece a un rol restringido.'
+    });
+  }
+
+  // 3. Regular customer login
   const namePart = email.split('@')[0];
   const name = namePart.charAt(0).toUpperCase() + namePart.slice(1);
   return res.json({

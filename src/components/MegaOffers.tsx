@@ -95,7 +95,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
               return (
                 <div
                   key={offer.id}
-                  className={`bg-white rounded-lg sm:rounded-2xl p-1.5 sm:p-3.5 md:p-4 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-3.5 md:gap-4 group transition-all duration-300 shadow-lg border border-white hover:border-[#ffd129] text-[#141414] min-w-0 relative ${
+                  className={`bg-[#121214]/90 rounded-lg sm:rounded-2xl p-1.5 sm:p-3.5 md:p-4 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-3.5 md:gap-4 group transition-all duration-300 shadow-lg border border-stone-800 hover:border-[#ffd129] text-white min-w-0 relative ${
                     isVisualEditMode ? 'cursor-pointer ring-2 ring-amber-400 ring-dashed hover:shadow-2xl' : ''
                   }`}
                   onClick={() => {
@@ -104,6 +104,16 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                     }
                   }}
                 >
+                  {/* Capa de fondo desenfocado de la misma foto del producto */}
+                  <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-lg sm:rounded-2xl">
+                    <img 
+                      src={offer.image} 
+                      alt="" 
+                      className="w-full h-full object-cover blur-md scale-125 opacity-30" 
+                    />
+                    <div className="absolute inset-0 bg-stone-950/75"></div>
+                  </div>
+
                   {isVisualEditMode && (
                     <button
                       type="button"
@@ -117,7 +127,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                     </button>
                   )}
 
-                  <div className="relative aspect-square w-full sm:w-28 md:w-36 rounded-md sm:rounded-xl overflow-hidden bg-stone-50 shrink-0 border border-stone-200/70 flex items-center justify-center p-0.5 sm:p-2.5">
+                  <div className="relative z-10 aspect-square w-full sm:w-28 md:w-36 rounded-md sm:rounded-xl overflow-hidden bg-stone-900 shrink-0 border border-stone-800 flex items-center justify-center p-0.5 sm:p-2.5">
                     <img
                       src={offer.image}
                       alt={offer.name}
@@ -135,23 +145,23 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                       </span>
                     )}
                   </div>
-                  <div className="flex-1 flex flex-col justify-between w-full h-full min-w-0">
+                  <div className="flex-1 flex flex-col justify-between w-full h-full min-w-0 relative z-10">
                     <div>
-                      <span className="block text-[7px] sm:text-[10px] text-stone-500 font-extrabold uppercase tracking-wider leading-none truncate">
+                      <span className="block text-[7px] sm:text-[10px] text-[#ffd129]/90 font-extrabold uppercase tracking-wider leading-none truncate">
                         {offer.subcategory}
                       </span>
-                      <h4 className="text-[10px] sm:text-sm md:text-base font-black text-[#141414] mt-0.5 leading-tight line-clamp-1 sm:line-clamp-2 break-words group-hover:text-amber-600 transition">
+                      <h4 className="text-[10px] sm:text-sm md:text-base font-black text-stone-100 mt-0.5 leading-tight line-clamp-1 sm:line-clamp-2 break-words group-hover:text-[#ffd129] transition">
                         {offer.name}
                       </h4>
                     </div>
-                    <div className="mt-1 sm:mt-3 pt-1 sm:pt-3 border-t border-stone-100 flex items-center justify-between gap-1 sm:gap-2">
+                    <div className="mt-1 sm:mt-3 pt-1 sm:pt-3 border-t border-stone-800/80 flex items-center justify-between gap-1 sm:gap-2">
                       <div className="min-w-0">
                         {hasDiscount && (
-                          <span className="block text-[8px] sm:text-[11px] font-extrabold text-red-600 line-through decoration-red-600 decoration-2 leading-tight">
+                          <span className="block text-[8px] sm:text-[11px] font-extrabold text-red-500 line-through decoration-red-500 decoration-2 leading-tight">
                             {formatPrice(offer.originalPrice!)}
                           </span>
                         )}
-                        <span className="text-[11px] sm:text-base font-black text-[#141414] block truncate">
+                        <span className="text-[11px] sm:text-base font-black text-white block truncate">
                           {formatPrice(offer.price)}
                         </span>
                       </div>
@@ -159,7 +169,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                         <button
                           disabled
                           aria-label={`${offer.name} sin stock`}
-                          className="bg-stone-200 text-stone-500 text-[9px] sm:text-xs font-black px-1.5 sm:px-4 py-0.5 sm:py-2 rounded sm:rounded-xl cursor-not-allowed flex items-center gap-0.5 opacity-70 shrink-0"
+                          className="bg-stone-850 text-stone-500 text-[9px] sm:text-xs font-black px-1.5 sm:px-4 py-0.5 sm:py-2 rounded sm:rounded-xl cursor-not-allowed flex items-center gap-0.5 opacity-70 shrink-0"
                         >
                           <Emoji3D name="prohibited" className="w-3 h-3" alt="Agotado" /> <span className="hidden xs:inline">Agotado</span>
                         </button>

@@ -344,7 +344,7 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
                 return (
                   <div
                     key={product.id}
-                    className={`bg-white border border-stone-200 hover:border-[#ffd129] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative ${
+                    className={`bg-[#121214]/90 border border-stone-800/80 hover:border-[#ffd129] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative ${
                       isVisualEditMode ? 'cursor-pointer ring-1 ring-amber-400 ring-dashed hover:ring-2' : ''
                     }`}
                     onClick={() => {
@@ -353,6 +353,16 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
                       }
                     }}
                   >
+                    {/* Capa de fondo desenfocado de la misma foto del producto */}
+                    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-xl sm:rounded-2xl">
+                      <img 
+                        src={product.image} 
+                        alt="" 
+                        className="w-full h-full object-cover blur-md scale-125 opacity-30" 
+                      />
+                      <div className="absolute inset-0 bg-stone-950/75"></div>
+                    </div>
+
                     {isVisualEditMode && (
                       <button
                         type="button"
@@ -366,9 +376,9 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
                       </button>
                     )}
 
-                    <div>
+                    <div className="relative z-10">
                       {/* Imagen con badges */}
-                      <div className="aspect-square w-full bg-stone-100 rounded-lg sm:rounded-xl mb-2 sm:mb-3 overflow-hidden relative border border-stone-100">
+                      <div className="aspect-square w-full bg-stone-900 rounded-lg sm:rounded-xl mb-2 sm:mb-3 overflow-hidden relative border border-stone-800/50">
                         <img
                           src={product.image}
                           alt={product.name}
@@ -396,29 +406,29 @@ export const CategoryCatalogView: React.FC<CategoryCatalogViewProps> = ({
                       </div>
 
                       {/* Info del producto */}
-                      <span className="text-[8px] sm:text-[10px] font-bold text-amber-700 uppercase tracking-wider block truncate">
+                      <span className="text-[8px] sm:text-[10px] font-bold text-amber-500 uppercase tracking-wider block truncate">
                         {product.subcategory || category.name}
                       </span>
-                      <h3 className="text-xs sm:text-sm font-bold text-stone-900 mt-0.5 group-hover:text-amber-600 transition line-clamp-2 leading-snug">
+                      <h3 className="text-xs sm:text-sm font-bold text-stone-100 mt-0.5 group-hover:text-[#ffd129] transition line-clamp-2 leading-snug">
                         {product.name}
                       </h3>
-                      <p className="text-[10px] sm:text-[11px] text-stone-500 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-2 font-light">
+                      <p className="text-[10px] sm:text-[11px] text-stone-400 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-2 font-light">
                         {product.description}
                       </p>
                     </div>
 
                     {/* Precios y Botón de Compra */}
-                    <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-stone-100 flex items-center justify-between gap-1 sm:gap-2">
+                    <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-stone-800/80 flex items-center justify-between gap-1 sm:gap-2 relative z-10">
                       <div className="min-w-0">
                         {hasDiscount && (
-                          <span className="text-[9px] sm:text-[11px] font-bold text-red-600 line-through decoration-red-600 decoration-2 block leading-tight">
+                          <span className="text-[9px] sm:text-[11px] font-bold text-red-500 line-through decoration-red-500 decoration-2 block leading-tight">
                             {formatPrice(product.originalPrice!)}
                           </span>
                         )}
-                        <span className="text-xs sm:text-sm font-black text-[#141414] block truncate">
+                        <span className="text-xs sm:text-sm font-black text-white block truncate">
                           {formatPrice(product.price)}
                           {product.unit && (
-                            <span className="text-[8px] sm:text-[10px] font-normal text-stone-500 ml-0.5">{product.unit}</span>
+                            <span className="text-[8px] sm:text-[10px] font-normal text-stone-400 ml-0.5">{product.unit}</span>
                           )}
                         </span>
                       </div>

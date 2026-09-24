@@ -54,6 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
+  const [loginError, setLoginError] = useState<string | null>(null);
   
   // Register form state
   const [regName, setRegName] = useState('');
@@ -62,6 +63,11 @@ export const Header: React.FC<HeaderProps> = ({
 
   const [tempLocation, setTempLocation] = useState(location);
   const headerRef = useRef<HTMLElement>(null);
+
+  // Clear login error when changing tab or closing the popup
+  useEffect(() => {
+    setLoginError(null);
+  }, [activePopup, authTab]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -96,6 +102,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError(null);
     if (!loginEmail) return;
 
     try {
@@ -119,30 +126,13 @@ export const Header: React.FC<HeaderProps> = ({
           }
           return;
         }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setLoginError(errData.error || 'Credenciales incorrectas. Inténtalo de nuevo.');
       }
     } catch (err) {
-      console.warn('Backend login fallback:', err);
-    }
-
-    // Fallback if offline/network issue
-    const isDelivery = loginEmail.trim().toLowerCase() === 'delivery' || loginPass === 'botifelldely';
-    const isAdmin = loginEmail.toLowerCase().includes('admin') || loginPass === 'fellhonpm';
-
-    if (isDelivery) {
-      onLogin('Repartidor Delivery', 'delivery@botilleria.cl', 'delivery');
-      setActivePopup(null);
-      setLoginPass('');
-      onOpenDelivery?.();
-      return;
-    }
-
-    const namePart = loginEmail.split('@')[0];
-    const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-    onLogin(formattedName, loginEmail, isAdmin ? 'admin' : 'customer');
-    setActivePopup(null);
-    setLoginPass('');
-    if (isAdmin) {
-      onOpenAdmin();
+      console.warn('Backend login connection error:', err);
+      setLoginError('Error de conexión con el de servidor. Por favor, inténtalo más tarde.');
     }
   };
 
@@ -508,6 +498,12 @@ export const Header: React.FC<HeaderProps> = ({
                       {/* Formulario Iniciar Sesión (Sin credenciales expuestas) */}
                       {authTab === 'login' ? (
                         <form id="form-login" onSubmit={handleLoginSubmit} className="space-y-3">
+                          {loginError && (
+                            <div className="bg-red-950/40 border border-red-500/50 text-red-200 text-[11px] p-2 rounded-lg text-center font-medium animate-shake">
+                              <i className="fa-solid fa-circle-exclamation mr-1.5 text-red-400"></i>
+                              {loginError}
+                            </div>
+                          )}
                           <div>
                             <label className="block text-[11px] text-stone-400 mb-1">Usuario / Correo Electrónico</label>
                             <div className="relative">

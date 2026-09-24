@@ -187,7 +187,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
             return (
               <div
                 key={`${product.id}-inf-${idx}`}
-                className={`w-[155px] sm:w-[210px] md:w-[220px] min-w-[155px] sm:min-w-[210px] md:min-w-[220px] max-w-[160px] sm:max-w-[210px] md:max-w-[220px] snap-start bg-white border border-stone-200 hover:border-[#ffd129] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between shrink-0 group relative ${
+                className={`w-[155px] sm:w-[210px] md:w-[220px] min-w-[155px] sm:min-w-[210px] md:min-w-[220px] max-w-[160px] sm:max-w-[210px] md:max-w-[220px] snap-start bg-[#121214]/90 border border-stone-800/80 hover:border-[#ffd129] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between shrink-0 group relative ${
                   isVisualEditMode ? 'cursor-pointer ring-1 ring-amber-400 ring-dashed hover:ring-2' : ''
                 }`}
                 onClick={() => {
@@ -196,6 +196,16 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                   }
                 }}
               >
+                {/* Capa de fondo desenfocado de la misma foto del producto */}
+                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-xl sm:rounded-2xl">
+                  <img 
+                    src={product.image} 
+                    alt="" 
+                    className="w-full h-full object-cover blur-md scale-125 opacity-30" 
+                  />
+                  <div className="absolute inset-0 bg-stone-950/75"></div>
+                </div>
+
                 {isVisualEditMode && (
                   <button
                     type="button"
@@ -203,15 +213,15 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                       e.stopPropagation();
                       if (onQuickEditProduct) onQuickEditProduct(product, category.id);
                     }}
-                    className="absolute top-2 right-2 z-20 bg-stone-900/90 hover:bg-stone-900 text-[#ffd129] text-[9px] font-black px-2 py-0.5 rounded shadow flex items-center gap-1 border border-stone-700 cursor-pointer"
+                    className="absolute top-2 right-2 z-20 bg-stone-900/95 hover:bg-stone-900 text-[#ffd129] text-[9px] font-black px-2 py-0.5 rounded shadow flex items-center gap-1 border border-stone-700 cursor-pointer"
                   >
                     <Emoji3D name="pen" className="w-3 h-3" alt="Editar" />
                     <span>Editar</span>
                   </button>
                 )}
 
-                <div>
-                  <div className="aspect-square w-full bg-stone-100 rounded-xl mb-2 sm:mb-2.5 overflow-hidden relative">
+                <div className="relative z-10">
+                  <div className="aspect-square w-full bg-stone-900 rounded-xl mb-2 sm:mb-2.5 overflow-hidden relative">
                     <img
                       src={product.image}
                       alt={product.name}
@@ -232,27 +242,27 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                   </div>
                   {product.subcategory && product.subcategory !== category.name && (
                     <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                      <span className="text-[9px] font-bold text-stone-500 uppercase tracking-wider truncate bg-stone-100 px-1.5 py-0.5 rounded border border-stone-200">
+                      <span className="text-[9px] font-bold text-[#ffd129] uppercase tracking-wider truncate bg-stone-950/60 px-1.5 py-0.5 rounded border border-stone-800">
                         {product.subcategory}
                       </span>
                     </div>
                   )}
-                  <h5 className="text-xs font-semibold text-stone-900 mt-0.5 group-hover:text-amber-700 transition line-clamp-2 h-8 leading-snug break-words">
+                  <h5 className="text-xs font-semibold text-stone-100 mt-0.5 group-hover:text-[#ffd129] transition line-clamp-2 h-8 leading-snug break-words">
                     {product.name}
                   </h5>
-                  <p className="text-[10px] text-stone-500 mt-1 line-clamp-2 font-light">
+                  <p className="text-[10px] text-stone-400 mt-1 line-clamp-2 font-light">
                     {product.description}
                   </p>
                 </div>
 
-                <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between gap-1.5 min-w-0">
+                <div className="mt-3 pt-2.5 border-t border-stone-800/80 flex items-center justify-between gap-1.5 min-w-0 relative z-10">
                   <div className="min-w-0">
                     {hasDiscount && (
-                      <span className="text-[10px] font-bold text-red-600 line-through decoration-red-600 decoration-2 block leading-tight">
+                      <span className="text-[10px] font-bold text-red-500 line-through decoration-red-500 decoration-2 block leading-tight">
                         {formatPrice(product.originalPrice!)}
                       </span>
                     )}
-                    <span className="text-xs font-black text-[#141414] block truncate">
+                    <span className="text-xs font-black text-white block truncate">
                       {formatPrice(product.price)}
                     </span>
                   </div>
@@ -260,7 +270,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                     <button
                       disabled
                       aria-label={`${product.name} sin stock`}
-                      className="bg-stone-200 text-stone-500 text-[10px] font-bold px-2 py-1.5 rounded-lg cursor-not-allowed flex items-center gap-1 opacity-70 shrink-0"
+                      className="bg-stone-800 text-stone-500 text-[10px] font-bold px-2 py-1.5 rounded-lg cursor-not-allowed flex items-center gap-1 opacity-70 shrink-0"
                     >
                       <Emoji3D name="prohibited" className="w-3 h-3" alt="Sin stock" />
                       <span>Sin stock</span>

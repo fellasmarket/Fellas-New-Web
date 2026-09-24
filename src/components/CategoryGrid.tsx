@@ -85,23 +85,14 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
   if (isEmergencyMode) return null;
 
   return (
-    <section className="max-w-7xl mx-auto mt-8 px-1 sm:px-0">
-      <div className="mb-4 px-2 text-center flex flex-col items-center justify-center">
-        <h3 
-          className="text-base font-bold flex items-center gap-2 justify-center text-center"
-          style={{ 
-            color: titleColor,
-            textShadow: glowEnabled && glowColor ? `0 0 8px ${glowColor}, 0 0 15px ${glowColor}` : 'none'
-          }}
-        >
-          <span>🍾</span> Explorar Colecciones & Áreas
-        </h3>
-        <p 
-          className="text-xs font-light mt-0.5 text-center"
-          style={{ color: descColor }}
-        >
-          Encuentra tus licores favoritos, cervezas heladas, vinos y acompañamientos para cada ocasión.
-        </p>
+    <section className="max-w-7xl mx-auto mt-4 sm:mt-5 md:mt-6 mb-4 sm:mb-5 px-1 sm:px-0">
+      {/* Banner de Imagen en reemplazo del título y descripción (mitad de altura, ultra elegante, solo imagen) */}
+      <div className="mb-3 sm:mb-4 md:mb-5 relative rounded-2xl sm:rounded-3xl overflow-hidden h-14 sm:h-20 md:h-24 shadow-lg border border-stone-800">
+        <img
+          src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1200&auto=format&fit=crop"
+          alt="Explorar Colecciones"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
       </div>
 
       {/* 2 filas horizontales de 4 columnas (2x4 = 8 colecciones) */}
