@@ -100,7 +100,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
         {CATEGORY_ITEMS.map((item) => (
           <div
             key={item.id}
-            className="relative group overflow-hidden rounded-xl sm:rounded-2xl bg-stone-900 border border-stone-300 h-32 sm:h-48 md:h-56 flex flex-col justify-end p-2 sm:p-4 md:p-5 transition-all duration-500 hover:border-[#ffd129] hover:shadow-[0_10px_30px_rgba(255,209,41,0.2)]"
+            className="relative group overflow-hidden rounded-xl sm:rounded-2xl bg-stone-900 border border-stone-800 h-32 sm:h-48 md:h-56 flex flex-col justify-end p-2 sm:p-4 md:p-5 transition-all duration-500"
           >
             <img
               src={item.image}
@@ -114,7 +114,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
                 <span className="text-[8px] sm:text-[10px] text-[#ffd129] font-medium block leading-none truncate mb-0.5 sm:mb-1">
                   {item.subtitle}
                 </span>
-                <h4 className="text-[11px] sm:text-sm font-bold text-white group-hover:text-[#ffd129] transition line-clamp-1 sm:line-clamp-2 leading-tight">
+                <h4 className="text-[11px] sm:text-sm font-bold text-white transition line-clamp-1 sm:line-clamp-2 leading-tight">
                   {item.title}
                 </h4>
               </div>

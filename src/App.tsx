@@ -673,7 +673,7 @@ export default function App() {
                       return (
                         <div
                           key={product.id}
-                          className={`bg-[#121214]/90 border border-stone-800/80 hover:border-[#ffd129] rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative ${
+                          className={`bg-[#121214]/90 border border-stone-800/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative ${
                             user?.role === 'admin' && isVisualEditMode ? 'cursor-pointer ring-1 ring-amber-400 ring-dashed' : ''
                           }`}
                           onClick={() => {
@@ -725,7 +725,7 @@ export default function App() {
                             <span className="text-[8px] sm:text-[10px] font-bold text-amber-500 uppercase tracking-wider block truncate">
                               {product.subcategory}
                             </span>
-                            <h4 className="text-xs sm:text-sm font-bold text-stone-100 mt-0.5 group-hover:text-[#ffd129] transition line-clamp-2 leading-tight">
+                            <h4 className="text-xs sm:text-sm font-bold text-stone-100 mt-0.5 transition line-clamp-2 leading-tight">
                               {product.name}
                             </h4>
                             <p className="text-[10px] sm:text-xs text-stone-400 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-2 font-light">

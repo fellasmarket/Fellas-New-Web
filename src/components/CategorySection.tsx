@@ -187,7 +187,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
             return (
               <div
                 key={`${product.id}-inf-${idx}`}
-                className={`w-[155px] sm:w-[210px] md:w-[220px] min-w-[155px] sm:min-w-[210px] md:min-w-[220px] max-w-[160px] sm:max-w-[210px] md:max-w-[220px] snap-start bg-[#121214]/90 border border-stone-800/80 hover:border-[#ffd129] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between shrink-0 group relative ${
+                className={`w-[155px] sm:w-[210px] md:w-[220px] min-w-[155px] sm:min-w-[210px] md:min-w-[220px] max-w-[160px] sm:max-w-[210px] md:max-w-[220px] snap-start bg-[#121214]/90 border border-stone-800/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between shrink-0 group relative ${
                   isVisualEditMode ? 'cursor-pointer ring-1 ring-amber-400 ring-dashed hover:ring-2' : ''
                 }`}
                 onClick={() => {
@@ -247,7 +247,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                       </span>
                     </div>
                   )}
-                  <h5 className="text-xs font-semibold text-stone-100 mt-0.5 group-hover:text-[#ffd129] transition line-clamp-2 h-8 leading-snug break-words">
+                  <h5 className="text-xs font-semibold text-stone-100 mt-0.5 transition line-clamp-2 h-8 leading-snug break-words">
                     {product.name}
                   </h5>
                   <p className="text-[10px] text-stone-400 mt-1 line-clamp-2 font-light">

@@ -95,7 +95,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
               return (
                 <div
                   key={offer.id}
-                  className={`bg-[#121214]/90 rounded-lg sm:rounded-2xl p-1.5 sm:p-3.5 md:p-4 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-3.5 md:gap-4 group transition-all duration-300 shadow-lg border border-stone-800 hover:border-[#ffd129] text-white min-w-0 relative ${
+                  className={`bg-[#121214]/90 rounded-lg sm:rounded-2xl p-1.5 sm:p-3.5 md:p-4 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-3.5 md:gap-4 group transition-all duration-300 shadow-lg border border-stone-800 text-white min-w-0 relative ${
                     isVisualEditMode ? 'cursor-pointer ring-2 ring-amber-400 ring-dashed hover:shadow-2xl' : ''
                   }`}
                   onClick={() => {
@@ -150,7 +150,7 @@ export const MegaOffers: React.FC<MegaOffersProps> = ({
                       <span className="block text-[7px] sm:text-[10px] text-[#ffd129]/90 font-extrabold uppercase tracking-wider leading-none truncate">
                         {offer.subcategory}
                       </span>
-                      <h4 className="text-[10px] sm:text-sm md:text-base font-black text-stone-100 mt-0.5 leading-tight line-clamp-1 sm:line-clamp-2 break-words group-hover:text-[#ffd129] transition">
+                      <h4 className="text-[10px] sm:text-sm md:text-base font-black text-stone-100 mt-0.5 leading-tight line-clamp-1 sm:line-clamp-2 break-words transition">
                         {offer.name}
                       </h4>
                     </div>
